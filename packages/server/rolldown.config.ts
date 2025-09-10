@@ -12,7 +12,7 @@ const sharedNodeOptions = defineConfig({
   platform: 'node',
   output: {
     dir: './dist',
-    entryFileNames: `node/[name].js`,
+    entryFileNames: `[name].js`,
     exports: 'named',
     format: 'esm',
     preserveModules: true,
