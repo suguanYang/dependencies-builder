@@ -1,0 +1,5 @@
+name: main-codeql-queries
+version: 0.1.0
+library: false
+dependencies:
+  codeql/javascript-all: "2.6.9"

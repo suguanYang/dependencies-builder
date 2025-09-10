@@ -27,68 +27,6 @@ We are usually have 2 kinds of dependencies can be categorized by integration st
 
 ### 3. The unknown dependencies
 
-## Implementation
-The implmentation is mainly consists of 2 parts:
-
-1. Dependencies database.
-2. Static analysis
-
-### Dependencies database
-The database is used for create, update and query the dependencies graph.
-
-It main consists 2 types of data:
-- Node
-```json
-{
-  "id": "",
-  "branch": "",
-  "project": "@seeyon/ui",
-  "revisionId": "",
-
-  "type": "NamedExport" | "NamedImport",
-  "name": "Button",
-  "meta": {
-    "location": {
-        "file": "",
-        "line": "",
-        "column": "",
-    },
-  }
-}
-```
-
-- Edge
-```json
-{
-  "from": "",
-  "to": "",
-
-  "meta": {
-  }
-}
-```
-
-
-### Static Analysis
-The static-analysis should do the following things:
-1. Get Nodes and Edges that belong to the project.
-2. Detect dependecy changes for given changes
-
-
-### Validation
-Validation should run parallel, and block the CI pipeline if there is any error.
-
-- delete Node that is used by other modules(error)
-- import a Node that is not in the dependency graph(error)
-- read/write on the same Storage(local storage, session storage, global variables)(warning)
-- code changes that on the dependency path should be detected
-    - e.g. a line of code that in the function A, A is on a call graph path that is a Node
-    - React Component changed that is on a render tree path which is a dependency node that used by other modules
-- a cyclic dependency path is detected
-
-### Reporting
-
-
 ## Example scenarios
 
 ### 1. /xxx/remoteEntry.js 404
@@ -101,44 +39,6 @@ Validation should run parallel, and block the CI pipeline if there is any error.
 
 ## Hatch
 When code that do need to break the dependency, esplecially large refactorying involves, we need to bypass the validation.
-
-## The Dependecy Manager Server
-We need a server to store the dependencies and provide the API for the dependencies management.
-
-### The database
-SQlite, by only store project-level dependencies in the central database, this simpltfy the query for dependecy-graph in a relation database.
-And it also supports raw json column for the metadata property.
-
-### The API
-
-<!-- - get the depdency nodes
-/GET /nodes
-/GET /nodes/:id
-/POST /nodes
-/PUT /nodes/:id 
-/DELETE /nodes/:id
-
-- get the dependency edges
-/GET /edges
-/GET /edges/:id
-/POST /edges
-/PUT /edges/:id
-/DELETE /edges/:id
-
-- get the dependency graph by project key
-/GET /dependencies/:project -->
-
-- create a DMS pipeline
-/POST /dms/actions
-/GET /dms/actions/:id
-/DELETE /dms/actions/:id
-
-- get action result
-/GET /dms/actions/:id/result
-
-
-### The framework
-Fastify, performant, easy to use, good DX
 
 ## Static Analysis
 
