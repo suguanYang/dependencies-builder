@@ -19,8 +19,12 @@ We have a runtime function called dynamicImport, this function is used to import
 imported module.
 
 ## Commands
-It only provides one command to run the static analysis, at its internal, it will do the following steps:
+It only provides one command to run the static analysis
 
+```bash
+clis analyze --project=<git http url> --branch=<branch name>
+```
+At its internal, it will do the following steps:
 1. Checkout the repository
 2. Initialize the codeQL execution environment
 3. Create the codeQL database
@@ -28,14 +32,22 @@ It only provides one command to run the static analysis, at its internal, it wil
 5. Interprete the query results
 6. Upload the result to the server
 
+## The Checkout
+The checkout is a function to checkout the repository from the gitlab, it will use the gitlab api to get the repository, and then checkout the repository to the local.
 
 ## The codeQL adapter
 The adapter should be a programmatic API for the codeQL cli client, so that we can use it to analyze the code.
 
+### CodeQL Queries
+This is the core part about the static analysis, it will use the codeQL queries to analyze the code, and then generate the result.
+It may need to accept some parameters to fullfill the query, like the we'd like to query call-graph of a given Function AST location.
+
+## Result processing
+Before we can upload the result to the server, we need to process the result, because at the server side we only store Nodes and Connections, we may also need to fetch the Nodes or Connections from other Projects.
+
 
 ## Tech stack
-
 Requirements:
 - NodeJS v22
 - Typescript
-- Vitest
+- Yargs

@@ -1,1 +1,0 @@
-// a adapter for the codeql cli client

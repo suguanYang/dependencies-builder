@@ -1,0 +1,99 @@
+Analyze (javascript-typescript)
+succeeded 3 days ago in 55s
+Search logs
+1s
+Current runner version: '2.328.0'
+Runner Image Provisioner
+Operating System
+Runner Image
+GITHUB_TOKEN Permissions
+Secret source: Actions
+Prepare workflow directory
+Prepare all required actions
+Getting action download info
+Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+Download action repository 'github/codeql-action@v3' (SHA:f1f6e5f6af878fb37288ce1c627459e94dbf7d01)
+Complete job name: Analyze (javascript-typescript)
+1s
+Run actions/checkout@v4
+Syncing repository: suguanYang/next-web
+Getting Git version info
+Temporarily overriding HOME='/home/runner/work/_temp/2fe88395-935b-40b7-b97d-7a56d4a9a66f' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/next-web/next-web
+Deleting the contents of '/home/runner/work/next-web/next-web'
+Initializing the repository
+Disabling automatic garbage collection
+Setting up auth
+Fetching the repository
+Determining the checkout info
+/usr/bin/git sparse-checkout disable
+/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Checking out the ref
+/usr/bin/git log -1 --format=%H
+834df2c753025536af2ff4f49df7faffa05536ad
+13s
+Run github/codeql-action/init@v3
+Job run UUID is 75bcb029-7ad9-4b9f-b6bf-ed9c277ef600.
+Setup CodeQL tools
+Validating workflow
+Load language configuration
+While resolving threads, found a cgroup CPUs file with 4 CPUs in /sys/fs/cgroup/cpuset.cpus.effective.
+Skipping download of dependency cache for javascript as we have no caching configuration for it.
+Writing augmented user configuration file to /home/runner/work/_temp/user-config.yaml
+Augmented user configuration file contents
+/opt/hostedtoolcache/CodeQL/2.23.0/x64/codeql/codeql database init --force-overwrite --db-cluster /home/runner/work/_temp/codeql_databases --source-root=/home/runner/work/next-web/next-web --calculate-language-specific-baseline --extractor-include-aliases --sublanguage-file-coverage --language=javascript --codescanning-config=/home/runner/work/_temp/user-config.yaml --build-mode=none
+Package install location: /home/runner/.codeql/packages
+Nothing downloaded.
+Calculating baseline information in /home/runner/work/next-web/next-web
+Running command in /home/runner/work/next-web/next-web: [/opt/hostedtoolcache/CodeQL/2.23.0/x64/codeql/javascript/tools/configure-baseline.sh]
+Calculated baseline information for languages: javascript, typescript (67ms).
+Resolving extractor javascript.
+Successfully loaded extractor JavaScript/TypeScript (javascript) from /opt/hostedtoolcache/CodeQL/2.23.0/x64/codeql/javascript.
+Created skeleton CodeQL database at /home/runner/work/_temp/codeql_databases/javascript. This in-progress database is ready to be populated by an extractor.
+0s
+Run github/codeql-action/start-proxy@v3
+Using registry_secrets input.
+No credentials found, skipping proxy setup.
+36s
+Run github/codeql-action/analyze@v3
+While resolving threads, found a cgroup CPUs file with 4 CPUs in /sys/fs/cgroup/cpuset.cpus.effective.
+Not performing diff-informed analysis because we are not analyzing a pull request.
+Extracting javascript
+Finalizing javascript
+Running queries for javascript
+Interpreting results for javascript
+CodeQL scanned 39 out of 39 TypeScript files and 6 out of 6 JavaScript files in this invocation. Check the status page for overall coverage information: https://github.com/suguanYang/next-web/security/code-scanning/tools/CodeQL/status/
+
+Uploading code scanning results
+Cleaning up databases
+/opt/hostedtoolcache/CodeQL/2.23.0/x64/codeql/codeql database bundle /home/runner/work/_temp/codeql_databases/javascript --output=/home/runner/work/_temp/codeql_databases/javascript.zip --name=javascript
+Creating bundle metadata for /home/runner/work/_temp/codeql_databases/javascript...
+Creating zip file at /home/runner/work/_temp/codeql_databases/javascript.zip.
+Skipping upload of TRAP cache for javascript as it is too small
+Skipping upload of dependency cache for javascript as we have no caching configuration for it.
+Waiting for processing to finish
+1s
+Post job cleanup.
+0s
+Post job cleanup.
+1s
+Post job cleanup.
+CodeQL job status was success.
+Sending status report for init-post step.
+Status report sent for init-post step.
+0s
+Post job cleanup.
+/usr/bin/git version
+git version 2.51.0
+Temporarily overriding HOME='/home/runner/work/_temp/454db31d-075a-4e39-99a7-23b7c067cd20' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/next-web/next-web
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+0s
+Cleaning up orphan processes
