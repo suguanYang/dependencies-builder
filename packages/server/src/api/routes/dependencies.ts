@@ -1,12 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { NodeRepository, ConnectionRepository } from '../../database/repository';
-import { DependencyManager } from '../../dependency';
+import * as repository from '../../database/repository';
+import * as dependencyManager from '../../dependency';
 
-export function dependenciesRoutes(
+function dependenciesRoutes(
   fastify: FastifyInstance,
-  nodeRepository: NodeRepository,
-  connectionRepository: ConnectionRepository,
-  dependencyManager: DependencyManager
 ) {
   // GET /dependencies/:nodeId - Get dependency graph for a node
   fastify.get('/dependencies/:nodeId', async (request, reply) => {
@@ -14,8 +11,8 @@ export function dependenciesRoutes(
       const { nodeId } = request.params as { nodeId: string };
 
       // Get all nodes and edges for the graph
-      const nodesResult = await nodeRepository.getNodes({ take: 0 });
-      const connectionsResult = await connectionRepository.getConnections({ take: 0 });
+      const nodesResult = await repository.getNodes({ take: 0 });
+      const connectionsResult = await repository.getConnections({ take: 0 });
 
       const graph = dependencyManager.getFullDependencyGraph(
         nodeId,
@@ -34,8 +31,8 @@ export function dependenciesRoutes(
     try {
       const { fromId, toId } = request.body as { fromId: string; toId: string };
 
-      const fromNode = await nodeRepository.getNodeById(fromId);
-      const toNode = await nodeRepository.getNodeById(toId);
+      const fromNode = await repository.getNodeById(fromId);
+      const toNode = await repository.getNodeById(toId);
 
       if (!fromNode || !toNode) {
         reply.code(404).send({ error: 'One or both nodes not found' });
@@ -55,7 +52,7 @@ export function dependenciesRoutes(
     try {
       const { nodeId } = request.params as { nodeId: string };
 
-      const connectionsResult = await connectionRepository.getConnections({ take: 0 });
+      const connectionsResult = await repository.getConnections({ take: 0 });
       const cycles = dependencyManager.findCircularDependencies(connectionsResult.data);
 
       return { cycles };
@@ -64,3 +61,5 @@ export function dependenciesRoutes(
     }
   });
 }
+
+export default dependenciesRoutes;

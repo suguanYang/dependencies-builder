@@ -3,7 +3,7 @@
   "include": ["rolldown.config.ts", "src/**/*.ts"],
   "compilerOptions": {
     "noEmit": true,
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo",
 
     "module": "ESNext",
     "moduleResolution": "Bundler",

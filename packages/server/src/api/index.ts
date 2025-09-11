@@ -1,21 +1,14 @@
 import { FastifyInstance } from 'fastify';
-import { NodeRepository, ConnectionRepository } from '../database/repository';
-import { DependencyManager } from '../dependency';
-import { nodesRoutes } from './routes/nodes';
-import { connectionsRoutes } from './routes/connections';
+import nodesRoutes from './routes/nodes';
+import connectionsRoutes from './routes/connections';
 import { dependenciesRoutes } from './routes/dependencies';
 import { prisma } from '../database/prisma';
 
 export async function setupAPI(fastify: FastifyInstance) {
-  // Initialize repositories
-  const nodeRepository = new NodeRepository();
-  const connectionRepository = new ConnectionRepository();
-  const dependencyManager = new DependencyManager();
-
   // Register routes
-  nodesRoutes(fastify, nodeRepository);
-  connectionsRoutes(fastify, connectionRepository);
-  dependenciesRoutes(fastify, nodeRepository, connectionRepository, dependencyManager);
+  fastify.register(nodesRoutes);
+  fastify.register(connectionsRoutes);
+  fastify.register(dependenciesRoutes);
 
   // Health check endpoint
   fastify.get('/health', async (request, reply) => {

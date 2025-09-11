@@ -79,11 +79,34 @@ present the graph.
     ],
     "edges": [
       {
-        "connection": {},
         "tailvertex": vertices_idx,
         "headvertex": vertices_idx,
         "tailedge": edges_idx,
         "headedge": edges_idx,
+      }
+    ]
+  }
+  ```
+
+#### The dependency graph at the project level
+- /GET /dependencies/projects/:project/:branch
+  - Response:
+  ```json
+  {
+    "vertices": [
+      "node": {
+        "project": "",
+        "branch": ""
+      }
+      "firstIn": edges_idx // the index of the first incoming edge
+      "firstOut": edges_idx // the index of the first outgoing edge
+    ],
+    "edges": [
+      {
+        "tailvertex": vertices_idx,
+        "headvertex": vertices_idx,
+        "tailLink": edges_idx, // the next edge with same tail vertex
+        "headLink": edges_idx, // the next edge with same head vertex
       }
     ]
   }

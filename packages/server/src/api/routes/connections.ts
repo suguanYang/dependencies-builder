@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { ConnectionRepository } from '../../database/repository';
+import * as repository from '../../database/repository';
 import type { ConnectionQuery } from '../types';
 import type { Connection } from '../../generated/prisma';
 
-export function connectionsRoutes(fastify: FastifyInstance, connectionRepository: ConnectionRepository) {
+function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
@@ -13,7 +13,7 @@ export function connectionsRoutes(fastify: FastifyInstance, connectionRepository
         take: limit,
         skip: offset,
       };
-      const result = await connectionRepository.getConnections(query);
+      const result = await repository.getConnections(query);
       return {
         data: result.data,
         total: result.total,
@@ -29,7 +29,7 @@ export function connectionsRoutes(fastify: FastifyInstance, connectionRepository
   fastify.post('/connections', async (request, reply) => {
     try {
       const { fromId, toId } = request.body as Omit<Connection, 'id' | 'createdAt'>;
-      const connection = await connectionRepository.createConnection(fromId, toId);
+      const connection = await repository.createConnection(fromId, toId);
       reply.code(201).send(connection);
     } catch (error) {
       reply.code(500).send({ error: 'Failed to create connection', details: error instanceof Error ? error.message : 'Unknown error' });
@@ -40,7 +40,7 @@ export function connectionsRoutes(fastify: FastifyInstance, connectionRepository
   fastify.delete('/connections-by-from/:fromId', async (request, reply) => {
     try {
       const { fromId } = request.params as Pick<Connection, 'fromId'>;
-      const success = await connectionRepository.deleteConnectionsByFrom(fromId);
+      const success = await repository.deleteConnectionsByFrom(fromId);
 
       if (!success) {
         reply.code(404).send({ error: 'No connections found for the specified from node' });
@@ -53,3 +53,5 @@ export function connectionsRoutes(fastify: FastifyInstance, connectionRepository
     }
   });
 }
+
+export default connectionsRoutes;

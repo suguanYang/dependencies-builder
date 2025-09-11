@@ -14,6 +14,16 @@ export interface GraphConnection {
 }
 
 export interface DependencyGraph {
-  nodes: GraphNode[];
-  edges: GraphConnection[];
+  vertices: {
+    data: GraphNode;
+    firstIn: number;
+    firstOut: number;
+  }[];
+  edges: {
+    data: GraphConnection;
+    tailvertex: number;
+    headvertex: number;
+    headnext: number;
+    tailnext: number;
+  }[];
 }
