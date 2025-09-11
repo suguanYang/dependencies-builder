@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "format": "prettier --write ."
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -18,6 +20,7 @@
     "@typescript/native-preview": "7.0.0-dev.20250910.1",
     "rimraf": "^6.0.1",
     "rolldown": "1.0.0-beta.36",
+    "prettier": "3.6.2",
     "tsx": "4.20.5",
     "vitest": "^3.2.4"
   }

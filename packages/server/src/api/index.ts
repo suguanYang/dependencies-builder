@@ -1,34 +1,34 @@
-import { FastifyInstance } from 'fastify';
-import nodesRoutes from './routes/nodes';
-import connectionsRoutes from './routes/connections';
-import { dependenciesRoutes } from './routes/dependencies';
-import { prisma } from '../database/prisma';
+import { FastifyInstance } from 'fastify'
+import nodesRoutes from './routes/nodes'
+import connectionsRoutes from './routes/connections'
+import dependenciesRoutes from './routes/dependencies'
+import { prisma } from '../database/prisma'
 
 export async function setupAPI(fastify: FastifyInstance) {
   // Register routes
-  fastify.register(nodesRoutes);
-  fastify.register(connectionsRoutes);
-  fastify.register(dependenciesRoutes);
+  fastify.register(nodesRoutes)
+  fastify.register(connectionsRoutes)
+  fastify.register(dependenciesRoutes)
 
   // Health check endpoint
   fastify.get('/health', async (request, reply) => {
     try {
       // Simple health check - try to count nodes
-      await prisma.node.count();
+      await prisma.node.count()
       return {
         status: 'OK',
         database: 'connected',
-        timestamp: new Date().toISOString()
-      };
+        timestamp: new Date().toISOString(),
+      }
     } catch (error) {
       return {
         status: 'ERROR',
         database: 'disconnected',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
-  });
+  })
 
   // Root endpoint
   fastify.get('/', async (request, reply) => {
@@ -41,8 +41,8 @@ export async function setupAPI(fastify: FastifyInstance) {
         '/edges',
         '/edges/:id',
         '/dependencies/:nodeId',
-        '/health'
-      ]
-    };
-  });
+        '/health',
+      ],
+    }
+  })
 }

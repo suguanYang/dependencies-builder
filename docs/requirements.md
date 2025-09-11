@@ -3,6 +3,7 @@ This document will explain and introduce the new dependecies management system f
 The DMS(dependency management system) main goal is to manage and validate on dependency breakage.
 
 It must includes the following features:
+
 - validation
 - reporting
 
@@ -11,19 +12,21 @@ It must includes the following features:
 Code that involes 2 different **modules** will create dependency.
 
 ## What are the dependencies?
-We are usually have 2 kinds of dependencies can be categorized by integration strategy, this choice dictates how the independently developed parts(micorfrontend apps) are assembled into a cohesive system. The two primary approaches are build-time integration and runtime integration.     
 
+We are usually have 2 kinds of dependencies can be categorized by integration strategy, this choice dictates how the independently developed parts(micorfrontend apps) are assembled into a cohesive system. The two primary approaches are build-time integration and runtime integration.
 
 ### 1. Build-time Integration(Static Dependencies)
+
 1. Static ES6 Modules
 2. MF webpack config
 
 ### 2. Runtime Integration(Dynamic Dependencies)
+
 1. runtime dynamic import
 2. externals(global vendros mounted on the window)
 3. Global State(global variables, local storage, session storage)
-3. Events
-4. Runtime MF reference
+4. Events
+5. Runtime MF reference
 
 ### 3. The unknown dependencies
 
@@ -38,6 +41,7 @@ We are usually have 2 kinds of dependencies can be categorized by integration st
 ### 4. xxx is not a function
 
 ## Hatch
+
 When code that do need to break the dependency, esplecially large refactorying involves, we need to bypass the validation.
 
 ## Static Analysis
@@ -51,7 +55,6 @@ When code that do need to break the dependency, esplecially large refactorying i
 - Get the dynamic module federation reference(CodeQL scripts)
 
 ## Gitlab Integration
-
 
 ## Validation
 

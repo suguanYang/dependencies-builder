@@ -3,9 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'rolldown'
 
-const pkg = JSON.parse(
-  readFileSync(new URL('./package.json', import.meta.url)).toString(),
-)
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url)).toString())
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 const sharedNodeOptions = defineConfig({
@@ -27,13 +25,9 @@ const sharedNodeOptions = defineConfig({
 const nodeConfig = defineConfig({
   ...sharedNodeOptions,
   input: {
-    index: path.resolve(__dirname, 'src/index.ts')
+    index: path.resolve(__dirname, 'src/index.ts'),
   },
-  external: [
-    ...Object.keys(pkg.dependencies),
-    ...Object.keys(pkg.peerDependencies),
-  ]
+  external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 })
-
 
 export default nodeConfig

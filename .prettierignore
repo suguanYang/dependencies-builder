@@ -1,0 +1,4 @@
+packages/server/src/generated
+dist
+pnpm-lock.yaml
+readme.md

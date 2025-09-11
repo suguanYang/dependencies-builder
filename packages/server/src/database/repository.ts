@@ -1,8 +1,8 @@
-import { prisma } from './prisma';
-import { Prisma } from '../generated/prisma';
+import { prisma } from './prisma'
+import { Prisma } from '../generated/prisma'
 
 export async function getNodes(query: Prisma.NodeFindManyArgs) {
-  const { where, take, skip } = query;
+  const { where, take, skip } = query
 
   const [data, total] = await Promise.all([
     prisma.node.findMany({
@@ -12,49 +12,54 @@ export async function getNodes(query: Prisma.NodeFindManyArgs) {
       skip: skip || 0,
     }),
     prisma.node.count({ where }),
-  ]);
+  ])
 
   return {
     data: data,
     total,
-  };
+  }
 }
 
 export async function getNodeById(id: string) {
   const node = await prisma.node.findUnique({
     where: { id },
-  });
-  return node;
+  })
+  return node
 }
 
-export async function createNode(node: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function createNode(
+  node: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
+) {
   const createdNode = await prisma.node.create({
     data: node,
-  });
-  return createdNode;
+  })
+  return createdNode
 }
 
-export async function updateNode(id: string, updates: Omit<Prisma.NodeUpdateInput, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function updateNode(
+  id: string,
+  updates: Omit<Prisma.NodeUpdateInput, 'id' | 'createdAt' | 'updatedAt'>,
+) {
   const updatedNode = await prisma.node.update({
     where: { id },
     data: updates,
-  });
-  return updatedNode;
+  })
+  return updatedNode
 }
 
 export async function deleteNode(id: string) {
   try {
     await prisma.node.delete({
       where: { id },
-    });
-    return true;
+    })
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 export async function getConnections(query: Prisma.ConnectionFindManyArgs) {
-  const { take, skip, where } = query;
+  const { take, skip, where } = query
 
   const [data, total] = await Promise.all([
     prisma.connection.findMany({
@@ -68,17 +73,17 @@ export async function getConnections(query: Prisma.ConnectionFindManyArgs) {
       },
     }),
     prisma.connection.count({ where }),
-  ]);
+  ])
 
   return {
-    data: data.map(connection => ({
+    data: data.map((connection) => ({
       id: connection.id,
       fromId: connection.fromId,
       toId: connection.toId,
       createdAt: connection.createdAt,
     })),
     total,
-  };
+  }
 }
 
 export async function createConnection(fromId: string, toId: string) {
@@ -86,10 +91,10 @@ export async function createConnection(fromId: string, toId: string) {
   const [fromNode, toNode] = await Promise.all([
     prisma.node.findUnique({ where: { id: fromId } }),
     prisma.node.findUnique({ where: { id: toId } }),
-  ]);
+  ])
 
   if (!fromNode || !toNode) {
-    throw new Error('Both from and to nodes must exist');
+    throw new Error('Both from and to nodes must exist')
   }
 
   const connection = await prisma.connection.create({
@@ -97,24 +102,24 @@ export async function createConnection(fromId: string, toId: string) {
       fromId,
       toId,
     },
-  });
+  })
 
   return {
     id: connection.id,
     fromId: connection.fromId,
     toId: connection.toId,
     createdAt: connection.createdAt,
-  };
+  }
 }
 
 export async function deleteConnection(id: string) {
   try {
     await prisma.connection.delete({
       where: { id },
-    });
-    return true;
+    })
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
@@ -122,9 +127,9 @@ export async function deleteConnectionsByFrom(fromId: string) {
   try {
     await prisma.connection.deleteMany({
       where: { fromId },
-    });
-    return true;
+    })
+    return true
   } catch {
-    return false;
+    return false
   }
 }
