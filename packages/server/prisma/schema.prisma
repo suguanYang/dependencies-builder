@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dms.db"
+}
+
+enum NodeType {
+  NamedExport
+  NamedImport
+  RuntimeDynamicImport
+  Externals
+  GlobalState
+  EventOn
+  EventEmit
+  DynamicModuleFederationReference
+}
+
+model Node {
+  id           String   @id @default(cuid())
+  branch       String
+  project      String
+  version      String
+  type         NodeType
+  name         String
+  relativePath String
+  startLine    Int
+  startColumn  Int
+  meta         Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  // Relations
+  fromConnections Connection[] @relation("FromNode")
+  toConnections   Connection[] @relation("ToNode")
+
+  // Indexes
+  @@index([branch, project, type, name])
+  @@index([project, branch])
+  @@index([type, name])
+}
+
+model Connection {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  createdAt DateTime @default(now())
+
+  // Relations
+  fromNode Node @relation("FromNode", fields: [fromId], references: [id], onDelete: Cascade)
+  toNode   Node @relation("ToNode", fields: [toId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([fromId])
+  @@index([toId])
+  @@unique([fromId, toId])
+}

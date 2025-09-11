@@ -2,8 +2,7 @@
 A server to store the dependencies graph data and provide the API for the dependencies management.
 
 ### The database
-SQlite, by only store project-level dependencies in the central database, this simplify the query for dependecy-graph in a relation database.
-And it also supports raw json column for the metadata property.
+Store dependencies in a central database
 
 #### Schemas
 The main data structure is the dependency graph, which is a directed graph, the nodes are the dependencies, the edges are the connection between the nodes, and its directed. A Node can be a dependency or a dependent, so the Nodes are usually paired with the Edges, if A import(depends) B, then A is the `from` and B is the `to`.
@@ -29,7 +28,7 @@ The main data structure is the dependency graph, which is a directed graph, the 
 ```
 composite index: (branch, project, type, name)
 
-### Edge Table
+### Connection Table
 ```json
 {
   "id": "", // uuid
@@ -50,26 +49,46 @@ update the Node
 - /DELETE /nodes/:id
 Delete a Node if it exists(determined by the id)
 
-#### The dependency edges
-- /GET /edges?from=:from&to=:to$limit=:limit&offset=:offset
-- /GET /edges/:id
-- /POST /edges
-Create an Edge if there is no existing one(determined by the from and to) and both the `from` and `to` Nodes exist.
+#### The dependency connections
+- /GET /connections?from=:from&to=:to$limit=:limit&offset=:offset
+- /GET /connections/:id
+- /POST /connections
+Create an Connection if there is no existing one(determined by the from and to) and both the `from` and `to` Nodes exist.
 The caller is usally the project(which has a 'from' Node) who is depends on the 'to' Node,
 after it checked the existence of `to` Node, it want to declare a dependency between the 'from' and 'to' Nodes, which main goal is to
 let the Project(which owns the `to` node) do not remove or change it easily, since it was used by other projects
-<!-- - /PUT /edges/:id --> // there is no need to update an Edge, since the Edge is a connection between the Nodes, if the Nodes are changed, the Edge should be deleted and created again
-- /DELETE /edges-by-from/:from
-Delete an Edge if it exists(determined by the id)
-When the client found its `from` Nodes are deleted and there exists an edge that assoicated with it, it should delete the Edge timely.
-And there should no api that can delete the Edge by the `to` Node or its id, an Edges exists because there exists a dependency between the `from` and `to` Nodes
+<!-- - /PUT /connections/:id --> // there is no need to update an Connection, since the Connection is a connection between the Nodes, if the Nodes are changed, the Connection should be deleted and created again
+- /DELETE /connection-by-from/:from
+Delete an Connection if it exists(determined by the id)
+When the client found its `from` Nodes are deleted and there exists an connection that assoicated with it, it should delete the Connection timely.
+And there should no api that can delete the Connection by the `to` Node or its id, an Connections exists because there exists a dependency between the `from` and `to` Nodes
 or exists before, we need to keep this as a source of truth for the dependency graph, it can not be deleted by other projects except the `from` Project! because it existence ensure that
 dependecy is valid and protected.
 
 #### get the dependency graph by a given Node
 - /GET /dependencies/:node_id
-Create a dependency graph by the given Node id, it will recursively get the `from` Nodes and the `to` Nodes that are connected to the given Node, using adjacency list to
-process the graph.
+Create a dependency graph by the given Node id, it will recursively get the `from` Nodes and the `to` Nodes that are connected to the given Node, using orthogonnal list to
+present the graph.
+  - Response:
+  ```json
+  {
+    "vertices": [
+      "node": {},
+      "firstIn": edges_idx // the index of the first incoming edge
+      "firstOut": edges_idx // the index of the first outgoing edge
+    ],
+    "edges": [
+      {
+        "connection": {},
+        "tailvertex": vertices_idx,
+        "headvertex": vertices_idx,
+        "tailedge": edges_idx,
+        "headedge": edges_idx,
+      }
+    ]
+  }
+  ```
+
 
 #### create a action
 - /POST /actions  ## this should invoke the cli to run the static analysis

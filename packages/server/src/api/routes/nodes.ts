@@ -1,16 +1,25 @@
 import { FastifyInstance } from 'fastify';
 import { NodeRepository } from '../../database/repository';
-import { NodeQuery } from '../../dependency/types';
+import type { NodeQuery, NodeCreationBody } from '../types';
 
 export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeRepository) {
   // GET /nodes - Get nodes with query parameters
   fastify.get('/nodes', async (request, reply) => {
     try {
-      const query = request.query as NodeQuery;
-      const result = await nodeRepository.getNodes(query);
-      return result;
+      const { limit = 100, offset = 0, ...where } = request.query as NodeQuery;
+      const result = await nodeRepository.getNodes({
+        where,
+        take: limit,
+        skip: offset,
+      });
+      return {
+        data: result.data,
+        total: result.total,
+        limit,
+        offset,
+      };
     } catch (error) {
-      reply.code(500).send({ error: 'Failed to fetch nodes', details: error.message });
+      reply.code(500).send({ error: 'Failed to fetch nodes', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -19,7 +28,7 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
     try {
       const { id } = request.params as { id: string };
       const node = await nodeRepository.getNodeById(id);
-      
+
       if (!node) {
         reply.code(404).send({ error: 'Node not found' });
         return;
@@ -27,18 +36,18 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
 
       return node;
     } catch (error) {
-      reply.code(500).send({ error: 'Failed to fetch node', details: error.message });
+      reply.code(500).send({ error: 'Failed to fetch node', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // POST /nodes - Create a new node
   fastify.post('/nodes', async (request, reply) => {
     try {
-      const nodeData = request.body as Omit<Node, 'id' | 'createdAt' | 'updatedAt'>;
+      const nodeData = request.body as NodeCreationBody;
       const node = await nodeRepository.createNode(nodeData);
       reply.code(201).send(node);
     } catch (error) {
-      reply.code(500).send({ error: 'Failed to create node', details: error.message });
+      reply.code(500).send({ error: 'Failed to create node', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -46,10 +55,10 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
   fastify.put('/nodes/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const updates = request.body as Partial<Node>;
-      
+      const updates = request.body as Partial<NodeCreationBody>;
+
       const updatedNode = await nodeRepository.updateNode(id, updates);
-      
+
       if (!updatedNode) {
         reply.code(404).send({ error: 'Node not found' });
         return;
@@ -57,7 +66,7 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
 
       return updatedNode;
     } catch (error) {
-      reply.code(500).send({ error: 'Failed to update node', details: error.message });
+      reply.code(500).send({ error: 'Failed to update node', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -66,7 +75,7 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
     try {
       const { id } = request.params as { id: string };
       const success = await nodeRepository.deleteNode(id);
-      
+
       if (!success) {
         reply.code(404).send({ error: 'Node not found' });
         return;
@@ -74,7 +83,7 @@ export function nodesRoutes(fastify: FastifyInstance, nodeRepository: NodeReposi
 
       return { success: true, message: 'Node deleted successfully' };
     } catch (error) {
-      reply.code(500).send({ error: 'Failed to delete node', details: error.message });
+      reply.code(500).send({ error: 'Failed to delete node', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 }

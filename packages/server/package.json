@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "typecheck": "tsc && tsc -p src/node",
+    "typecheck": "tsgo",
     "build": "rolldown -c rolldown.config.ts",
     "dev": "tsx watch src/node/index.ts"
   },
@@ -16,10 +16,13 @@
     "fastify": "5.6.0"
   },
   "devDependencies": {
+    "@prisma/client": "^6.16.0",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22.10.2",
+    "@typescript/native-preview": "7.0.0-dev.20250910.1",
+    "prisma": "^6.16.0",
     "rimraf": "^6.0.1",
-    "tsx": "4.20.5",
-    "rolldown": "1.0.0-beta.36"
+    "rolldown": "1.0.0-beta.36",
+    "tsx": "4.20.5"
   }
 }

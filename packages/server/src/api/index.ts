@@ -1,30 +1,40 @@
 import { FastifyInstance } from 'fastify';
-import { DatabaseManager } from '../database/manager';
-import { NodeRepository, EdgeRepository } from '../database/repository';
+import { NodeRepository, ConnectionRepository } from '../database/repository';
 import { DependencyManager } from '../dependency';
 import { nodesRoutes } from './routes/nodes';
-import { edgesRoutes } from './routes/edges';
+import { connectionsRoutes } from './routes/connections';
 import { dependenciesRoutes } from './routes/dependencies';
+import { prisma } from '../database/prisma';
 
-export async function setupAPI(fastify: FastifyInstance, dbManager: DatabaseManager) {
+export async function setupAPI(fastify: FastifyInstance) {
   // Initialize repositories
-  const nodeRepository = new NodeRepository(dbManager);
-  const edgeRepository = new EdgeRepository(dbManager);
+  const nodeRepository = new NodeRepository();
+  const connectionRepository = new ConnectionRepository();
   const dependencyManager = new DependencyManager();
 
   // Register routes
   nodesRoutes(fastify, nodeRepository);
-  edgesRoutes(fastify, edgeRepository);
-  dependenciesRoutes(fastify, nodeRepository, edgeRepository, dependencyManager);
+  connectionsRoutes(fastify, connectionRepository);
+  dependenciesRoutes(fastify, nodeRepository, connectionRepository, dependencyManager);
 
   // Health check endpoint
   fastify.get('/health', async (request, reply) => {
-    const dbHealthy = await dbManager.healthCheck();
-    return {
-      status: 'OK',
-      database: dbHealthy ? 'connected' : 'disconnected',
-      timestamp: new Date().toISOString()
-    };
+    try {
+      // Simple health check - try to count nodes
+      await prisma.node.count();
+      return {
+        status: 'OK',
+        database: 'connected',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'ERROR',
+        database: 'disconnected',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   });
 
   // Root endpoint
