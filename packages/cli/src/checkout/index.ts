@@ -1,25 +1,25 @@
-import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import run from '../utils/run'
 import debug from '../utils/debug'
+import { existsSync } from '../utils/fs-helper'
+import { RepositoryAlreadyExistsException } from '../exceptions'
 
 export interface CheckoutOptions {
   url: string
   branch: string
   outputDir: string
   authToken?: string
-  sshKeyPath?: string
 }
 
 export async function checkoutRepository(options: CheckoutOptions): Promise<string> {
-  const { url, branch, outputDir, authToken, sshKeyPath } = options
+  const { url, branch, outputDir, authToken } = options
 
   const repoName = extractRepoName(url)
   const repoPath = join(outputDir, repoName)
 
   if (existsSync(repoPath)) {
     debug('Repository already exists at: %s', repoPath)
-    return repoPath
+    throw new RepositoryAlreadyExistsException(`Repository already exists at: ${repoPath}`)
   }
 
   debug('Cloning repository: %s#%s', url, branch)
@@ -31,17 +31,12 @@ export async function checkoutRepository(options: CheckoutOptions): Promise<stri
     let finalUrl = url
     if (authToken) {
       finalUrl = addAuthTokenToUrl(url, authToken)
-    } else if (sshKeyPath) {
-      finalUrl = convertToSshUrl(url)
     }
 
     gitArgs.push(finalUrl, repoPath)
 
     // Set environment variables for authentication
     const env = { ...process.env }
-    if (sshKeyPath) {
-      env.GIT_SSH_COMMAND = `ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no`
-    }
 
     await run('git', gitArgs, { env })
     return repoPath

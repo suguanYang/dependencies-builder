@@ -1,4 +1,3 @@
-import { existsSync, mkdirSync } from 'node:fs'
 import debug from '../utils/debug'
 import { checkoutRepository } from '../checkout'
 import {
@@ -22,11 +21,6 @@ export async function analyzeProject(options: AnalyzeOptions): Promise<void> {
   debug('Branch: %s', branch)
   debug('Output directory: %s', outputDir)
 
-  // Create output directory if it doesn't exist
-  if (!existsSync(outputDir)) {
-    mkdirSync(outputDir, { recursive: true })
-  }
-
   try {
     // Step 1: Checkout the repository
     const repoPath = await checkoutRepository({
@@ -35,7 +29,9 @@ export async function analyzeProject(options: AnalyzeOptions): Promise<void> {
       outputDir,
     })
 
-    debug('Repository checked out to: %s', repoPath)
+    debug('Repository checked out to: %s', repoPath);
+
+    return;
 
     // Step 2: Initialize CodeQL environment
     await initializeCodeQL()
