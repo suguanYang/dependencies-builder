@@ -5,6 +5,8 @@ export interface GraphNode {
   id: string
   name: string
   type: NodeType
+  project: string
+  branch: string
 }
 
 export interface GraphConnection {

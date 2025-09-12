@@ -73,16 +73,17 @@ present the graph.
   ```json
   {
     "vertices": [
-      "node": {},
+      "data": {}, // the Node data
       "firstIn": edges_idx // the index of the first incoming edge
       "firstOut": edges_idx // the index of the first outgoing edge
     ],
     "edges": [
       {
+        "data": {}, // the Connection data
         "tailvertex": vertices_idx,
         "headvertex": vertices_idx,
-        "tailedge": edges_idx,
-        "headedge": edges_idx,
+        "headnext": edges_idx,  // next edge with same head vertex
+        "tailnext": edges_idx,  // next edge with same tail vertex
       }
     ]
   }
@@ -124,6 +125,7 @@ present the graph.
 
 ## Main Technical Stack
 - Fastify
-- SQLite(better-sqlite3)
 - Typescript
 - Rolldown
+- Prisma
+- Vitest

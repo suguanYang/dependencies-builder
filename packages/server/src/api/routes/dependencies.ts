@@ -7,13 +7,13 @@ function dependenciesRoutes(fastify: FastifyInstance) {
   fastify.get('/dependencies/:nodeId', async (request, reply) => {
     try {
       const { nodeId } = request.params as { nodeId: string }
+      // Currently returns full graph - could be enhanced to filter by nodeId
 
       // Get all nodes and edges for the graph
       const nodesResult = await repository.getNodes({ take: 0 })
       const connectionsResult = await repository.getConnections({ take: 0 })
 
       const graph = dependencyManager.getFullDependencyGraph(
-        nodeId,
         nodesResult.data,
         connectionsResult.data,
       )
@@ -24,6 +24,33 @@ function dependenciesRoutes(fastify: FastifyInstance) {
         .code(500)
         .send({
           error: 'Failed to fetch dependency graph',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+    }
+  })
+
+  // GET /dependencies/projects/:project/:branch - Get project-level dependency graph
+  fastify.get('/dependencies/projects/:project/:branch', async (request, reply) => {
+    try {
+      const { project, branch } = request.params as { project: string; branch: string }
+
+      // Get all nodes and edges
+      const nodesResult = await repository.getNodes({ take: 0 })
+      const connectionsResult = await repository.getConnections({ take: 0 })
+
+      const graph = dependencyManager.getProjectDependencyGraph(
+        project,
+        branch,
+        nodesResult.data,
+        connectionsResult.data
+      )
+
+      return graph
+    } catch (error) {
+      reply
+        .code(500)
+        .send({
+          error: 'Failed to fetch project dependency graph',
           details: error instanceof Error ? error.message : 'Unknown error',
         })
     }
@@ -50,25 +77,6 @@ function dependenciesRoutes(fastify: FastifyInstance) {
         .code(500)
         .send({
           error: 'Failed to validate dependency',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
-    }
-  })
-
-  // GET /dependencies/circular/:nodeId - Check for circular dependencies
-  fastify.get('/dependencies/circular/:nodeId', async (request, reply) => {
-    try {
-      const { nodeId } = request.params as { nodeId: string }
-
-      const connectionsResult = await repository.getConnections({ take: 0 })
-      const cycles = dependencyManager.findCircularDependencies(connectionsResult.data)
-
-      return { cycles }
-    } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to check circular dependencies',
           details: error instanceof Error ? error.message : 'Unknown error',
         })
     }

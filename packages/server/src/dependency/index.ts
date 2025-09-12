@@ -1,17 +1,42 @@
 import { GraphNode, GraphConnection, DependencyGraph } from './types'
+import { buildDependencyGraph } from './graph'
 
 export const getFullDependencyGraph = (
-  nodeId: string,
   nodes: GraphNode[],
   connections: GraphConnection[],
 ): DependencyGraph => {
-  throw new Error('Not implemented')
+  const graph = buildDependencyGraph(nodes, connections)
+  return graph
 }
 
 export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): boolean => {
-  throw new Error('Not implemented')
+  // Basic validation: ensure nodes are of compatible types
+  const validTypePairs: Record<string, string[]> = {
+    NamedImport: ['NamedExport'],
+    RuntimeDynamicImport: ['NamedExport'],
+    EventOn: ['EventEmit'],
+    DynamicModuleFederationReference: ['NamedExport']
+  }
+
+  const allowedTargets = validTypePairs[fromNode.type]
+  return allowedTargets ? allowedTargets.includes(toNode.type) : false
 }
 
-export const findCircularDependencies = (connections: GraphConnection[]): string[][] => {
-  throw new Error('Not implemented')
+export const getProjectDependencyGraph = (
+  project: string,
+  branch: string,
+  nodes: GraphNode[],
+  connections: GraphConnection[]
+): DependencyGraph => {
+  // Filter nodes for the specific project and branch
+  const projectNodes = nodes.filter(node => 
+    node.project === project && node.branch === branch
+  )
+  
+  // Get all connections involving these nodes
+  const projectConnections = connections.filter(conn => 
+    projectNodes.some(node => node.id === conn.fromId || node.id === conn.toId)
+  )
+
+  return buildDependencyGraph(projectNodes, projectConnections)
 }
