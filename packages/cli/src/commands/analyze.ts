@@ -10,23 +10,20 @@ import {
 interface AnalyzeOptions {
   projectUrl: string
   branch: string
-  outputDir: string
-  verbose: boolean
 }
 
 export async function analyzeProject(options: AnalyzeOptions): Promise<void> {
-  const { projectUrl, branch, outputDir } = options
+  const { projectUrl, branch } = options
 
   debug('Starting analysis of project: %s', projectUrl)
   debug('Branch: %s', branch)
-  debug('Output directory: %s', outputDir)
 
   try {
+
     // Step 1: Checkout the repository
     const repoPath = await checkoutRepository({
       url: projectUrl,
       branch,
-      outputDir,
     })
 
     debug('Repository checked out to: %s', repoPath);

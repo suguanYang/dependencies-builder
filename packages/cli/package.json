@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
-  },
-  "bin": {
-    "dms-cli": "dist/index.js"
+    "typecheck": "tsgo",
+    "build": "rimraf dist && rolldown -c rolldown.config.ts",
+    "dev": "vite-node src/index.ts"
   },
   "keywords": [],
   "author": "",

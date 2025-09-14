@@ -78,3 +78,16 @@ export function fileExistsSync(path: string): boolean {
 
   return false
 }
+
+
+export function ensureDirectoryExistsSync(path: string): void {
+  if (!path) {
+    throw new Error("Arg 'path' must not be empty")
+  }
+
+  if (directoryExistsSync(path)) {
+    return
+  }
+
+  fs.mkdirSync(path, { recursive: true })
+}

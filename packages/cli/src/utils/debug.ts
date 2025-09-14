@@ -6,3 +6,5 @@ debug.log = console.log.bind(console)
 export const enable = () => Debugger.enable('debug')
 
 export default debug
+
+export const enabled = () => Debugger.enabled('debug')

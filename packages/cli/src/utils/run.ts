@@ -1,8 +1,7 @@
 import { spawn, type SpawnOptionsWithoutStdio } from 'node:child_process'
 import { cpus } from 'node:os'
-import { Readable } from 'node:stream'
 
-import debug from './debug'
+import debug, { enabled } from './debug'
 
 import { MemoryDuplexStream, streamToString } from './memory_stream'
 
@@ -16,7 +15,7 @@ const runNext = () => {
     WAITTING_QUEUE.shift()?.()
   }
 }
-class RunError extends Error {}
+class RunError extends Error { }
 
 const control = async <T>(task: () => Promise<T>): Promise<T> => {
   let onResolve: (value: unknown) => void
@@ -55,7 +54,7 @@ const _spawn = (
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
   consumeStdout?: boolean,
-): Promise<Readable> => {
+): Promise<MemoryDuplexStream | string> => {
   const stdoutStream = new MemoryDuplexStream([])
   const stderrStream = new MemoryDuplexStream([])
 
@@ -74,9 +73,13 @@ const _spawn = (
     })
   stderrStream.setEncoding('utf-8')
   child.stderr?.pipe(stderrStream)
+  enabled() &&
+    stderrStream.on('data', (chunk) => {
+      debug(command, chunk)
+    })
 
   let reject: (err: unknown) => void
-  const promise: Promise<Readable> = new Promise((res, rej) => {
+  const promise: Promise<MemoryDuplexStream> = new Promise((res, rej) => {
     reject = rej
     child.on('exit', async (code) => {
       if (code === 0) return res(stdoutStream)
@@ -94,16 +97,28 @@ const _spawn = (
     reject(new RunError(`run "${command} ${args.join(' ')}" failed with error\n${err}`))
   })
 
-  return promise
+  return promise.then(async res => {
+    if (consumeStdout) {
+      return await streamToString(res)
+    }
+
+    return res
+  })
 }
 
-function run(command: string, args: string[]): Promise<Readable>
+function run(command: string, args: string[]): Promise<MemoryDuplexStream>
 function run(
   command: string,
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
-  consumeStdout?: boolean,
-): Promise<Readable>
+  consumeStdout?: false,
+): Promise<MemoryDuplexStream>
+function run(
+  command: string,
+  args: string[],
+  opt?: SpawnOptionsWithoutStdio,
+  consumeStdout?: true,
+): Promise<string>
 function run(
   command: string,
   args: string[],

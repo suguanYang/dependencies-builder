@@ -1,5 +1,6 @@
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
+import { enable } from './utils/debug'
 
 yargs(hideBin(process.argv))
   .command(
@@ -17,12 +18,6 @@ yargs(hideBin(process.argv))
           type: 'string',
           default: 'main',
         })
-        .option('output', {
-          alias: 'o',
-          describe: 'Output directory for analysis results',
-          type: 'string',
-          default: './analysis-results',
-        })
         .option('verbose', {
           alias: 'v',
           describe: 'Enable verbose output',
@@ -32,15 +27,17 @@ yargs(hideBin(process.argv))
     },
     async (argv) => {
       const { analyzeProject } = await import('./commands/analyze')
+      if (argv.verbose) {
+        enable()
+      }
       await analyzeProject({
         projectUrl: argv.project,
         branch: argv.branch,
-        outputDir: argv.output,
-        verbose: argv.verbose,
       })
     },
   )
   .demandCommand(1, 'You need to specify a command')
   .help()
   .alias('help', 'h')
+  .strict()
   .parse()

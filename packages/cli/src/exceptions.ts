@@ -9,3 +9,9 @@ export class RepositoryAlreadyExistsException extends Exception {
         super(message)
     }
 }
+
+export class RepositorySetupFailedException extends Exception {
+    constructor(message: string) {
+        super(message)
+    }
+}
