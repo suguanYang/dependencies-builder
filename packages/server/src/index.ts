@@ -1,4 +1,5 @@
 import Fastify, { FastifyBaseLogger } from 'fastify'
+import cors from '@fastify/cors'
 import { setupAPI } from './api'
 import process from 'node:process'
 import logger, { fatal, info } from './logging'
@@ -7,18 +8,22 @@ import { prisma } from './database/prisma';
 async function startServer() {
   const fastify = Fastify({
     loggerInstance: logger as FastifyBaseLogger,
-    logger: {
-      msgPrefix: 'dms-server',
-    }
   });
 
   try {
+    // Setup CORS
+    await fastify.register(cors, {
+      origin: process.env.CORS_ORIGIN || '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    })
+    info('CORS configured')
+
     // Setup API routes
     await setupAPI(fastify)
     info('API routes registered')
 
     // Start server
-    const port = parseInt(process.env.PORT || '3000')
+    const port = parseInt(process.env.PORT || '3001')
     const host = process.env.HOST || '0.0.0.0'
 
     await fastify.listen({ port, host })
@@ -41,6 +46,15 @@ async function startServer() {
     await fastify.close()
     process.exit(0)
   })
+
+  // @ts-ignore
+  if (import.meta.hot) {
+    // @ts-ignore
+    import.meta.hot.on("vite:beforeFullReload", async () => {
+      await fastify.close();
+    });
+  }
 }
 
 startServer()
+
