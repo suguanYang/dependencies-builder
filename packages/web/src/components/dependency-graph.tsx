@@ -60,7 +60,7 @@ export function DependencyGraph({
     zoomRef.current = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
-        svg.selectAll('g.container').attr('transform', event.transform)
+        container.attr('transform', event.transform)
       })
 
     svg.call(zoomRef.current)
@@ -143,13 +143,28 @@ export function DependencyGraph({
     }
   }, [nodes, d3Connections, width, height])
 
+  const handleResetZoom = () => {
+    if (svgRef.current && zoomRef.current) {
+      const svg = d3.select(svgRef.current)
+      svg.transition().duration(750).call(zoomRef.current.transform, d3.zoomIdentity)
+    }
+  }
+
   return (
-    <svg
-      ref={svgRef}
-      width={width}
-      height={height}
-      className="border rounded-lg"
-    />
+    <div className="relative">
+      <button
+        onClick={handleResetZoom}
+        className="absolute top-2 right-2 bg-white border border-gray-300 rounded px-2 py-1 text-sm shadow-sm hover:bg-gray-50 z-10"
+      >
+        Reset Zoom
+      </button>
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height}
+        className="border rounded-lg"
+      />
+    </div>
   )
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import useSWR, { SWRConfig, useSWRConfig } from 'swr'
+import useSWR, { SWRConfig } from 'swr'
 import { PlusIcon, TrashIcon, SearchIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
@@ -10,14 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, type Node } from '@/lib/api'
+import { type Connection, type Node, getConnectionsList, deleteConnection, createConnection, getNodesByIds } from '@/lib/api'
 
 function ConnectionsContent() {
-  const [connections, setConnections] = useState<Connection[]>([])
-  const [nodes, setNodes] = useState<Node[]>([])
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
-  const { mutate: globalMutate } = useSWRConfig()
   const [searchFilters, setSearchFilters] = useState({
     fromId: '',
     toId: ''
@@ -27,43 +24,39 @@ function ConnectionsContent() {
     toId: ''
   })
 
-  const { data: connectionsData, error: connectionsError, isLoading } = useSWR(
-    searchFilters.fromId || searchFilters.toId
-      ? `/connections?fromId=${searchFilters.fromId}&toId=${searchFilters.toId}&limit=100`
-      : '/connections?limit=100'
+  const { data: connectionsResponse, isLoading, mutate: mutateConnections } = useSWR(
+    ['connections', searchFilters],
+    () => getConnectionsList({
+      fromId: searchFilters.fromId || undefined,
+      toId: searchFilters.toId || undefined,
+      limit: 100
+    })
   )
 
-  const { data: nodesData } = useSWR('/nodes?limit=1000')
+  const connections = connectionsResponse?.data || []
 
-  React.useEffect(() => {
-    if (connectionsData) {
-      setConnections(connectionsData.data || connectionsData)
-    }
-  }, [connectionsData])
+  // Extract all unique node IDs from connections for validation
+  const allNodeIds = React.useMemo(() => {
+    const ids = new Set<string>()
+    connections.forEach((connection: Connection) => {
+      ids.add(connection.fromId)
+      ids.add(connection.toId)
+    })
+    return Array.from(ids)
+  }, [connections])
 
-  React.useEffect(() => {
-    if (nodesData) {
-      setNodes(nodesData.data || nodesData)
-    }
-  }, [nodesData])
+  // Batch query for node validation
+  const { data: batchNodesResponse } = useSWR(
+    allNodeIds.length > 0 ? ['nodes-batch', allNodeIds] : null,
+    () => getNodesByIds(allNodeIds)
+  )
 
-  React.useEffect(() => {
-    if (connectionsError) {
-      setError(connectionsError.message)
-    }
-  }, [connectionsError])
+  const validatedNodes = batchNodesResponse?.data || []
 
   const handleDelete = async (connectionId: string) => {
     try {
-      const response = await fetch(`/api/connections/${connectionId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete connection')
-      }
-      
-      globalMutate(key => key.startsWith('/connections'))
+      await deleteConnection(connectionId)
+      mutateConnections()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete connection')
     }
@@ -71,21 +64,10 @@ function ConnectionsContent() {
 
   const handleCreate = async () => {
     try {
-      const response = await fetch('/api/connections', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newConnection)
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to create connection')
-      }
-      
+      await createConnection(newConnection)
       setIsCreating(false)
       setNewConnection({ fromId: '', toId: '' })
-      globalMutate(key => key.startsWith('/connections'))
+      mutateConnections()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create connection')
     }
@@ -185,18 +167,18 @@ function ConnectionsContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {connections.map((connection) => (
+              {connections.map((connection: Connection) => (
                 <tr key={connection.id}>
                   <td className="px-6 py-4 text-sm text-gray-900">{connection.id}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {connection.fromId}
-                    {nodes.find(n => n.id === connection.fromId) && (
+                    {validatedNodes.find((n: Node) => n.id === connection.fromId) && (
                       <span className="ml-2 text-xs text-green-600">✓</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {connection.toId}
-                    {nodes.find(n => n.id === connection.toId) && (
+                    {validatedNodes.find((n: Node) => n.id === connection.toId) && (
                       <span className="ml-2 text-xs text-green-600">✓</span>
                     )}
                   </td>

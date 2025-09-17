@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import useSWR, { SWRConfig, useSWRConfig } from 'swr'
+import useSWR, { SWRConfig } from 'swr'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
@@ -10,17 +10,15 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node } from '@/lib/api'
+import { type Node, getNodes, deleteNode, createNode } from '@/lib/api'
 
 function NodesContent() {
-  const [nodes, setNodes] = useState<Node[]>([])
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
-  const { mutate: globalMutate } = useSWRConfig()
   const [newNode, setNewNode] = useState({
     project: '',
     branch: '',
-    type: '',
+    type: 0,
     name: '',
     relativePath: '',
     startLine: 0,
@@ -29,33 +27,17 @@ function NodesContent() {
     meta: {}
   })
 
-  const { data: nodesData, error: nodesError, isLoading, mutate } = useSWR(
-    '/nodes?limit=100'
+  const { data: nodesResponse, isLoading, mutate: mutateNodes } = useSWR(
+    'nodes',
+    () => getNodes({ limit: 100 })
   )
 
-  React.useEffect(() => {
-    if (nodesData) {
-      setNodes(nodesData.data || nodesData)
-    }
-  }, [nodesData])
-
-  React.useEffect(() => {
-    if (nodesError) {
-      setError(nodesError.message)
-    }
-  }, [nodesError])
+  const nodes = nodesResponse?.data || []
 
   const handleDelete = async (nodeId: string) => {
     try {
-      const response = await fetch(`/api/nodes/${nodeId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete node')
-      }
-      
-      globalMutate('/nodes?limit=100')
+      await deleteNode(nodeId)
+      mutateNodes()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete node')
     }
@@ -63,23 +45,12 @@ function NodesContent() {
 
   const handleCreate = async () => {
     try {
-      const response = await fetch('/api/nodes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newNode)
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to create node')
-      }
-      
+      await createNode(newNode)
       setIsCreating(false)
       setNewNode({
         project: '',
         branch: '',
-        type: '',
+        type: 0,
         name: '',
         relativePath: '',
         startLine: 0,
@@ -87,7 +58,7 @@ function NodesContent() {
         version: '1.0.0',
         meta: {}
       })
-      globalMutate('/nodes?limit=100')
+      mutateNodes()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create node')
     }
@@ -206,7 +177,7 @@ function NodesContent() {
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
                   value={newNode.type}
-                  onChange={(e) => setNewNode(prev => ({ ...prev, type: e.target.value }))}
+                  onChange={(e) => setNewNode(prev => ({ ...prev, type: parseInt(e.target.value) || 0 }))}
                   className="w-full px-3 py-2 border rounded-md"
                 >
                   <option value="">Select type</option>

@@ -29,6 +29,28 @@ function nodesRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // POST /nodes/batch - Get multiple nodes by IDs
+  fastify.post('/nodes/batch', async (request, reply) => {
+    try {
+      const { ids } = request.body as { ids: string[] }
+
+      if (!ids || !Array.isArray(ids)) {
+        reply.code(400).send({ error: 'Invalid request body. Expected { ids: string[] }' })
+        return
+      }
+
+      const nodes = await repository.getNodesByIds(ids)
+      return { data: nodes }
+    } catch (error) {
+      reply
+        .code(500)
+        .send({
+          error: 'Failed to fetch nodes',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+    }
+  })
+
   // GET /nodes/:id - Get node by ID
   fastify.get('/nodes/:id', async (request, reply) => {
     try {

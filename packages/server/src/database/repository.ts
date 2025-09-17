@@ -27,6 +27,22 @@ export async function getNodeById(id: string) {
   return node
 }
 
+export async function getNodesByIds(ids: string[]) {
+  if (ids.length === 0) {
+    return []
+  }
+
+  const nodes = await prisma.node.findMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+  })
+
+  return nodes
+}
+
 export async function createNode(
   node: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
 ) {
