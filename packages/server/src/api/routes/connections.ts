@@ -2,12 +2,13 @@ import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import type { ConnectionQuery } from '../types'
 import type { Connection } from '../../generated/prisma'
+import { formatStringToNumber } from '../request_parameter'
 
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
-      const { limit = 100, offset = 0, ...where } = request.query as ConnectionQuery
+      const { limit, offset, ...where } = formatStringToNumber(request.query as ConnectionQuery)
       const query = {
         where,
         take: limit,

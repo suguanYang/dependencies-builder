@@ -1,12 +1,13 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import type { NodeQuery, NodeCreationBody } from '../types'
+import { formatStringToNumber } from '../request_parameter'
 
 function nodesRoutes(fastify: FastifyInstance) {
   // GET /nodes - Get nodes with query parameters
   fastify.get('/nodes', async (request, reply) => {
     try {
-      const { limit = 100, offset = 0, ...where } = request.query as NodeQuery
+      const { limit, offset, ...where } = formatStringToNumber(request.query as NodeQuery)
       const result = await repository.getNodes({
         where,
         take: limit,

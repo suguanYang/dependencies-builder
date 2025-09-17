@@ -1,67 +1,62 @@
-## The Dependecy Manager Server
-A server to store the dependencies graph data and provide the API for the dependencies management.
+# Dependency Management System - Web Interface
 
-### The database
-SQlite, by only store project-level dependencies in the central database, this simplify the query for dependecy-graph in a relation database.
-And it also supports raw json column for the metadata property.
+This is a Next.js application for visualizing and managing dependency graphs. It provides a web interface to display project dependencies using d3.js for graph visualization and MUI for the UI components.
 
-#### Schemas
-The main data structure is the dependency graph, which is a directed graph, the nodes are the dependencies, the edges are the dependencies between the nodes.
+## Features
 
-### Node Table
-```json
-{
-  "id": "", // uuid
-  "branch": "", // branch name
-  "project": "", // project name
-  "version": "", // version number
+### Core Functionality
+- **Project Query Interface**: Search and filter projects/nodes in the dependency graph
+- **Graph Visualization**: Interactive dependency graph visualization using d3.js
+- **Server Integration**: Connects to the backend dependency API for real-time data
 
-  "type": "", // NamedExport | NamedImport | RuntimeDynamicImport | Externals | GlobalState | Events | DynamicModuleFederationReference...
-  "description": "", // A description for the dependency
-  "meta": { // metadata info for the dependecy, mainly consists of AST info for the database, used and generated for the query
-    "location": {
-        "file": "",
-        "line": "",
-        "column": "",
-    },
-  }
-}
-```
+### Technical Stack
+- **Framework**: Next.js 14+ with App Router and SSR
+- **UI Components**: Material-UI (MUI) for consistent design system
+- **Graph Visualization**: d3.js for interactive dependency graphs
+- **State Management**: React hooks and context for local state
+- **Styling**: Emotion with MUI's styled components
+- **API Integration**: Fetch API with proper error handling
 
-### Edge Table
-```json
-{
-  "id": "", // uuid
-  "source": "",
-  "target": "",
-}
-```
+## Implementation Requirements
 
-### The API
-- get the depdency nodes
-/GET /nodes
-/GET /nodes/:id
-/POST /nodes
-/PUT /nodes/:id 
-/DELETE /nodes/:id
+### 1. Project/Node Query Page
+- Searchable list of all projects/nodes
+- Filter by project type, dependencies, or metadata
+- Pagination for large datasets
+- Real-time search with debouncing
+- Display project details on selection
 
-- get the dependency edges
-/GET /edges
-/GET /edges/:id
-/POST /edges
-/PUT /edges/:id
-/DELETE /edges/:id
+### 2. Graph Visualization Page
+- Interactive force-directed graph using d3.js
+- Node representation: circles with project names
+- Edge representation: lines showing dependency relationships
+- Zoom and pan capabilities
+- Node selection and highlighting
+- Tooltips showing detailed project information
+- Color coding for different project types
 
-- get the dependency graph by project name
-/GET /dependencies/:project
+### 3. API Integration
+- Fetch dependency graph data from server API
+- Handle loading states and error scenarios
+- Real-time updates when dependencies change
+- Caching strategy for better performance
 
-- create a action
-/POST /actions  ## this should invoke the cli to run the static analysis
-/GET /actions/:id  ## this should get the action status
-/DELETE /actions/:id  ## this should delete the action
+### 4. UI/UX Requirements
+- Responsive design for desktop and mobile
+- Loading indicators for async operations
+- Error boundaries and user-friendly error messages
 
-- get action result
-/GET /actions/:id/result
 
-### The framework
-Fastify, performant, easy to use, good DX
+## Implementation Guide
+Use server actions to fetch the data.
+
+
+## Tech Stack
+
+- Next.js
+- d3.js
+- shadcn/ui
+- tailwindcss
+- typescript
+- pnpm
+- vitest

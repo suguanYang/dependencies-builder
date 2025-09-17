@@ -12,3 +12,4 @@ onlyBuiltDependencies:
   - yarn
 
 shamefullyHoist: false
+ignore-workspace-root-check: true
