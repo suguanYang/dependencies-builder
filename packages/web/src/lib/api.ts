@@ -116,6 +116,13 @@ export async function createNode(nodeData: Omit<Node, 'id' | 'createdAt'>): Prom
   })
 }
 
+export async function updateNode(id: string, nodeData: Partial<Omit<Node, 'id'>>): Promise<Node> {
+  return apiRequest(`/nodes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(nodeData),
+  })
+}
+
 export async function deleteNode(id: string): Promise<{ success: boolean }> {
   return apiRequest(`/nodes/${id}`, {
     method: 'DELETE',
@@ -149,4 +156,48 @@ export async function deleteConnection(id: string): Promise<{ success: boolean }
   return apiRequest(`/connections/${id}`, {
     method: 'DELETE',
   })
+}
+
+// Actions API
+export interface Action {
+  id: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  project?: string
+  branch?: string
+  type: string
+  createdAt: string
+  updatedAt: string
+  result?: any
+  error?: string
+}
+
+export interface CreateActionData {
+  project: string
+  branch: string
+  type: 'static_analysis' | 'dependency_check' | 'validation'
+}
+
+export async function getActions(): Promise<{ data: Action[]; total: number }> {
+  return apiRequest('/actions')
+}
+
+export async function getActionById(id: string): Promise<Action> {
+  return apiRequest(`/actions/${id}`)
+}
+
+export async function createAction(actionData: CreateActionData): Promise<Action> {
+  return apiRequest('/actions', {
+    method: 'POST',
+    body: JSON.stringify(actionData),
+  })
+}
+
+export async function deleteAction(id: string): Promise<{ success: boolean }> {
+  return apiRequest(`/actions/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getActionResult(id: string): Promise<any> {
+  return apiRequest(`/actions/${id}/result`)
 }
