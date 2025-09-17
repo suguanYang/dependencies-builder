@@ -6,45 +6,48 @@ import {
   runCodeQLQueries,
   interpretCodeQLResults,
 } from '../codeql'
+import { getContext } from '../context'
 
-interface AnalyzeOptions {
-  projectUrl: string
-  branch: string
-}
+export async function analyzeProject(): Promise<void> {
+  debug('Starting analysis')
 
-export async function analyzeProject(options: AnalyzeOptions): Promise<void> {
-  const { projectUrl, branch } = options
-
-  debug('Starting analysis of project: %s', projectUrl)
-  debug('Branch: %s', branch)
+  const ctx = getContext()
 
   try {
+    let repoPath: string
 
-    // Step 1: Checkout the repository
-    const repoPath = await checkoutRepository({
-      url: projectUrl,
-      branch,
-    })
+    if (ctx.hasLocalRepoPath()) {
+      // Use local repository path directly
+      repoPath = ctx.getLocalRepoPath()!
+      debug('Using local repository path: %s', repoPath)
+    } else {
+      // Checkout from remote repository
+      const projectUrl = ctx.getProjectUrl()!
+      const branch = ctx.getBranch()
 
-    debug('Repository checked out to: %s', repoPath);
+      debug('Checking out repository: %s', projectUrl)
+      debug('Branch: %s', branch)
 
-    return;
+      repoPath = await checkoutRepository()
+
+      debug('Repository checked out to: %s', repoPath)
+    }
 
     // Step 2: Initialize CodeQL environment
     await initializeCodeQL()
 
     // Step 3: Create CodeQL database
-    const databasePath = await createCodeQLDatabase(repoPath, outputDir)
+    const databasePath = await createCodeQLDatabase()
 
     // Step 4: Run CodeQL queries
-    const resultsPath = await runCodeQLQueries(databasePath, outputDir)
+    const resultsPath = await runCodeQLQueries(databasePath)
 
     // Step 5: Interpret results
     await interpretCodeQLResults(resultsPath)
 
     // Step 6: Upload to server (to be implemented)
     debug('Analysis completed successfully!')
-    debug('Results available in: %s', outputDir)
+    debug('Results available in: /tmp/analysis-results')
   } catch (error) {
     debug('Analysis failed: %o', error)
     throw error

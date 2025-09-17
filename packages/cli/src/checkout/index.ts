@@ -4,6 +4,7 @@ import { directoryExistsSync, ensureDirectoryExistsSync, existsSync } from '../u
 import { RepositoryAlreadyExistsException, RepositorySetupFailedException } from '../exceptions'
 import os from 'node:os'
 import { createCommandManager } from './git_commander'
+import { getContext } from '../context'
 
 export interface CheckoutOptions {
   url: string
@@ -11,8 +12,10 @@ export interface CheckoutOptions {
   authToken?: string
 }
 
-export async function checkoutRepository(options: CheckoutOptions): Promise<string> {
-  const { url, branch } = options
+export async function checkoutRepository(): Promise<string> {
+  const ctx = getContext()
+  const url = ctx.getProjectUrl()!
+  const branch = ctx.getBranch()
 
   const outputDir = getOutputDir()
 
