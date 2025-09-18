@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, getNodes, deleteNode, createNode } from '@/lib/api'
+import { type Node, getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
 
 function NodesContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
+  const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [newNode, setNewNode] = useState({
     project: '',
     branch: '',
@@ -61,6 +62,27 @@ function NodesContent() {
       mutateNodes()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create node')
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!editingNode) return
+    try {
+      await updateNode(editingNode.id, {
+        project: editingNode.project,
+        branch: editingNode.branch,
+        type: editingNode.type,
+        name: editingNode.name,
+        relativePath: editingNode.relativePath,
+        startLine: editingNode.startLine,
+        startColumn: editingNode.startColumn,
+        version: editingNode.version,
+        meta: editingNode.meta
+      })
+      setEditingNode(null)
+      mutateNodes()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update node')
     }
   }
 
@@ -134,13 +156,22 @@ function NodesContent() {
                   <td className="px-6 py-4 text-sm text-gray-900">{node.project}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{node.type}</td>
                   <td className="px-6 py-4 text-sm">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(node.id)}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingNode(node)}
+                      >
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(node.id)}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -180,15 +211,14 @@ function NodesContent() {
                   onChange={(e) => setNewNode(prev => ({ ...prev, type: parseInt(e.target.value) || 0 }))}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  <option value="">Select type</option>
-                  <option value="NamedExport">NamedExport</option>
-                  <option value="NamedImport">NamedImport</option>
-                  <option value="RuntimeDynamicImport">RuntimeDynamicImport</option>
-                  <option value="Externals">Externals</option>
-                  <option value="GlobalState">GlobalState</option>
-                  <option value="EventOn">EventOn</option>
-                  <option value="EventEmit">EventEmit</option>
-                  <option value="DynamicModuleFederationReference">DynamicModuleFederationReference</option>
+                  <option value={0}>NamedExport</option>
+                  <option value={1}>NamedImport</option>
+                  <option value={2}>RuntimeDynamicImport</option>
+                  <option value={3}>Externals</option>
+                  <option value={4}>GlobalState</option>
+                  <option value={5}>EventOn</option>
+                  <option value={6}>EventEmit</option>
+                  <option value={7}>DynamicModuleFederationReference</option>
                 </select>
               </div>
               
@@ -206,6 +236,80 @@ function NodesContent() {
                   Create
                 </Button>
                 <Button variant="outline" onClick={() => setIsCreating(false)} className="flex-1">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Node Modal */}
+      {editingNode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Edit Node</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Project</label>
+                <Input
+                  value={editingNode.project}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, project: e.target.value }) : null)}
+                  placeholder="Project name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Branch</label>
+                <Input
+                  value={editingNode.branch}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, branch: e.target.value }) : null)}
+                  placeholder="Branch name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Type</label>
+                <select
+                  value={editingNode.type}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, type: parseInt(e.target.value) || 0 }) : null)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value={0}>NamedExport</option>
+                  <option value={1}>NamedImport</option>
+                  <option value={2}>RuntimeDynamicImport</option>
+                  <option value={3}>Externals</option>
+                  <option value={4}>GlobalState</option>
+                  <option value={5}>EventOn</option>
+                  <option value={6}>EventEmit</option>
+                  <option value={7}>DynamicModuleFederationReference</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Name</label>
+                <Input
+                  value={editingNode.name}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                  placeholder="Node name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Relative Path</label>
+                <Input
+                  value={editingNode.relativePath || ''}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, relativePath: e.target.value }) : null)}
+                  placeholder="Relative path"
+                />
+              </div>
+              
+              <div className="flex space-x-4">
+                <Button onClick={handleUpdate} className="flex-1">
+                  Update
+                </Button>
+                <Button variant="outline" onClick={() => setEditingNode(null)} className="flex-1">
                   Cancel
                 </Button>
               </div>

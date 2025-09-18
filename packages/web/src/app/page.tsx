@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import useSWR, { SWRConfig } from 'swr'
-import { AlertCircleIcon, NetworkIcon, ListIcon } from 'lucide-react'
+import { AlertCircleIcon, NetworkIcon, ListIcon, PlayIcon } from 'lucide-react'
 import { DependencyGraph } from '@/components/dependency-graph'
 import { ProjectQuery, type SearchFilters } from '@/components/project-query'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -68,6 +68,12 @@ function HomeContent() {
             <Button variant="outline">
               <NetworkIcon className="h-4 w-4 mr-2" />
               Manage Connections
+            </Button>
+          </Link>
+          <Link href="/actions">
+            <Button variant="outline">
+              <PlayIcon className="h-4 w-4 mr-2" />
+              Manage Actions
             </Button>
           </Link>
         </div>
