@@ -1,5 +1,6 @@
 import { rmSync } from "node:fs"
 import run from "../utils/run"
+import { ensureDirectoryExistsSync } from "../utils/fs-helper"
 
 interface IGitCommander {
     fetch(
@@ -21,6 +22,7 @@ interface IGitCommander {
 export async function createCommandManager(
     workingDirectory: string,
 ): Promise<IGitCommander> {
+    ensureDirectoryExistsSync(workingDirectory)
     return await GitCommander.createCommandManager(
         workingDirectory,
     )

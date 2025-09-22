@@ -5,23 +5,19 @@ import { runWithContext } from './context'
 
 yargs(hideBin(process.argv))
   .command(
-    'analyze [project] [branch]',
+    'analyze <repository>',
     'Analyze a project repository for dependencies',
     (yargs) => {
       return yargs
-        .positional('project', {
-          describe: 'Git repository URL to analyze',
+        .positional('repository', {
+          describe: 'Git repository URL or local directory to analyze',
           type: 'string',
+          demandOption: true,
         })
-        .positional('branch', {
+        .option('branch', {
           describe: 'Branch name to analyze',
           type: 'string',
           default: 'main',
-        })
-        .option('local-repo-path', {
-          alias: 'l',
-          describe: 'Path to local repository directory',
-          type: 'string',
         })
         .option('verbose', {
           alias: 'v',
@@ -38,9 +34,8 @@ yargs(hideBin(process.argv))
       }
 
       await runWithContext({
-        projectUrl: argv.project,
         branch: argv.branch,
-        localRepoPath: argv.localRepoPath,
+        repository: argv.repository,
       }, analyzeProject)
     },
   )

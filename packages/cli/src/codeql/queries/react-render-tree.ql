@@ -1,3 +1,12 @@
+/**
+ * @name React Render Tree
+ * @description This query is used to find the render tree of a React component.
+ * @kind diagnostic
+ * @problem.severity recommendation
+ * @id js/react-render-tree
+ * @tags maintainability
+ */
+
 import javascript
 import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.DataFlow
@@ -363,4 +372,4 @@ where
   isLeaf(leaf) and
   renders+(parent, leaf) and
   renderPath(parent, leaf, path)
-select "Render path: " + path, parent.getComponentName()
+select path

@@ -11,12 +11,37 @@ to get a reliable dependencies data.
 For ES6Module Exports, this is different for different project, if the project is an application(web pages), its Exports only exists in the MF exports files; 
 For libs, its Exports should be declared in its entry file, like index.ts, index.tsx etc. the entry files for libs can be configed by the file like sy.config.json
 
-### Get the MF webpack configuration
-For the applications, it usually can config a custom webpack configuration file, which can config the MF webpack configuration.
+### MF webpack config
 
 ### Get the runtime dynamic import
-We have a runtime function called dynamicImport, this function is used to import a module dynamically at runtime, this also create a depedency between the application and the
+We have a runtime function called dynamicImport(imported from '@xxx/global'), this function is used to import a module dynamically at runtime, this also create a depedency between the application and the
 imported module.
+
+Example:
+this create a dependency between the application and the imported module(@xxx/module) named export 'xxx'.
+```ts
+import { dynamicImport } from '@xxx/global'
+const module = await dynamicImport('@xxx/module')
+// use
+module.xxx()
+```
+
+### Get the externals
+The externals is a global variable that is defined by outside the project, like window.xxx
+Example:
+This create a dependency between the application and the global variable 'xxx'.
+```ts
+const xxx = window.xxx
+// use
+xxx.yyy()
+```
+
+### Get the global state
+
+### Events
+
+### Runtime MF reference
+
 
 ## Commands
 It only provides one command to run the static analysis
