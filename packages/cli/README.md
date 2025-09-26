@@ -68,8 +68,8 @@ This is the core part about the static analysis, it will use the codeQL queries 
 It may need to accept some parameters to fullfill the query, like the we'd like to query call-graph of a given Function AST location.
 
 ## Result processing
-Before we can upload the result to the server, we need to process the result, because at the server side we only store Nodes and Connections, we may also need to fetch the Nodes or Connections from other Projects.
-
+Before we can upload the result to the server, we need to process the result, because at the server side we only store Nodes and Connections
+we need to process the raw data from the codeQL query results, and generate the Nodes and Connections then upload to the server.
 
 ## Tech stack
 Requirements:

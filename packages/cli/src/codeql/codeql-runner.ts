@@ -4,7 +4,8 @@ import debug from '../utils/debug'
 import { getContext } from '../context'
 import { cpus } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { rmSync } from 'node:fs'
+import { globSync, rmSync } from 'node:fs'
+import { ensureDirectoryExistsSync } from '../utils/fs-helper'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -23,13 +24,16 @@ export class CodeQL {
     private readonly databasePath: string
     private readonly results: string
     private readonly queries: string
+    readonly outputPath: string
 
     constructor() {
         const ctx = getContext()
         this.repoPath = ctx.getRepository()
-        this.databasePath = join(this.repoPath, 'codeql-database')
-        this.results = path.join(this.repoPath, 'codeql-results.json')
         this.queries = path.join(this.repoPath, 'queries')
+        this.databasePath = join(this.repoPath, 'codeql-database')
+        this.results = path.join(this.databasePath, 'results', ctx.getMetadata().name)
+
+        this.outputPath = path.join(this.repoPath, 'results')
     }
 
     async initialize(): Promise<void> {
@@ -65,7 +69,7 @@ export class CodeQL {
                 'create',
                 this.databasePath,
                 `--language=${CodeQL.LANGUAGE}`,
-                `--source-root=${this.repoPath}`,
+                `--source-root=${this.repoPath}/src`,
                 '--build-mode=none',
                 `--threads=${CodeQL.THREADS_NUMBER}`,
                 '--no-calculate-baseline',
@@ -82,13 +86,10 @@ export class CodeQL {
         try {
             await run(CodeQL.EXECUTABLE_PATH, [
                 'database',
-                'analyze',
+                'run-queries',
                 this.databasePath,
                 this.queries,
-                `--threads=${CodeQL.THREADS_NUMBER}`,
-                '--format=sarifv2.1.0',
-                `--output=${this.results}`,
-                '--rerun'
+                `--threads=${CodeQL.THREADS_NUMBER}`
             ])
         } catch (error) {
             throw new Error(`Failed to run CodeQL queries: ${error}`)
@@ -98,31 +99,32 @@ export class CodeQL {
     async interpretResults() {
         debug('Interpreting CodeQL results...', this.results)
 
-    }
+        ensureDirectoryExistsSync(this.outputPath)
 
-    cleanUp(): void {
-        try {
-            if (this.databasePath) {
-                rmSync(this.databasePath, { recursive: true, force: true })
-            }
-            if (this.results) {
-                rmSync(this.results, { recursive: true, force: true })
-            }
-        } catch (error) {
-            debug('Warning: Failed to clean up some CodeQL files: %s', error)
+        const runs = []
+        const bqrsFiles = globSync(path.join(this.results, '**', '*.bqrs'))
+        for (const bqrsFile of bqrsFiles) {
+            const queryName = path.basename(bqrsFile).replace('.bqrs', '.json')
+            runs.push(run(CodeQL.EXECUTABLE_PATH, [
+                'bqrs',
+                'decode',
+                bqrsFile,
+                `--output=${path.join(this.outputPath, queryName)}`,
+                '--format=json'
+            ]))
         }
+        await Promise.all(runs)
     }
 
     async run(): Promise<CodeQLResult[]> {
         await this.initialize()
-        // await this.createDatabase()
+        await this.createDatabase()
         await this.runQueries()
 
         // Find all result files and interpret them
         const results: CodeQLResult[] = []
         try {
-            const result = await this.interpretResults()
-
+            await this.interpretResults()
         } catch (error) {
             throw new Error(`Failed to process results: ${error}`)
         }

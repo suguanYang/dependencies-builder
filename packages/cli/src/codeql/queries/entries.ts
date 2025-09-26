@@ -40,16 +40,18 @@ const getEntries = () => {
     const ctx = getContext()
     const entries: string[] = []
     if (ctx.getType() === 'app') {
-        entries.push(...getEntriesInWebpackConfig(ctx.getRepository()))
+        // entries.push(...getEntriesInWebpackConfig(ctx.getRepository()))
     } else {
         entries.push('index.ts')
         entries.push('index.tsx')
         entries.push(...getEntriesInConfig(ctx.getRepository()))
     }
+
     if (ctx.getMetadata().name === 'main') {
         entries.push('ui/index.tsx')
+        entries.push('ui/schemas/index.ts')
     }
-    return entries.filter(entry => existsSync(path.join(ctx.getRepository(), entry)))
+    return entries.filter(entry => existsSync(path.join(ctx.getRepository(), 'src', entry)))
 }
 
 export default getEntries

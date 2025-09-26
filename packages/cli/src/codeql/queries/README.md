@@ -8,9 +8,7 @@ For apps, its entry file usually are the mf exported files, typically is entry.t
 ### webpack configs
 For apps, its webpack configs are usually defined in the ./webpack.config.js file, it will be used to define the mf exposes and the remotes.
 we can simple call this file to get the configurations of the mf plugin
-> example: packages/cli/src/codeql/repositories/examples/webpack.config.js
 
 ### Libs configs
 For libs, its config can be used to define the exports of the files, its usually defined in the ./sy.config.json file
 The config can define the extra entry files that may be imported by others.
-> example: packages/cli/src/codeql/repositories/examples/sy.config.json

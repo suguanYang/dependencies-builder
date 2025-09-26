@@ -29,6 +29,9 @@ We are usually have 2 kinds of dependencies can be categorized by integration st
 5. Runtime MF reference
 
 ### 3. The unknown dependencies
+1. SideEffects
+some packages may has side effects, like console.log
+
 
 ## Example scenarios
 

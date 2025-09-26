@@ -1,4 +1,4 @@
-name: main-codeql-queries
+name: &&name&&
 version: 0.1.0
 library: false
 dependencies:
