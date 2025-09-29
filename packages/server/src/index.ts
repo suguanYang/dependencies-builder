@@ -51,10 +51,10 @@ async function startServer() {
   if (import.meta.hot) {
     // @ts-ignore
     import.meta.hot.on("vite:beforeFullReload", async () => {
+      await prisma.$disconnect()
       await fastify.close();
     });
   }
 }
 
 startServer()
-

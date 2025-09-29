@@ -8,6 +8,7 @@
     "dev": "vite-node -w src/index.ts",
     "test": "vitest run"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",

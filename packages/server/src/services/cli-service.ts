@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from 'child_process'
 import * as repository from '../database/actions-repository'
 import { Readable } from 'stream'
 import { error, info } from '../logging'
+import { writeActionLog } from '../logging/action-logger'
 
 interface ActionData {
   project: string
@@ -18,7 +19,6 @@ export interface CLIExecutionResult {
 
 export interface CLIExecution {
   actionId: string
-  stream: Readable
   stop(): void
 }
 
@@ -45,46 +45,55 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       },
     })
 
-    const stream = new Readable()
 
     childProcess.stdout?.on('data', (data) => {
       const output = data.toString()
-      info(`CLI ${cmd} stdout: ` + output)
+      const trimmedOutput = output.trim()
 
-      stream.push(`[info] ${output}`)
+      // Write to action-specific log file
+      writeActionLog(actionId, 'info', trimmedOutput).catch(err => {
+        console.error(`Failed to write action log for ${actionId}:`, err)
+      })
+
+      // Also write to general info log for backward compatibility
+      info(`action:${actionId} ${trimmedOutput}`)
     })
 
     childProcess.stderr?.on('data', (data) => {
       const output = data.toString()
-      error(`CLI ${cmd} stderr: ` + output)
+      const trimmedOutput = output.trim()
 
-      stream.push(`[error] ${output}`)
+      // Write to action-specific log file
+      writeActionLog(actionId, 'error', trimmedOutput).catch(err => {
+        console.error(`Failed to write action log for ${actionId}:`, err)
+      })
+
+      // Also write to general error log for backward compatibility
+      error(`action:${actionId} ${trimmedOutput}`)
     })
 
     childProcess.on('close', async (code) => {
       activeExecutions.delete(actionId)
 
       if (code === 0) {
-        info(`CLI ${cmd} closed with code: ` + code)
+        info(`action:${actionId} CLI closed with code: ` + code)
         repository.updateAction(actionId, {
           status: 'completed',
         })
 
-        stream.push(`[info] action is completed` + '\n')
+        info(`action:${actionId} action is completed`)
       } else {
-        error(`CLI ${cmd} closed with code: ` + code)
+        error(`action:${actionId} CLI closed with code: ` + code)
         repository.updateAction(actionId, {
           status: 'failed',
         })
 
-        stream.push(`[error] action is failed` + '\n')
+        error(`action:${actionId} is failed`)
       }
-
-      stream.push(null)
     })
 
     childProcess.on('error', async (err) => {
-      error('Failed to execute CLI command' + err)
+      error(`action:${actionId} Failed to execute CLI command: ` + err)
 
       activeExecutions.delete(actionId)
 
@@ -92,8 +101,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         status: 'failed',
       })
 
-      stream.push(`[error]` + err + '\n')
-      stream.push(null)
+      error(`action:${actionId} Failed to execute CLI command: ${err.message || err}`)
     })
 
     // Set timeout for CLI execution (10 minutes)
@@ -108,7 +116,6 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     // Create CLIExecution object
     const execution: CLIExecution = {
       actionId,
-      stream,
       stop: () => {
         childProcess.kill('SIGTERM')
         activeExecutions.delete(actionId)

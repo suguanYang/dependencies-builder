@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon, ArrowDownIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -10,13 +10,15 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, streamActionLogs, stopActionExecution } from '@/lib/api'
+import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, getActionLogs, stopActionExecution } from '@/lib/api'
 
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [viewingResult, setViewingResult] = useState<{ actionId: string; result: any } | null>(null)
-  const [viewingLogs, setViewingLogs] = useState<string[] | null>(null)
+  const [viewingLogs, setViewingLogs] = useState<{ actionId: string; logs: string[] } | null>(null)
+  const logContainerRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
   const [newAction, setNewAction] = useState<CreateActionData>({
     project: '',
     branch: '',
@@ -29,6 +31,41 @@ function ActionsContent() {
   )
 
   const actions = actionsResponse?.data || []
+
+  // SWR hook for action logs with auto-refresh
+  const { data: actionLogs, error: logsError, mutate: mutateLogs } = useSWR(
+    viewingLogs ? `action-logs-${viewingLogs.actionId}` : null,
+    () => viewingLogs ? getActionLogs(viewingLogs.actionId) : null,
+    {
+      refreshInterval: viewingLogs ? 1000 : 0, // Poll every second when viewing logs
+      revalidateOnFocus: false,
+      dedupingInterval: 500
+    }
+  )
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (autoScroll && logContainerRef.current && actionLogs) {
+      const container = logContainerRef.current
+      container.scrollTop = container.scrollHeight
+    }
+  }, [actionLogs, autoScroll])
+
+  const scrollToBottom = () => {
+    if (logContainerRef.current) {
+      const container = logContainerRef.current
+      container.scrollTop = container.scrollHeight
+      setAutoScroll(true)
+    }
+  }
+
+  const handleLogScroll = () => {
+    if (logContainerRef.current) {
+      const container = logContainerRef.current
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 10
+      setAutoScroll(isAtBottom)
+    }
+  }
 
   const handleDelete = async (actionId: string) => {
     try {
@@ -63,22 +100,8 @@ function ActionsContent() {
     }
   }
 
-  const handleViewLogs = async (actionId: string) => {
-    setViewingLogs([])
-
-    await streamActionLogs(
-      actionId,
-      (log) => {
-        setViewingLogs(prev => prev ? [...prev, log] : null)
-      },
-      (error) => {
-        setError(`Stream error: ${error.message}`)
-      },
-      () => {
-        // Stream completed
-        mutateActions()
-      }
-    )
+  const handleViewLogs = (actionId: string) => {
+    setViewingLogs({ actionId, logs: [] })
   }
 
   const handleStopExecution = async (actionId: string) => {
@@ -360,6 +383,7 @@ function ActionsContent() {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-lg font-semibold">Live Action Logs</h3>
+                <p className="text-sm text-gray-500">Action ID: {viewingLogs.actionId}</p>
               </div>
               <div className="flex space-x-2">
                 <Button
@@ -373,19 +397,49 @@ function ActionsContent() {
               </div>
             </div>
 
-            <div className="flex-1 bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-auto">
-              {viewingLogs.length === 0 ? (
+            <div
+              ref={logContainerRef}
+              className="flex-1 bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-auto relative"
+              onScroll={handleLogScroll}
+            >
+              {logsError ? (
+                <div className="text-center text-red-400 py-8">
+                  <p>Error loading logs: {logsError.message}</p>
+                </div>
+              ) : !actionLogs ? (
                 <div className="text-center text-gray-500 py-8">
-                  <p>Waiting for logs...</p>
+                  <p>Loading logs...</p>
+                </div>
+              ) : actionLogs.trim() === '' ? (
+                <div className="text-center text-gray-500 py-8">
+                  <p>No logs available yet...</p>
                 </div>
               ) : (
-                viewingLogs.map((log, index) => (
-                  <div key={index} className="mb-1">
-                    <span className={log.startsWith('[error]') ? 'text-red-400' : 'text-green-400'}>
-                      {log}
-                    </span>
-                  </div>
-                ))
+                <div className="space-y-1">
+                  {actionLogs
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .map((log, index) => (
+                      <div key={index} className="flex">
+                        <span className={log.includes('[error]') ? 'text-red-400' : 'text-green-400'}>
+                          {log}
+                        </span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+
+              {/* Scroll to bottom button */}
+              {!autoScroll && (
+                <Button
+                  size="sm"
+                  className="absolute bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-white"
+                  onClick={scrollToBottom}
+                >
+                  <ArrowDownIcon className="h-4 w-4 mr-1" />
+                  Scroll to Bottom
+                </Button>
               )}
             </div>
           </div>

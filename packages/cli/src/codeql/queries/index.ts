@@ -1,4 +1,4 @@
-import path, { relative } from "node:path"
+import path from "node:path"
 import { cpSync, readFileSync, writeFileSync } from "node:fs"
 
 import getEntries from "./entries"
@@ -88,6 +88,7 @@ const parseES6ImportQuery = (queryResultDir: string) => {
             name: `${tuple[1]}.${tuple[0]}`, // importName
             ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
+            meta: {}
         }))
     } catch (error) {
         console.warn('Failed to parse ES6 import query result:', error)
@@ -107,6 +108,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
             name: `${tuple[1]}.${tuple[2]}.${tuple[0]}`, // namedImport
             ...parseLoc(tuple[3]),
             version: ctx.getMetadata().version,
+            meta: {}
         }))
     } catch (error) {
         console.warn('Failed to parse dynamic import query result:', error)
@@ -126,6 +128,7 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
             name: tuple[0], // variableName
             ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
+            meta: {}
         }))
     } catch (error) {
         console.warn('Failed to parse global variable query result:', error)
@@ -145,6 +148,7 @@ const parseEventOnQuery = (queryResultDir: string) => {
             name: tuple[0], // eventName
             ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
+            meta: {}
         }))
     } catch (error) {
         console.warn('Failed to parse event on query result:', error)
@@ -164,7 +168,7 @@ const parseWebStorageQuery = (queryResultDir: string) => {
             name: tuple[0], // localStorageKey
             ...parseLoc(tuple[3]),
             version: ctx.getMetadata().version,
-            metadata: {
+            meta: {
                 kind: tuple[2]
             }
         }))
@@ -212,12 +216,12 @@ const formatResults = (results: QueryResults) => {
 }
 
 const parseLoc = (loc: string) => {
-    const [relative, startLine, startColumn] = loc.split(':')
+    const [relativePath, startLine, startColumn] = loc.split(':')
 
     return {
-        relative,
-        startLine,
-        startColumn
+        relativePath,
+        startLine: parseInt(startLine),
+        startColumn: parseInt(startColumn),
     }
 }
 

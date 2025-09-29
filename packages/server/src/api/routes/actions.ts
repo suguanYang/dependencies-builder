@@ -2,8 +2,8 @@ import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/actions-repository'
 import { formatStringToNumber } from '../request_parameter'
 import { executeCLI, getActiveExecution } from '../../services/cli-service'
-import { error, info } from '../../logging'
-import { PassThrough, pipeline } from 'node:stream'
+import { error as logError, info } from '../../logging'
+import { createActionLogStream } from '../../logging/action-logger'
 
 function actionsRoutes(fastify: FastifyInstance) {
   // GET /actions - Get actions with query parameters
@@ -68,7 +68,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
       reply.code(201).send(action)
     } catch (err) {
-      error('Failed to create action' + err)
+      logError('Failed to create action' + err)
       reply
         .code(500)
         .send({
@@ -95,7 +95,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
       return reply.code(200).send({ success: true, message: 'Action deleted successfully' })
     } catch (err) {
-      error(err)
+      logError(err)
       reply
         .code(500)
         .send({
@@ -127,35 +127,17 @@ function actionsRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // GET /actions/:id/stream - Stream action logs
-  fastify.get('/actions/:id/stream', async (request, reply) => {
+  // GET /actions/:id/logs - Stream action-specific logs
+  fastify.get('/actions/:id/logs', (request, reply) => {
     const { id } = request.params as { id: string }
 
-    // Check if action exists
-    const action = await repository.getActionById(id)
-    if (!action) {
-      reply.code(404).send({ error: 'Action not found' })
-      return
-    }
+    reply.header('Content-Type', 'text/plain; charset=utf-8')
+    reply.header('Cache-Control', 'no-cache')
 
-    // Check if action is still running
-    const activeExecution = getActiveExecution(id)
-    if (!activeExecution && action.status === 'running') {
-      reply.code(404).send({ error: 'Action execution not found' })
-      return
-    }
-
-    // If action is completed or failed, send final status
-    if (action.status !== 'running') {
-      reply.send(`[info] action is already completed` + '\n')
-      return
-    }
-
-    // Stream from active execution
-    if (activeExecution) {
-      reply.send(activeExecution.stream)
-    }
+    const logStream = createActionLogStream(id)
+    reply.send(logStream)
   })
+
 
   // POST /actions/:id/stop - Stop action execution
   fastify.post('/actions/:id/stop', async (request, reply) => {

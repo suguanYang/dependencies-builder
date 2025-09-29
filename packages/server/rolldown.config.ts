@@ -26,6 +26,7 @@ const nodeConfig = defineConfig({
   ...sharedNodeOptions,
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
+    transport: path.resolve(__dirname, 'src/logging/transport.js'),
   },
   external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 })

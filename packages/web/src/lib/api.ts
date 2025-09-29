@@ -262,6 +262,17 @@ export async function streamActionLogs(
   }
 }
 
+// Action-specific log functions
+export async function getActionLogs(actionId: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/actions/${actionId}/logs`)
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch action logs: ${response.statusText}`)
+  }
+
+  return response.text()
+}
+
 export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
   return apiRequest(`/actions/${actionId}/stop`, {
     method: 'POST',
