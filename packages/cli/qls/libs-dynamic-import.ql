@@ -52,4 +52,4 @@ where
   else (
     namedImport = "Nil" and namedImportLoc = getLocation(dynamicImportCall.getAstNode())
   )
-select namedImportLoc, packageName, subPackageName, namedImport
+select packageName, subPackageName, namedImport, namedImportLoc

@@ -45,7 +45,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       debug('Uploading batch %d/%d (%d nodes)', i + 1, batches.length, batch.length)
 
       try {
-        const response = await fetch(`${serverUrl}/nodes/batch`, {
+        const response = await fetch(`${serverUrl}/nodes/batch-create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

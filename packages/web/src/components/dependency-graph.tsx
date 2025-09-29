@@ -173,8 +173,8 @@ function getNodeColor(type: number): string {
     '#3b82f6', // blue - NamedExport
     '#ef4444', // red - NamedImport  
     '#f59e0b', // amber - RuntimeDynamicImport
-    '#10b981', // emerald - Externals
-    '#8b5cf6', // violet - GlobalState
+    '#10b981', // emerald - GlobalVarRead
+    '#8b5cf6', // violet - GlobalVarWrite
     '#ec4899', // pink - EventOn
     '#06b6d4', // cyan - EventEmit
     '#f97316', // orange - DynamicModuleFederationReference
@@ -187,8 +187,10 @@ function getTypeName(type: number): string {
     'NamedExport',
     'NamedImport',
     'RuntimeDynamicImport', 
-    'Externals',
-    'GlobalState',
+    'GlobalVarRead',
+    'GlobalVarWrite',
+    'WebStorageRead',
+    'WebStorageWrite',
     'EventOn',
     'EventEmit',
     'DynamicModuleFederationReference'

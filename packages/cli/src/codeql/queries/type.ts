@@ -31,31 +31,31 @@ export type ExportQuery = {
 
 export type ImportQuery = {
     "#select": {
-        "tuples": [importName: string, usageLocation: string, moduleName: string][]
+        "tuples": [importName: string, moduleName: string, usageLocation: string][]
     }
 }
 
 export type LibsDynamicImportQuery = {
     "#select": {
-        "tuples": [importName: string, usageLocation: string, packageName: string, subPackageName: string][]
+        "tuples": [importName: string, packageName: string, subPackageName: string, usageLocation: string][]
     }
 }
 
 export type GlobalVariableQuery = {
     "#select": {
-        "tuples": [variableName: string, location: string, type: "Write" | "Read"][]
+        "tuples": [variableName: string, type: "Write" | "Read", location: string][]
     }
 }
 
 export type WebStorageQuery = {
     "#select": {
-        "tuples": [localStorageKey: string, location: string, type: "Write" | "Read", kind: "LocalStorage" | "SessionStorage"][]
+        "tuples": [localStorageKey: string, type: "Write" | "Read", kind: "LocalStorage" | "SessionStorage", location: string][]
     }
 }
 
 export type EventQuery = {
     "#select": {
-        "tuples": [eventName: string, usageLocation: string, type: "On" | "Emit"][]
+        "tuples": [eventName: string, type: "On" | "Emit", usageLocation: string][]
     }
 }
 
@@ -63,8 +63,10 @@ export const NodeType = {
     NamedExport: 'NamedExport',
     NamedImport: 'NamedImport',
     RuntimeDynamicImport: 'RuntimeDynamicImport',
-    Externals: 'Externals',
-    GlobalState: 'GlobalState',
+    GlobalVarRead: 'GlobalVarRead',
+    GlobalVarWrite: 'GlobalVarWrite',
+    WebStorageRead: 'WebStorageRead',
+    WebStorageWrite: 'WebStorageWrite',
     EventOn: 'EventOn',
     EventEmit: 'EventEmit',
     DynamicModuleFederationReference: 'DynamicModuleFederationReference'

@@ -214,8 +214,10 @@ function NodesContent() {
                   <option value={0}>NamedExport</option>
                   <option value={1}>NamedImport</option>
                   <option value={2}>RuntimeDynamicImport</option>
-                  <option value={3}>Externals</option>
-                  <option value={4}>GlobalState</option>
+                  <option value={3}>GlobalVarRead</option>
+                  <option value={4}>GlobalVarWrite</option>
+                  <option value={5}>WebStorageRead</option>
+                  <option value={6}>WebStorageWrite</option>
                   <option value={5}>EventOn</option>
                   <option value={6}>EventEmit</option>
                   <option value={7}>DynamicModuleFederationReference</option>
@@ -279,8 +281,10 @@ function NodesContent() {
                   <option value={0}>NamedExport</option>
                   <option value={1}>NamedImport</option>
                   <option value={2}>RuntimeDynamicImport</option>
-                  <option value={3}>Externals</option>
-                  <option value={4}>GlobalState</option>
+                  <option value={3}>GlobalVarRead</option>
+                  <option value={4}>GlobalVarWrite</option>
+                  <option value={5}>WebStorageRead</option>
+                  <option value={6}>WebStorageWrite</option>
                   <option value={5}>EventOn</option>
                   <option value={6}>EventEmit</option>
                   <option value={7}>DynamicModuleFederationReference</option>

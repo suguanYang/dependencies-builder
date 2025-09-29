@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult } from '@/lib/api'
+import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, streamActionLogs, stopActionExecution } from '@/lib/api'
 
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [viewingResult, setViewingResult] = useState<{ actionId: string; result: any } | null>(null)
+  const [viewingLogs, setViewingLogs] = useState<string[] | null>(null)
   const [newAction, setNewAction] = useState<CreateActionData>({
     project: '',
     branch: '',
@@ -59,6 +60,48 @@ function ActionsContent() {
       setViewingResult({ actionId, result })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch action result')
+    }
+  }
+
+  const handleViewLogs = async (actionId: string) => {
+    setViewingLogs([])
+
+    await streamActionLogs(
+      actionId,
+      (log) => {
+        setViewingLogs(prev => prev ? [...prev, log] : null)
+      },
+      (error) => {
+        setError(`Stream error: ${error.message}`)
+      },
+      () => {
+        // Stream completed
+        mutateActions()
+      }
+    )
+  }
+
+  const handleStopExecution = async (actionId: string) => {
+    try {
+      await stopActionExecution(actionId)
+      mutateActions()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to stop action execution')
+    }
+  }
+
+  const handleRetry = async (action: Action) => {
+    try {
+      // Create new action with same parameters
+      const retryData: CreateActionData = {
+        project: action.project || '',
+        branch: action.branch || '',
+        type: action.type as CreateActionData['type']
+      }
+      await createAction(retryData)
+      mutateActions()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to retry action')
     }
   }
 
@@ -170,6 +213,26 @@ function ActionsContent() {
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex space-x-2">
+                      {action.status === 'running' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewLogs(action.id)}
+                            title="View Live Logs"
+                          >
+                            <TerminalIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleStopExecution(action.id)}
+                            title="Stop Execution"
+                          >
+                            <SquareIcon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                       {action.status === 'completed' && (
                         <Button
                           variant="outline"
@@ -190,6 +253,15 @@ function ActionsContent() {
                           <AlertCircleIcon className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRetry(action)}
+                        disabled={action.status === 'running'}
+                        title="Retry Action"
+                      >
+                        <RotateCcwIcon className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
@@ -270,12 +342,51 @@ function ActionsContent() {
                 Close
               </Button>
             </div>
-            
+
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium mb-2">Action ID: {viewingResult.actionId}</h4>
               <pre className="text-sm overflow-auto bg-white p-4 rounded border">
                 {JSON.stringify(viewingResult.result, null, 2)}
               </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Logs Modal */}
+      {viewingLogs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Live Action Logs</h3>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setViewingLogs(null)
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-auto">
+              {viewingLogs.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <p>Waiting for logs...</p>
+                </div>
+              ) : (
+                viewingLogs.map((log, index) => (
+                  <div key={index} className="mb-1">
+                    <span className={log.startsWith('[error]') ? 'text-red-400' : 'text-green-400'}>
+                      {log}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

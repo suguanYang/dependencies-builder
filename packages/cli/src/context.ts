@@ -67,7 +67,7 @@ class Context {
         if (this.options.repository.startsWith('http')) {
             this.remote = true
         } else if (!existsSync(this.options.repository)) {
-            throw new Error('Repository must be a valid git remote address or a existing local directory')
+            throw new Error('Repository must be a existing local directory')
         }
 
         if (!existsSync(join(this.options.repository, 'package.json'))) {

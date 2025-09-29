@@ -15,8 +15,10 @@ enum NodeType {
   NamedExport
   NamedImport
   RuntimeDynamicImport
-  Externals
-  GlobalState
+  GlobalVarRead
+  GlobalVarWrite
+  WebStorageRead
+  WebStorageWrite
   EventOn
   EventEmit
   DynamicModuleFederationReference
@@ -60,4 +62,36 @@ model Connection {
   @@index([fromId])
   @@index([toId])
   @@unique([fromId, toId])
+}
+
+enum ActionType {
+  static_analysis
+  dependency_check
+  validation
+}
+
+enum ActionStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+model Action {
+  id        String      @id @default(cuid())
+  status    ActionStatus
+  project   String?
+  branch    String?
+  type      ActionType
+  result    Json?
+  error     String?
+  logs      Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  // Indexes
+  @@index([status])
+  @@index([project, branch])
+  @@index([type])
+  @@index([createdAt])
 }

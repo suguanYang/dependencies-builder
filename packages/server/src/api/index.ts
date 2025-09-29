@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import nodesRoutes from './routes/nodes'
 import connectionsRoutes from './routes/connections'
 import dependenciesRoutes from './routes/dependencies'
+import actionsRoutes from './routes/actions'
 import { prisma } from '../database/prisma'
 
 export async function setupAPI(fastify: FastifyInstance) {
@@ -9,9 +10,10 @@ export async function setupAPI(fastify: FastifyInstance) {
   fastify.register(nodesRoutes)
   fastify.register(connectionsRoutes)
   fastify.register(dependenciesRoutes)
+  fastify.register(actionsRoutes)
 
   // Health check endpoint
-  fastify.get('/health', async (request, reply) => {
+  fastify.get('/health', async () => {
     try {
       // Simple health check - try to count nodes
       await prisma.node.count()
@@ -31,7 +33,7 @@ export async function setupAPI(fastify: FastifyInstance) {
   })
 
   // Root endpoint
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async () => {
     return {
       message: 'DMS Server API',
       version: '1.0.0',
@@ -41,6 +43,11 @@ export async function setupAPI(fastify: FastifyInstance) {
         '/edges',
         '/edges/:id',
         '/dependencies/:nodeId',
+        '/actions',
+        '/actions/:id',
+        '/actions/:id/result',
+        '/actions/:id/stream',
+        '/actions/:id/stop',
         '/health',
       ],
     }

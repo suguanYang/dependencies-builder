@@ -58,4 +58,4 @@ string getLocation(DataFlow::Node node) {
 }
 
 from PersistentWebStorage::ReadWriteAccess readOrWrite
-select readOrWrite.getKey(), getLocation(readOrWrite), readOrWrite.getType(), readOrWrite.getKind()
+select readOrWrite.getKey(), readOrWrite.getType(), readOrWrite.getKind(), getLocation(readOrWrite)

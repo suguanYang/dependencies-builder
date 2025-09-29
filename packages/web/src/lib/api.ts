@@ -67,8 +67,13 @@ export async function apiRequest<T>(
 
   const response = await fetch(url, {
     headers: {
-      'Content-Type': 'application/json',
       ...options.headers,
+      ...(
+        options.method === 'DELETE' ? {
+        } : {
+          'Content-Type': 'application/json',
+        }
+      )
     },
     ...options,
   })
@@ -200,4 +205,65 @@ export async function deleteAction(id: string): Promise<{ success: boolean }> {
 
 export async function getActionResult(id: string): Promise<any> {
   return apiRequest(`/actions/${id}/result`)
+}
+
+export async function streamActionLogs(
+  actionId: string,
+  onEvent: (event: string) => void,
+  onError?: (error: Error) => void,
+  onComplete?: () => void
+): Promise<void> {
+  const url = `${API_BASE}/actions/${actionId}/stream`
+
+  try {
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error(`Failed to stream action logs: ${response.statusText}`)
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    const processStream = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+
+          if (done) {
+            reader.cancel()
+            onComplete?.()
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split('\n').filter(line => line.trim())
+
+          for (const line of lines) {
+            try {
+              onEvent(line)
+            } catch (parseError) {
+              console.warn('Failed to parse stream event:', parseError)
+            }
+          }
+        }
+      } catch (error) {
+        onError?.(error instanceof Error ? error : new Error('Stream error'))
+      }
+    }
+
+    processStream()
+  } catch (error) {
+    onError?.(error instanceof Error ? error : new Error('Failed to connect to stream'))
+  }
+}
+
+export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest(`/actions/${actionId}/stop`, {
+    method: 'POST',
+  })
 }

@@ -27,7 +27,7 @@ string getImportedName(ImportSpecifier spec) {
   or
   spec instanceof ImportDefaultSpecifier and result = "default"
   or
-  spec instanceof ImportSpecifier and result = spec.getImportedName()
+  result = spec.getImportedName()
 }
 
 private predicate getAnImportedMemberUsage(
@@ -71,11 +71,11 @@ private predicate getAnImportedMemberUsage(
 from ImportDeclaration imp, string packageName, string importedName, DataFlow::Node usage, string usageLocation
 where
   // Filter for @seeyon/* packages
-  imp.getImportedPathString().matches("@xxx/%") and
+  imp.getImportedPathString().matches("@seeyon/%") and
   packageName = imp.getImportedPathString()
   and
   getAnImportedMemberUsage(imp, importedName, usage)
   and
   usageLocation = getLocation(usage.getAstNode())
 
-select importedName, usageLocation, packageName
+select importedName, packageName, usageLocation

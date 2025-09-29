@@ -89,8 +89,8 @@ function nodesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // POST /nodes/batch - Create multiple nodes in batch
-  fastify.post('/nodes/batch', async (request, reply) => {
+  // POST /nodes/batch-create - Create multiple nodes in batch
+  fastify.post('/nodes/batch-create', async (request, reply) => {
     try {
       const nodesData = request.body as NodeCreationBody[]
 

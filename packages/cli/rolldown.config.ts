@@ -6,6 +6,9 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 const sharedNodeOptions = defineConfig({
   platform: 'node',
+  define: {
+    __PROD__: 'true'
+  },
   output: {
     dir: './dist',
     entryFileNames: `[name].js`,

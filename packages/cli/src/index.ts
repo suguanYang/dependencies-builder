@@ -43,4 +43,5 @@ yargs(hideBin(process.argv))
   .help()
   .alias('help', 'h')
   .strict()
+  .showHelpOnFail(false) // Disable help message on error
   .parse()

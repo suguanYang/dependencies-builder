@@ -1,5 +1,4 @@
-import path from "node:path"
-import { fileURLToPath } from "node:url"
+import path, { relative } from "node:path"
 import { cpSync, readFileSync, writeFileSync } from "node:fs"
 
 import getEntries from "./entries"
@@ -7,8 +6,9 @@ import { getContext } from "../../context"
 import { entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
 import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType } from "./type"
+import { PACKAGE_ROOT } from "../../utils/constant"
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const qlsDir = path.join(PACKAGE_ROOT, 'qls')
 
 const buildQueries = () => {
     const ctx = getContext()
@@ -26,10 +26,10 @@ getFileExports(entry, name, location)
         `).join(' or '))
     writeFileSync(path.join(ctx.getRepository(), 'queries', 'export.ql'), entryQuery)
 
-    cpSync(path.join(__dirname, 'qls'), path.join(ctx.getRepository(), 'queries'), { recursive: true })
+    cpSync(qlsDir, path.join(ctx.getRepository(), 'queries'), { recursive: true })
 
     // cp qlpack.yml to queries
-    writeFileSync(path.join(ctx.getRepository(), 'queries', 'qlpack.yml'), readFileSync(path.join(__dirname, 'qlpack.yml'), 'utf-8').replace('&&name&&', ctx.getMetadata().name))
+    writeFileSync(path.join(ctx.getRepository(), 'queries', 'qlpack.yml'), readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8').replace('&&name&&', ctx.getMetadata().name))
 }
 
 type QueryResults = {
@@ -37,7 +37,9 @@ type QueryResults = {
     es6Imports: ReturnType<typeof parseES6ImportQuery>
     dynamicImports: ReturnType<typeof parseLibsDynamicImportQuery>
     globalVariables: ReturnType<typeof parseGlobalVariableQuery>
-    event: ReturnType<typeof parseEventOnQuery>
+    eventOn: ReturnType<typeof parseEventOnQuery>
+    eventEmit: ReturnType<typeof parseEventOnQuery>
+    webStorage: ReturnType<typeof parseWebStorageQuery>
 }
 const processQuery = (queryResultDir: string) => {
     const results: QueryResults = {
@@ -45,7 +47,9 @@ const processQuery = (queryResultDir: string) => {
         es6Imports: parseES6ImportQuery(queryResultDir),
         dynamicImports: parseLibsDynamicImportQuery(queryResultDir),
         globalVariables: parseGlobalVariableQuery(queryResultDir),
-        event: parseEventOnQuery(queryResultDir),
+        eventOn: parseEventOnQuery(queryResultDir),
+        eventEmit: parseEventOnQuery(queryResultDir),
+        webStorage: parseWebStorageQuery(queryResultDir),
     }
 
     return formatResults(results)
@@ -61,9 +65,7 @@ const parseExportQuery = (queryResultDir: string) => {
             branch: ctx.getBranch(),
             type: NodeType.NamedExport,
             name: tuple[1],
-            relativePath: tuple[2],
-            startLine: parseInt(tuple[2].split(':')[1]),
-            startColumn: parseInt(tuple[2].split(':')[2]),
+            ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
             meta: {
                 entry: tuple[0],
@@ -83,15 +85,9 @@ const parseES6ImportQuery = (queryResultDir: string) => {
             project,
             branch: ctx.getBranch(),
             type: NodeType.NamedImport,
-            name: tuple[1],
-            relativePath: tuple[2],
-            startLine: parseInt(tuple[2].split(':')[1]),
-            startColumn: parseInt(tuple[2].split(':')[2]),
+            name: `${tuple[1]}.${tuple[0]}`, // importName
+            ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
-            meta: {
-                module: tuple[0],
-                importName: tuple[1]
-            },
         }))
     } catch (error) {
         console.warn('Failed to parse ES6 import query result:', error)
@@ -108,15 +104,9 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
             project,
             branch: ctx.getBranch(),
             type: NodeType.RuntimeDynamicImport,
-            name: tuple[0],
-            relativePath: tuple[1],
-            startLine: parseInt(tuple[1].split(':')[1]),
-            startColumn: parseInt(tuple[1].split(':')[2]),
+            name: `${tuple[1]}.${tuple[2]}.${tuple[0]}`, // namedImport
+            ...parseLoc(tuple[3]),
             version: ctx.getMetadata().version,
-            meta: {
-                packageName: tuple[2],
-                subPackageName: tuple[3]
-            },
         }))
     } catch (error) {
         console.warn('Failed to parse dynamic import query result:', error)
@@ -129,18 +119,13 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
     const project = ctx.getMetadata().name
     try {
         const globalVarResult = JSON.parse(readFileSync(path.join(queryResultDir, 'global-variable.json'), 'utf-8')) as GlobalVariableQuery
-        return globalVarResult['#select'].tuples.map((tuple: [string, string, string]) => ({
+        return globalVarResult['#select'].tuples.map((tuple: [string, "Write" | "Read", string]) => ({
             project,
             branch: ctx.getBranch(),
-            type: NodeType.GlobalState,
-            name: tuple[0],
-            relativePath: tuple[1],
-            startLine: parseInt(tuple[1].split(':')[1]),
-            startColumn: parseInt(tuple[1].split(':')[2]),
+            type: tuple[1] === "Write" ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
+            name: tuple[0], // variableName
+            ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
-            meta: {
-                variableName: tuple[0]
-            },
         }))
     } catch (error) {
         console.warn('Failed to parse global variable query result:', error)
@@ -156,18 +141,35 @@ const parseEventOnQuery = (queryResultDir: string) => {
         return eventOnResult['#select'].tuples.map((tuple: [string, string, string]) => ({
             project,
             branch: ctx.getBranch(),
-            type: tuple[2] === 'On' ? NodeType.EventOn : NodeType.EventEmit,
-            name: tuple[0],
-            relativePath: tuple[1],
-            startLine: parseInt(tuple[1].split(':')[1]),
-            startColumn: parseInt(tuple[1].split(':')[2]),
+            type: tuple[1] === 'On' ? NodeType.EventOn : NodeType.EventEmit,
+            name: tuple[0], // eventName
+            ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
-            meta: {
-                eventName: tuple[0]
-            },
         }))
     } catch (error) {
         console.warn('Failed to parse event on query result:', error)
+        return []
+    }
+}
+
+const parseWebStorageQuery = (queryResultDir: string) => {
+    const ctx = getContext()
+    const project = ctx.getMetadata().name
+    try {
+        const webStorageResult = JSON.parse(readFileSync(path.join(queryResultDir, 'web-storage.json'), 'utf-8')) as WebStorageQuery
+        return webStorageResult['#select'].tuples.map((tuple: [string, "Write" | "Read", "LocalStorage" | "SessionStorage", string]) => ({
+            project,
+            branch: ctx.getBranch(),
+            type: tuple[1] === "Write" ? NodeType.WebStorageWrite : NodeType.WebStorageRead,
+            name: tuple[0], // localStorageKey
+            ...parseLoc(tuple[3]),
+            version: ctx.getMetadata().version,
+            metadata: {
+                kind: tuple[2]
+            }
+        }))
+    } catch (error) {
+        console.warn('Failed to parse web storage query result:', error)
         return []
     }
 }
@@ -179,7 +181,9 @@ const formatResults = (results: QueryResults) => {
         ...results.es6Imports,
         ...results.dynamicImports,
         ...results.globalVariables,
-        ...results.event,
+        ...results.eventOn,
+        ...results.eventEmit,
+        ...results.webStorage
     ]
 
     const summary = {
@@ -192,15 +196,28 @@ const formatResults = (results: QueryResults) => {
             [NodeType.NamedExport]: results.namedExports.length,
             [NodeType.NamedImport]: results.es6Imports.length,
             [NodeType.RuntimeDynamicImport]: results.dynamicImports.length,
-            [NodeType.GlobalState]: results.globalVariables.length,
-            [NodeType.EventOn]: results.event.filter(event => event.type === NodeType.EventOn).length,
-            [NodeType.EventEmit]: results.event.filter(event => event.type === NodeType.EventEmit).length,
+            [NodeType.GlobalVarRead]: results.globalVariables.filter(node => node.type === NodeType.GlobalVarRead).length,
+            [NodeType.GlobalVarWrite]: results.globalVariables.filter(node => node.type === NodeType.GlobalVarWrite).length,
+            [NodeType.EventOn]: results.eventOn.length,
+            [NodeType.EventEmit]: results.eventEmit.length,
+            [NodeType.WebStorageRead]: results.webStorage.filter(node => node.type === NodeType.WebStorageRead).length,
+            [NodeType.WebStorageWrite]: results.webStorage.filter(node => node.type === NodeType.WebStorageWrite).length,
         }
     }
 
     return {
         summary,
         nodes: allNodes
+    }
+}
+
+const parseLoc = (loc: string) => {
+    const [relative, startLine, startColumn] = loc.split(':')
+
+    return {
+        relative,
+        startLine,
+        startColumn
     }
 }
 

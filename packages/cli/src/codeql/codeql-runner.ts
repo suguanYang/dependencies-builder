@@ -3,11 +3,11 @@ import run from '../utils/run'
 import debug from '../utils/debug'
 import { getContext } from '../context'
 import { cpus } from 'node:os'
-import { fileURLToPath } from 'node:url'
-import { globSync, rmSync } from 'node:fs'
+import { globSync } from 'node:fs'
 import { ensureDirectoryExistsSync } from '../utils/fs-helper'
+import { PACKAGE_ROOT } from '../utils/constant'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const scanDir = path.join(PACKAGE_ROOT, 'scan')
 
 export interface CodeQLResult {
     tuples?: any[]
@@ -17,7 +17,7 @@ export interface CodeQLResult {
 export class CodeQL {
     private static readonly LANGUAGE = 'javascript'
     private static readonly THREADS_NUMBER = cpus().length * 2 || 10
-    private static readonly SCAN_CONFIG_FILE = path.join(__dirname, 'scan', 'codeql-config.yml')
+    private static readonly SCAN_CONFIG_FILE = path.join(scanDir, 'codeql-config.yml')
     private static readonly EXECUTABLE_PATH = process.env.CODEQL_EXCUTABLE_PATH || '/usr/local/codeql/codeql'
 
     private readonly repoPath: string

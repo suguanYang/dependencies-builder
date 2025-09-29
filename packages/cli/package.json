@@ -4,10 +4,16 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "files": [
+    "dist",
+    "qls",
+    "scan"
+  ],
   "scripts": {
     "typecheck": "tsgo",
     "build": "rimraf dist && rolldown -c rolldown.config.ts",
-    "dev": "vite-node src/index.ts"
+    "dev": "vite-node src/index.ts",
+    "codeql:precompile": "codeql database analyze --format=sarif-latest --output=codeql-analysis.sarif . codeql/queries"
   },
   "keywords": [],
   "author": "",

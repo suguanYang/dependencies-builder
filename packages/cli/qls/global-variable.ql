@@ -36,4 +36,4 @@ where
   if (isAssignToGlobalVar(source))
   then type = "Write"
   else type = "Read"
-select name, getLocation(usage.getAstNode()), type
+select name, type, getLocation(usage.getAstNode())
