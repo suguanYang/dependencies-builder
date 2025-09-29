@@ -8,5 +8,5 @@ export const runCodeQL = async () => {
 
   await codeql.run()
 
-  processQuery(codeql.outputPath)
+  return processQuery(codeql.outputPath)
 }

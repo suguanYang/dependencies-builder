@@ -89,6 +89,36 @@ function nodesRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // POST /nodes/batch - Create multiple nodes in batch
+  fastify.post('/nodes/batch', async (request, reply) => {
+    try {
+      const nodesData = request.body as NodeCreationBody[]
+
+      if (!nodesData || !Array.isArray(nodesData)) {
+        reply.code(400).send({ error: 'Invalid request body. Expected array of nodes' })
+        return
+      }
+
+      const createdNodes = []
+      for (const nodeData of nodesData) {
+        const node = await repository.createNode(nodeData)
+        createdNodes.push(node)
+      }
+
+      reply.code(201).send({
+        message: `Successfully created ${createdNodes.length} nodes`,
+        data: createdNodes
+      })
+    } catch (error) {
+      reply
+        .code(500)
+        .send({
+          error: 'Failed to create nodes in batch',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+    }
+  })
+
   // PUT /nodes/:id - Update a node
   fastify.put('/nodes/:id', async (request, reply) => {
     try {

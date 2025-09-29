@@ -43,19 +43,19 @@ export type LibsDynamicImportQuery = {
 
 export type GlobalVariableQuery = {
     "#select": {
-        "tuples": [variableName: string, usageLocation: string][]
+        "tuples": [variableName: string, location: string, type: "Write" | "Read"][]
     }
 }
 
-export type EventOnQuery = {
+export type WebStorageQuery = {
     "#select": {
-        "tuples": [eventName: string, usageLocation: string][]
+        "tuples": [localStorageKey: string, location: string, type: "Write" | "Read", kind: "LocalStorage" | "SessionStorage"][]
     }
 }
 
-export type EventEmitQuery = {
+export type EventQuery = {
     "#select": {
-        "tuples": [eventName: string, usageLocation: string][]
+        "tuples": [eventName: string, usageLocation: string, type: "On" | "Emit"][]
     }
 }
 
