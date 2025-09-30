@@ -59,6 +59,12 @@ export type EventQuery = {
     }
 }
 
+export type RemoteLoaderQuery = {
+    "#select": {
+        "tuples": [appName: string, moduleName: string, location: string][]
+    }
+}
+
 export const NodeType = {
     NamedExport: 'NamedExport',
     NamedImport: 'NamedImport',

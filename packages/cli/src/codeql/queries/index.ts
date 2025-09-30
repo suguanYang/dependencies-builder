@@ -5,7 +5,7 @@ import getEntries from "./entries"
 import { getContext } from "../../context"
 import { entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
-import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType } from "./type"
+import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType, RemoteLoaderQuery } from "./type"
 import { PACKAGE_ROOT } from "../../utils/constant"
 
 const qlsDir = path.join(PACKAGE_ROOT, 'qls')
@@ -40,6 +40,7 @@ type QueryResults = {
     eventOn: ReturnType<typeof parseEventOnQuery>
     eventEmit: ReturnType<typeof parseEventOnQuery>
     webStorage: ReturnType<typeof parseWebStorageQuery>
+    remoteLoader: ReturnType<typeof parseRemoteLoaderQuery>
 }
 const processQuery = (queryResultDir: string) => {
     const results: QueryResults = {
@@ -50,6 +51,7 @@ const processQuery = (queryResultDir: string) => {
         eventOn: parseEventOnQuery(queryResultDir),
         eventEmit: parseEventOnQuery(queryResultDir),
         webStorage: parseWebStorageQuery(queryResultDir),
+        remoteLoader: parseRemoteLoaderQuery(queryResultDir),
     }
 
     return formatResults(results)
@@ -178,6 +180,24 @@ const parseWebStorageQuery = (queryResultDir: string) => {
     }
 }
 
+const parseRemoteLoaderQuery = (queryResultDir: string) => {
+    const ctx = getContext()
+    const project = ctx.getMetadata().name
+    try {
+        const remoteLoaderResult = JSON.parse(readFileSync(path.join(queryResultDir, 'remote-loader.json'), 'utf-8')) as RemoteLoaderQuery
+        return remoteLoaderResult['#select'].tuples.map((tuple: [string, string, string]) => ({
+            project,
+            branch: ctx.getBranch(),
+            type: NodeType.DynamicModuleFederationReference,
+            name: `${tuple[0]}.${tuple[1]}`,
+            ...parseLoc(tuple[2]),
+        }))
+    } catch (error) {
+        console.warn('Failed to parse remote loader query result:', error)
+        return []
+    }
+}
+
 const formatResults = (results: QueryResults) => {
     const ctx = getContext()
     const allNodes = [
@@ -187,7 +207,8 @@ const formatResults = (results: QueryResults) => {
         ...results.globalVariables,
         ...results.eventOn,
         ...results.eventEmit,
-        ...results.webStorage
+        ...results.webStorage,
+        ...results.remoteLoader
     ]
 
     const summary = {
@@ -206,6 +227,7 @@ const formatResults = (results: QueryResults) => {
             [NodeType.EventEmit]: results.eventEmit.length,
             [NodeType.WebStorageRead]: results.webStorage.filter(node => node.type === NodeType.WebStorageRead).length,
             [NodeType.WebStorageWrite]: results.webStorage.filter(node => node.type === NodeType.WebStorageWrite).length,
+            [NodeType.DynamicModuleFederationReference]: results.remoteLoader.length,
         }
     }
 
