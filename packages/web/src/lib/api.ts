@@ -1,8 +1,21 @@
+export enum NodeType {
+  NamedExport = 'NamedExport',
+  NamedImport = 'NamedImport',
+  RuntimeDynamicImport = 'RuntimeDynamicImport',
+  GlobalVarRead = 'GlobalVarRead',
+  GlobalVarWrite = 'GlobalVarWrite',
+  WebStorageRead = 'WebStorageRead',
+  WebStorageWrite = 'WebStorageWrite',
+  EventOn = 'EventOn',
+  EventEmit = 'EventEmit',
+  DynamicModuleFederationReference = 'DynamicModuleFederationReference'
+}
+
 export interface Node {
   id: string
   name: string
   project: string
-  type: number
+  type: NodeType
   branch: string
   version?: string
   relativePath?: string
@@ -21,7 +34,7 @@ export interface Connection {
 export interface SearchFilters {
   project?: string
   branch?: string
-  type?: string
+  type?: NodeType
   name?: string
   limit?: number
   offset?: number
@@ -69,9 +82,9 @@ export async function apiRequest<T>(
     headers: {
       ...options.headers,
       ...(
-        options.method === 'DELETE' ? {
-        } : {
+        !!options.body ? {
           'Content-Type': 'application/json',
+        } : {
         }
       )
     },
@@ -275,6 +288,19 @@ export async function getActionLogs(actionId: string): Promise<string> {
 
 export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
   return apiRequest(`/actions/${actionId}/stop`, {
+    method: 'POST',
+  })
+}
+
+// Auto-create connections API
+export async function autoCreateDependencies(): Promise<{
+  success: boolean
+  message: string
+  createdConnections: number
+  skippedConnections: number
+  errors: string[]
+}> {
+  return apiRequest('/connections/auto-create', {
     method: 'POST',
   })
 }

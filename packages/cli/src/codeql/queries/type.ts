@@ -31,13 +31,13 @@ export type ExportQuery = {
 
 export type ImportQuery = {
     "#select": {
-        "tuples": [importName: string, moduleName: string, usageLocation: string][]
+        "tuples": [moduleName: string, importName: string, usageLocation: string][]
     }
 }
 
 export type LibsDynamicImportQuery = {
     "#select": {
-        "tuples": [importName: string, packageName: string, subPackageName: string, usageLocation: string][]
+        "tuples": [packageName: string, subPackageName: string, importName: string, usageLocation: string][]
     }
 }
 

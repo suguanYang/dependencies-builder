@@ -1,15 +1,15 @@
 import { prisma } from './prisma'
 import { Prisma } from '../generated/prisma'
 
-export async function getNodes(query: Prisma.NodeFindManyArgs) {
+export async function getNodes(query: Prisma.NodeFindManyArgs, all?: boolean) {
   const { where, take, skip } = query
 
   const [data, total] = await Promise.all([
     prisma.node.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: take || 100,
-      skip: skip || 0,
+      take: all ? undefined : take ?? 100,
+      skip: all ? undefined : skip ?? 0,
     }),
     prisma.node.count({ where }),
   ])
@@ -46,6 +46,33 @@ export async function getNodesByIds(ids: string[]) {
 export async function createNode(
   node: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
 ) {
+  // Check if node already exists based on unique constraints
+  const existingNode = await prisma.node.findFirst({
+    where: {
+      project: node.project,
+      branch: node.branch,
+      type: node.type,
+      name: node.name,
+      relativePath: node.relativePath,
+      startLine: node.startLine,
+      startColumn: node.startColumn,
+    },
+  })
+
+  if (existingNode) {
+    // Update existing node instead of creating new one
+    const updatedNode = await prisma.node.update({
+      where: { id: existingNode.id },
+      data: {
+        version: node.version,
+        meta: node.meta,
+        updatedAt: new Date(),
+      },
+    })
+    return updatedNode
+  }
+
+  // Create new node if it doesn't exist
   const createdNode = await prisma.node.create({
     data: node,
   })
@@ -81,8 +108,8 @@ export async function getConnections(query: Prisma.ConnectionFindManyArgs) {
     prisma.connection.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: take || 100,
-      skip: skip || 0,
+      take: take ?? 100,
+      skip: skip ?? 0,
       include: {
         fromNode: true,
         toNode: true,

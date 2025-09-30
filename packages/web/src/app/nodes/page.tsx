@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
+import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
 
 function NodesContent() {
   const [error, setError] = useState<string>('')
@@ -19,7 +19,7 @@ function NodesContent() {
   const [newNode, setNewNode] = useState({
     project: '',
     branch: '',
-    type: 0,
+    type: NodeType.NamedExport,
     name: '',
     relativePath: '',
     startLine: 0,
@@ -51,7 +51,7 @@ function NodesContent() {
       setNewNode({
         project: '',
         branch: '',
-        type: 0,
+        type: NodeType.NamedExport,
         name: '',
         relativePath: '',
         startLine: 0,
@@ -208,19 +208,19 @@ function NodesContent() {
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
                   value={newNode.type}
-                  onChange={(e) => setNewNode(prev => ({ ...prev, type: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => setNewNode(prev => ({ ...prev, type: e.target.value as NodeType }))}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  <option value={0}>NamedExport</option>
-                  <option value={1}>NamedImport</option>
-                  <option value={2}>RuntimeDynamicImport</option>
-                  <option value={3}>GlobalVarRead</option>
-                  <option value={4}>GlobalVarWrite</option>
-                  <option value={5}>WebStorageRead</option>
-                  <option value={6}>WebStorageWrite</option>
-                  <option value={5}>EventOn</option>
-                  <option value={6}>EventEmit</option>
-                  <option value={7}>DynamicModuleFederationReference</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
                 </select>
               </div>
               
@@ -275,19 +275,19 @@ function NodesContent() {
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
                   value={editingNode.type}
-                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, type: parseInt(e.target.value) || 0 }) : null)}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, type: e.target.value as NodeType }) : null)}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  <option value={0}>NamedExport</option>
-                  <option value={1}>NamedImport</option>
-                  <option value={2}>RuntimeDynamicImport</option>
-                  <option value={3}>GlobalVarRead</option>
-                  <option value={4}>GlobalVarWrite</option>
-                  <option value={5}>WebStorageRead</option>
-                  <option value={6}>WebStorageWrite</option>
-                  <option value={5}>EventOn</option>
-                  <option value={6}>EventEmit</option>
-                  <option value={7}>DynamicModuleFederationReference</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
                 </select>
               </div>
               

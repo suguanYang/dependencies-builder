@@ -2,22 +2,21 @@ import path from "path"
 import { existsSync } from "../../utils/fs-helper"
 import { error } from "../../utils/debug"
 import { getContext } from "../../context"
+import { statSync } from "fs"
 
-const getEntriesInWebpackConfig = (wd: string): string[] => {
-    const webpackConfigFile = path.join(wd, 'webpack-overrides.js')
 
-    if (!existsSync(webpackConfigFile)) {
-        return []
-    }
+const CONTROL_EXPORTS = {
+    schema: './src/schema.ts',
+    runtime: './src/runtime.tsx',
+    attr: './src/components/attr.tsx',
+    design: './src/components/design.tsx',
+};
 
-    try {
-        const webpackConfig = require(webpackConfigFile)
-        return webpackConfig()
-    } catch (err) {
-        error(`Failed to get entries in webpack config: ${err as string}`)
-        return []
-    }
-}
+const ACTION_EXPORTS = {
+    runtimeAction: ['./src/actions/runtime.ts', './src/actions/runtime.tsx'],
+    schemaAction: './src/actions/schema.ts',
+};
+
 
 const getEntriesInConfig = (wd: string) => {
     const syConfigFile = path.join(wd, 'sy.config.json')
@@ -25,10 +24,26 @@ const getEntriesInConfig = (wd: string) => {
     if (!existsSync(syConfigFile)) {
         return []
     }
-
+    const fromCwd = (relative: string) => {
+        if (existsSync(path.join(wd, relative)) && statSync(path.join(wd, relative)).isFile()) {
+            return path.join(wd, relative)
+        }
+        return null
+    }
     try {
         const syConfig = require(syConfigFile)
-        return syConfig.exports
+        const allEntries = {
+            ...syConfig.exports,
+            ...(syConfig.control ? CONTROL_EXPORTS : {}),
+            ...(syConfig.actions ? ACTION_EXPORTS : {}),
+        }
+
+        const validEntries = []
+        for (const name in allEntries) {
+            const entry = fromCwd(allEntries[name])
+            entry && validEntries.push(entry)
+        }
+        return validEntries
     } catch (err) {
         error(`Failed to get entries in sy config: ${err as string}`)
         return []
@@ -39,12 +54,12 @@ const getEntriesInConfig = (wd: string) => {
 const getEntries = () => {
     const ctx = getContext()
     const entries: string[] = []
-    if (ctx.getType() === 'app') {
-        // entries.push(...getEntriesInWebpackConfig(ctx.getRepository()))
-    } else {
+    if (ctx.getType() === 'lib') {
         entries.push('index.ts')
         entries.push('index.tsx')
         entries.push(...getEntriesInConfig(ctx.getRepository()))
+    } else {
+        // entries.push(...getEntriesInWebpackConfig(ctx.getRepository()))
     }
 
     if (ctx.getMetadata().name === 'main') {

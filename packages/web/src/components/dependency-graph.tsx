@@ -3,12 +3,13 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import * as d3 from 'd3'
 import type { SimulationLinkDatum, SimulationNodeDatum } from 'd3'
+import { NodeType } from '@/lib/api'
 
 interface Node extends SimulationNodeDatum {
   id: string
   name: string
   project: string
-  type: number
+  type: NodeType
   branch: string
 }
 
@@ -168,32 +169,22 @@ export function DependencyGraph({
   )
 }
 
-function getNodeColor(type: number): string {
-  const colors = [
-    '#3b82f6', // blue - NamedExport
-    '#ef4444', // red - NamedImport  
-    '#f59e0b', // amber - RuntimeDynamicImport
-    '#10b981', // emerald - GlobalVarRead
-    '#8b5cf6', // violet - GlobalVarWrite
-    '#ec4899', // pink - EventOn
-    '#06b6d4', // cyan - EventEmit
-    '#f97316', // orange - DynamicModuleFederationReference
-  ]
-  return colors[type] || '#6b7280'
+function getNodeColor(type: NodeType): string {
+  const colorMap: Record<NodeType, string> = {
+    [NodeType.NamedExport]: '#3b82f6', // blue
+    [NodeType.NamedImport]: '#ef4444', // red
+    [NodeType.RuntimeDynamicImport]: '#f59e0b', // amber
+    [NodeType.GlobalVarRead]: '#10b981', // emerald
+    [NodeType.GlobalVarWrite]: '#8b5cf6', // violet
+    [NodeType.WebStorageRead]: '#ec4899', // pink
+    [NodeType.WebStorageWrite]: '#06b6d4', // cyan
+    [NodeType.EventOn]: '#f97316', // orange
+    [NodeType.EventEmit]: '#84cc16', // lime
+    [NodeType.DynamicModuleFederationReference]: '#6366f1', // indigo
+  }
+  return colorMap[type] || '#6b7280'
 }
 
-function getTypeName(type: number): string {
-  const names = [
-    'NamedExport',
-    'NamedImport',
-    'RuntimeDynamicImport', 
-    'GlobalVarRead',
-    'GlobalVarWrite',
-    'WebStorageRead',
-    'WebStorageWrite',
-    'EventOn',
-    'EventEmit',
-    'DynamicModuleFederationReference'
-  ]
-  return names[type] || 'Unknown'
+function getTypeName(type: NodeType): string {
+  return type
 }

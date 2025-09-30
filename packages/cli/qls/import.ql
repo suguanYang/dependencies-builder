@@ -78,4 +78,4 @@ where
   and
   usageLocation = getLocation(usage.getAstNode())
 
-select importedName, packageName, usageLocation
+select packageName, importedName, usageLocation

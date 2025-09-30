@@ -85,7 +85,7 @@ const parseES6ImportQuery = (queryResultDir: string) => {
             project,
             branch: ctx.getBranch(),
             type: NodeType.NamedImport,
-            name: `${tuple[1]}.${tuple[0]}`, // importName
+            name: `${tuple[0]}.${tuple[1]}`, // importName
             ...parseLoc(tuple[2]),
             version: ctx.getMetadata().version,
             meta: {}
@@ -105,7 +105,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
             project,
             branch: ctx.getBranch(),
             type: NodeType.RuntimeDynamicImport,
-            name: `${tuple[1]}.${tuple[2]}.${tuple[0]}`, // namedImport
+            name: `${tuple[0]}.${tuple[1]}.${tuple[2]}`, // namedImport
             ...parseLoc(tuple[3]),
             version: ctx.getMetadata().version,
             meta: {}

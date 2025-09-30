@@ -65,6 +65,14 @@ And there should no api that can delete the Connection by the `to` Node or its i
 or exists before, we need to keep this as a source of truth for the dependency graph, it can not be deleted by other projects except the `from` Project! because it existence ensure that
 dependecy is valid and protected.
 
+- /POST /connections/auto-create
+Automatically create connections between the Nodes that are not connected, it will use the Node table to find the Nodes that are not connected, and then create the connections between them. The connections are:
+1. NamedExport to NamedImport, from:projectA:NamedImport:projectB.name -> to:projectB:NamedExport:name
+2. RuntimeDynamicImport to NamedExport, from:projectA:RuntimeDynamicImport:projectB.sub.name -> to:projectB:NamedExport:name
+3. GlobalVarRead to GlobalVarWrite, from:projectA:GlobalVarRead:Key -> to:projectB:GlobalVarWrite:Key
+4. WebStorageRead to WebStorageWrite, from:projectA:WebStorageRead:Key -> to:projectB:WebStorageWrite:Key
+5. EventOn to EventEmit, from:projectA:EventOn:Key -> to:projectB:EventEmit:Key
+
 #### get the dependency graph by a given Node
 - /GET /dependencies/:node_id
 Create a dependency graph by the given Node id, it will recursively get the `from` Nodes and the `to` Nodes that are connected to the given Node, using orthogonnal list to

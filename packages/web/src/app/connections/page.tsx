@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, SearchIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, SearchIcon, RefreshCwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -10,11 +10,13 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, type Node, getConnectionsList, deleteConnection, createConnection, getNodesByIds } from '@/lib/api'
+import { type Connection, type Node, getConnectionsList, deleteConnection, createConnection, getNodesByIds, autoCreateDependencies } from '@/lib/api'
 
 function ConnectionsContent() {
   const [error, setError] = useState<string>('')
+  const [success, setSuccess] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
+  const [isAutoCreating, setIsAutoCreating] = useState(false)
   const [searchFilters, setSearchFilters] = useState({
     fromId: '',
     toId: ''
@@ -73,6 +75,31 @@ function ConnectionsContent() {
     }
   }
 
+  const handleAutoCreate = async () => {
+    try {
+      setIsAutoCreating(true)
+      setError('')
+      setSuccess('')
+
+      const result = await autoCreateDependencies()
+
+      if (result.success) {
+        setSuccess(`Auto-created ${result.createdConnections} connections. ${result.skippedConnections} already existed.`)
+        if (result.errors.length > 0) {
+          setError(`Some errors occurred: ${result.errors.join(', ')}`)
+        }
+      } else {
+        setError('Failed to auto-create connections')
+      }
+
+      // mutateConnections()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to auto-create connections')
+    } finally {
+      setIsAutoCreating(false)
+    }
+  }
+
   const handleSearch = () => {
     // Search is handled by the SWR key change
   }
@@ -126,10 +153,20 @@ function ConnectionsContent() {
         <div>
           <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
         </div>
-        <Button onClick={() => setIsCreating(true)}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Add Connection
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleAutoCreate}
+            disabled={isAutoCreating}
+            variant="outline"
+          >
+            <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
+            {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
+          </Button>
+          <Button onClick={() => setIsCreating(true)}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Connection
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -138,6 +175,16 @@ function ConnectionsContent() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
             {error}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="mb-6">
+          <AlertCircleIcon className="h-4 w-4" />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>
+            {success}
           </AlertDescription>
         </Alert>
       )}
