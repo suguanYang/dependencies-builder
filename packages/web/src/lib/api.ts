@@ -29,6 +29,8 @@ export interface Connection {
   fromId: string
   toId: string
   createdAt?: string
+  fromNode?: Node
+  toNode?: Node
 }
 
 export interface SearchFilters {
@@ -151,13 +153,27 @@ export async function deleteNode(id: string): Promise<{ success: boolean }> {
 export async function getConnectionsList(filters?: {
   fromId?: string
   toId?: string
+  fromNodeName?: string
+  toNodeName?: string
+  fromNodeProject?: string
+  toNodeProject?: string
+  fromNodeType?: string
+  toNodeType?: string
   limit?: number
+  offset?: number
 }): Promise<{ data: Connection[]; total: number }> {
   const params = new URLSearchParams()
 
   if (filters?.fromId) params.append('fromId', filters.fromId)
   if (filters?.toId) params.append('toId', filters.toId)
+  if (filters?.fromNodeName) params.append('fromNodeName', filters.fromNodeName)
+  if (filters?.toNodeName) params.append('toNodeName', filters.toNodeName)
+  if (filters?.fromNodeProject) params.append('fromNodeProject', filters.fromNodeProject)
+  if (filters?.toNodeProject) params.append('toNodeProject', filters.toNodeProject)
+  if (filters?.fromNodeType) params.append('fromNodeType', filters.fromNodeType)
+  if (filters?.toNodeType) params.append('toNodeType', filters.toNodeType)
   if (filters?.limit) params.append('limit', filters.limit.toString())
+  if (filters?.offset) params.append('offset', filters.offset.toString())
 
   const queryString = params.toString()
   return apiRequest(`/connections${queryString ? `?${queryString}` : ''}`)

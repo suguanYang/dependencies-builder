@@ -24,6 +24,12 @@ export interface NodeCreationBody {
 export interface ConnectionQuery {
   fromId?: string
   toId?: string
+  fromNodeName?: string
+  toNodeName?: string
+  fromNodeProject?: string
+  toNodeProject?: string
+  fromNodeType?: string
+  toNodeType?: string
   limit?: number
   offset?: number
 }

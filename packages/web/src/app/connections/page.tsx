@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import useSWR, { SWRConfig } from 'swr'
 import { PlusIcon, TrashIcon, SearchIcon, RefreshCwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,50 +10,71 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, type Node, getConnectionsList, deleteConnection, createConnection, getNodesByIds, autoCreateDependencies } from '@/lib/api'
+import { type Connection, getConnectionsList, deleteConnection, createConnection, autoCreateDependencies } from '@/lib/api'
+import { VirtualTable } from '@/components/virtual-table'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 function ConnectionsContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [isAutoCreating, setIsAutoCreating] = useState(false)
+
+  // Get pagination from URL query parameters
+  const currentPage = parseInt(searchParams.get('page') || '1')
+  const pageSize = parseInt(searchParams.get('pageSize') || '20')
   const [searchFilters, setSearchFilters] = useState({
     fromId: '',
-    toId: ''
+    toId: '',
+    fromNodeName: '',
+    toNodeName: '',
+    fromNodeProject: '',
+    toNodeProject: '',
+    fromNodeType: '',
+    toNodeType: ''
   })
   const [newConnection, setNewConnection] = useState({
     fromId: '',
     toId: ''
   })
 
+  // Function to update URL with pagination parameters
+  const updatePaginationParams = (page: number, size: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    params.set('pageSize', size.toString())
+    router.push(`?${params.toString()}`)
+  }
+
+  const handlePageChange = (page: number) => {
+    updatePaginationParams(page, pageSize)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    updatePaginationParams(1, size) // Reset to first page when changing page size
+  }
+
   const { data: connectionsResponse, isLoading, mutate: mutateConnections } = useSWR(
-    ['connections', searchFilters],
+    ['connections', searchFilters, currentPage, pageSize],
     () => getConnectionsList({
       fromId: searchFilters.fromId || undefined,
       toId: searchFilters.toId || undefined,
-      limit: 100
+      fromNodeName: searchFilters.fromNodeName || undefined,
+      toNodeName: searchFilters.toNodeName || undefined,
+      fromNodeProject: searchFilters.fromNodeProject || undefined,
+      toNodeProject: searchFilters.toNodeProject || undefined,
+      fromNodeType: searchFilters.fromNodeType || undefined,
+      toNodeType: searchFilters.toNodeType || undefined,
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize
     })
   )
 
   const connections = connectionsResponse?.data || []
-
-  // Extract all unique node IDs from connections for validation
-  const allNodeIds = React.useMemo(() => {
-    const ids = new Set<string>()
-    connections.forEach((connection: Connection) => {
-      ids.add(connection.fromId)
-      ids.add(connection.toId)
-    })
-    return Array.from(ids)
-  }, [connections])
-
-  // Batch query for node validation
-  const { data: batchNodesResponse } = useSWR(
-    allNodeIds.length > 0 ? ['nodes-batch', allNodeIds] : null,
-    () => getNodesByIds(allNodeIds)
-  )
-
-  const validatedNodes = batchNodesResponse?.data || []
+  const totalCount = connectionsResponse?.total || 0
 
   const handleDelete = async (connectionId: string) => {
     try {
@@ -92,7 +113,7 @@ function ConnectionsContent() {
         setError('Failed to auto-create connections')
       }
 
-      // mutateConnections()
+      mutateConnections()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to auto-create connections')
     } finally {
@@ -123,7 +144,7 @@ function ConnectionsContent() {
 
       <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-xl font-semibold mb-4">Search Connections</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">From Node ID</label>
             <Input
@@ -147,25 +168,92 @@ function ConnectionsContent() {
             </Button>
           </div>
         </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">From Node Name</label>
+            <Input
+              placeholder="Filter by from node name"
+              value={searchFilters.fromNodeName || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">From Node Project</label>
+            <Input
+              placeholder="Filter by from node project"
+              value={searchFilters.fromNodeProject || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">From Node Type</label>
+            <Input
+              placeholder="Filter by from node type"
+              value={searchFilters.fromNodeType || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">To Node Name</label>
+            <Input
+              placeholder="Filter by to node name"
+              value={searchFilters.toNodeName || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">To Node Project</label>
+            <Input
+              placeholder="Filter by to node project"
+              value={searchFilters.toNodeProject || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">To Node Type</label>
+            <Input
+              placeholder="Filter by to node type"
+              value={searchFilters.toNodeType || ''}
+              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleAutoCreate}
-            disabled={isAutoCreating}
-            variant="outline"
-          >
-            <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
-            {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
-          </Button>
-          <Button onClick={() => setIsCreating(true)}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Connection
-          </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Show:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleAutoCreate}
+              disabled={isAutoCreating}
+              variant="outline"
+            >
+              <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
+              {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
+            </Button>
+            <Button onClick={() => setIsCreating(true)}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Connection
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -202,50 +290,67 @@ function ConnectionsContent() {
       )}
 
       {!isLoading && connections.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From Node</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To Node</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {connections.map((connection: Connection) => (
-                <tr key={connection.id}>
-                  <td className="px-6 py-4 text-sm text-gray-900">{connection.id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {connection.fromId}
-                    {validatedNodes.find((n: Node) => n.id === connection.fromId) && (
-                      <span className="ml-2 text-xs text-green-600">✓</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {connection.toId}
-                    {validatedNodes.find((n: Node) => n.id === connection.toId) && (
-                      <span className="ml-2 text-xs text-green-600">✓</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(connection.id)}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <VirtualTable
+          items={connections}
+          height={400}
+          itemHeight={64}
+          columns={[
+            { key: 'id', header: 'ID', width: 200 },
+            {
+              key: 'fromNode',
+              header: 'From Node',
+              width: 300,
+              render: (connection: Connection) => (
+                <div className="space-y-1">
+                  <div className="font-medium">{connection.fromNode?.name || 'Unknown'}</div>
+                  <div className="text-xs text-gray-500">
+                    {connection.fromNode?.project} • {connection.fromNode?.type}
+                  </div>
+                  <div className="text-xs text-gray-400">{connection.fromId}</div>
+                </div>
+              )
+            },
+            {
+              key: 'toNode',
+              header: 'To Node',
+              width: 300,
+              render: (connection: Connection) => (
+                <div className="space-y-1">
+                  <div className="font-medium">{connection.toNode?.name || 'Unknown'}</div>
+                  <div className="text-xs text-gray-500">
+                    {connection.toNode?.project} • {connection.toNode?.type}
+                  </div>
+                  <div className="text-xs text-gray-400">{connection.toId}</div>
+                </div>
+              )
+            },
+            {
+              key: 'createdAt',
+              header: 'Created At',
+              width: 150,
+              render: (connection: Connection) => (
+                <div>
+                  {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
+                </div>
+              )
+            }
+          ]}
+          actions={(connection: Connection) => (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDelete(connection.id)}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </Button>
+          )}
+          pagination={{
+            pageSize,
+            currentPage,
+            totalItems: totalCount,
+            onPageChange: handlePageChange
+          }}
+        />
       )}
 
       {isCreating && (
@@ -291,7 +396,9 @@ function ConnectionsContent() {
 export default function ConnectionsPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <ConnectionsContent />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading connections...</div>}>
+        <ConnectionsContent />
+      </Suspense>
     </SWRConfig>
   )
 }

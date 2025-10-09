@@ -10,18 +10,13 @@ function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
-      const { limit, offset, ...where } = formatStringToNumber(request.query as ConnectionQuery)
-      const query = {
-        where,
-        take: limit,
-        skip: offset,
-      }
+      const query = formatStringToNumber(request.query as ConnectionQuery)
       const result = await repository.getConnections(query)
       return {
         data: result.data,
         total: result.total,
-        limit,
-        offset,
+        limit: query.limit,
+        offset: query.offset,
       }
     } catch (error) {
       reply
@@ -90,6 +85,28 @@ function connectionsRoutes(fastify: FastifyInstance) {
         .send({
           error: 'Failed to auto-create connections',
           details: err instanceof Error ? err.message : 'Unknown error',
+        })
+    }
+  })
+
+  // DELETE /connections/:id - Delete connections by id
+  fastify.delete('/connections/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as Pick<Connection, 'id'>
+      const success = await repository.deleteConnection(id)
+
+      if (!success) {
+        reply.code(404).send({ error: 'No connections found for the specified id' })
+        return
+      }
+
+      return { success: true, message: 'Connection deleted successfully' }
+    } catch (error) {
+      reply
+        .code(500)
+        .send({
+          error: 'Failed to delete connection',
+          details: error instanceof Error ? error.message : 'Unknown error',
         })
     }
   })

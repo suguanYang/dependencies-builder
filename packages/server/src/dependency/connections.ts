@@ -147,10 +147,8 @@ async function createConnectionIfNotExists(
     try {
         // Check if connection already exists
         const existingConnections = await repository.getConnections({
-            where: {
-                fromId,
-                toId
-            }
+            fromId,
+            toId
         })
 
         if (existingConnections.data.length === 0) {

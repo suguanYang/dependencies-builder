@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import useSWR, { SWRConfig } from 'swr'
 import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,11 +11,36 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
 import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
+import { VirtualTable } from '@/components/virtual-table'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 function NodesContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
+
+  // Get pagination from URL query parameters
+  const currentPage = parseInt(searchParams.get('page') || '1')
+  const pageSize = parseInt(searchParams.get('pageSize') || '20')
+
+  // Function to update URL with pagination parameters
+  const updatePaginationParams = (page: number, size: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    params.set('pageSize', size.toString())
+    router.push(`?${params.toString()}`)
+  }
+
+  const handlePageChange = (page: number) => {
+    updatePaginationParams(page, pageSize)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    updatePaginationParams(1, size) // Reset to first page when changing page size
+  }
   const [newNode, setNewNode] = useState({
     project: '',
     branch: '',
@@ -29,11 +54,15 @@ function NodesContent() {
   })
 
   const { data: nodesResponse, isLoading, mutate: mutateNodes } = useSWR(
-    'nodes',
-    () => getNodes({ limit: 100 })
+    ['nodes', currentPage, pageSize],
+    () => getNodes({
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize
+    })
   )
 
   const nodes = nodesResponse?.data || []
+  const totalCount = nodesResponse?.total || 0
 
   const handleDelete = async (nodeId: string) => {
     try {
@@ -108,10 +137,26 @@ function NodesContent() {
         <div>
           <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
         </div>
-        <Button onClick={() => setIsCreating(true)}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Add Node
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Show:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+          <Button onClick={() => setIsCreating(true)}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Node
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -137,47 +182,41 @@ function NodesContent() {
       )}
 
       {!isLoading && nodes.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {nodes.map((node) => (
-                <tr key={node.id}>
-                  <td className="px-6 py-4 text-sm text-gray-900">{node.id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{node.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{node.project}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{node.type}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingNode(node)}
-                      >
-                        <EditIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(node.id)}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <VirtualTable
+          items={nodes}
+          height={400}
+          itemHeight={64}
+          columns={[
+            { key: 'id', header: 'ID', width: 200 },
+            { key: 'name', header: 'Name', width: 300 },
+            { key: 'project', header: 'Project', width: 150 },
+            { key: 'type', header: 'Type', width: 150 }
+          ]}
+          actions={(node) => (
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingNode(node)}
+              >
+                <EditIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDelete(node.id)}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          pagination={{
+            pageSize,
+            currentPage,
+            totalItems: totalCount,
+            onPageChange: handlePageChange
+          }}
+        />
       )}
 
       {isCreating && (
@@ -328,7 +367,9 @@ function NodesContent() {
 export default function NodesPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <NodesContent />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading nodes...</div>}>
+        <NodesContent />
+      </Suspense>
     </SWRConfig>
   )
 }

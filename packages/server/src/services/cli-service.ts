@@ -140,36 +140,16 @@ export function getActiveExecution(actionId: string): CLIExecution | undefined {
 }
 
 function getCLICommand(actionData: ActionData): string[] {
-  const cliPath = '/home/suguan/github.com/suguanyang/dms/packages/cli/dist/index.js'
-
   switch (actionData.type) {
     case 'static_analysis':
       return [
-        'node',
-        cliPath,
+        'npx',
+        '@dms/cli',
         'analyze',
         actionData.project,
         '--branch',
         actionData.branch,
         "--verbose"
-      ]
-    case 'dependency_check':
-      return [
-        'node',
-        cliPath,
-        'dependencies',
-        actionData.project,
-        '--branch',
-        actionData.branch,
-      ]
-    case 'validation':
-      return [
-        'node',
-        cliPath,
-        'validate',
-        actionData.project,
-        '--branch',
-        actionData.branch,
       ]
     default:
       throw new Error(`Unknown action type: ${actionData.type}`)
