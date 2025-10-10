@@ -71,23 +71,25 @@ const _spawn = (
     stdoutStream.on('data', (chunk) => {
       debug(command, chunk)
     })
+
+  let errorLog: string = ''
   stderrStream.setEncoding('utf-8')
   child.stderr?.pipe(stderrStream)
-  enabled() &&
-    stderrStream.on('data', (chunk) => {
-      debug(command, chunk)
-    })
+  stderrStream.on('data', (chunk) => {
+    errorLog += chunk
+    debug(command, chunk)
+  })
 
   let reject: (err: unknown) => void
   const promise: Promise<MemoryDuplexStream> = new Promise((res, rej) => {
     reject = rej
     child.on('exit', async (code) => {
       if (code === 0) return res(stdoutStream)
+
+      debug('run end', command, code)
       reject(
         new RunError(
-          `run "${command} ${args.join(' ')}" failed with code ${code}\n${await streamToString(
-            stderrStream,
-          )}`,
+          `run "${command} ${args.join(' ')}" failed with code ${code}\n${errorLog}`,
         ),
       )
     })

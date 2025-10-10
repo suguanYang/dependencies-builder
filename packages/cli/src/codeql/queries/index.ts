@@ -21,11 +21,11 @@ const buildQueries = () => {
     if (entries.length > 0) {
         const entryQuery = entryExportsQuery.replace('$$entryQuery$$', entries.map(entry => `
             (
-            entry = "${entry}"
+            entry = "${entry.path}"
             and
             getFileExports(entry, name, location)
-            )
-                    `).join(' or '))
+            )`
+        ).join(' or '))
         writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
     }
 
@@ -64,19 +64,24 @@ const processQuery = (queryResultDir: string) => {
 const parseExportQuery = (queryResultDir: string) => {
     const ctx = getContext()
     const project = ctx.getMetadata().name
+    const entries = getEntries()
     try {
         const entryQueryResult = JSON.parse(readFileSync(path.join(queryResultDir, 'export.json'), 'utf-8')) as ExportQuery
-        return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => ({
-            project,
-            branch: ctx.getBranch(),
-            type: NodeType.NamedExport,
-            name: tuple[1],
-            ...parseLoc(tuple[2]),
-            version: ctx.getMetadata().version,
-            meta: {
-                entry: tuple[0],
-            },
-        }))
+        return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => {
+            const entryName = entries.find(entry => entry.path === tuple[0])?.name
+            return ({
+                project,
+                branch: ctx.getBranch(),
+                type: NodeType.NamedExport,
+                name: tuple[1] + (entryName === 'index' ? '' : '.' + entryName),
+                ...parseLoc(tuple[2]),
+                version: ctx.getMetadata().version,
+                meta: {
+                    entry: tuple[0],
+                    entryName: entryName,
+                },
+            })
+        })
     } catch (error) {
         throw new Error(`Failed to parse entry query result: ${error}`)
     }

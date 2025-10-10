@@ -25,6 +25,10 @@ yargs(hideBin(process.argv))
           type: 'boolean',
           default: false,
         })
+        .option('type', {
+          describe: 'Type of the project',
+          type: 'string',
+        })
         .conflicts('project', 'local-repo-path')
     },
     async (argv) => {
@@ -36,6 +40,7 @@ yargs(hideBin(process.argv))
       await runWithContext({
         branch: argv.branch,
         repository: argv.repository,
+        type: argv.type as 'app' | 'lib',
       }, analyzeProject)
     },
   )

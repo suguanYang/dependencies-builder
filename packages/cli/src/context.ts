@@ -22,6 +22,7 @@ export interface AnalyzeOptions {
      * The repository to analyze, it can be a local directory or a remote git repository
      */
     repository: string
+    type?: REPO_TYPE
 }
 
 class Context {
@@ -86,6 +87,11 @@ class Context {
             this.remote = true
         } else if (!existsSync(this.options.repository)) {
             throw new Error('Repository must be a existing local directory')
+        }
+
+        if (this.options.type) {
+            this.type = this.options.type
+            return
         }
 
         if (this.options.repository.includes('apps')) {

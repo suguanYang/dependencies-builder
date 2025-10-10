@@ -91,6 +91,18 @@ predicate getExportOrigin(ExportDeclaration exportDecl, string name, AstNode ori
         exportDecl instanceof BulkReExportDeclaration and
         exportDecl.exportsAs(_, name)
       )
+      or
+      // handle namead export declaration
+      (
+        exportDecl instanceof ExportNamedDeclaration and
+        exportDecl.(ExportNamedDeclaration).getAnExportedDecl().getName() = name
+      )
+      or
+      // handle default export declaration
+      (
+        exportDecl instanceof ExportDefaultDeclaration and
+        "default" = name
+      )
     )
     and
     (

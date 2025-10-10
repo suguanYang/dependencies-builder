@@ -49,6 +49,8 @@ export async function autoCreateConnections(): Promise<{
             const [packageName, importName] = importNode.name.split('.')
             const matchingExports = namedExports.filter(exportNode =>
                 exportNode.name === importName &&
+                // es6 imports should be from the index file, and we are not consider the sub files import
+                (exportNode.meta as Record<string, string>)?.entryName === 'index' &&
                 exportNode.project === packageName &&
                 exportNode.project !== importNode.project
             )
@@ -126,6 +128,19 @@ export async function autoCreateConnections(): Promise<{
                 for (const emitNode of matchingEmits) {
                     await createConnectionIfNotExists(onNode.id, emitNode.id, result)
                 }
+            }
+        }
+
+        // Rule 6: DynamicModuleFederationReference -> NamedExport
+        const dynamicModuleFederationReferences = nodesByType.get('DynamicModuleFederationReference') || []
+        for (const dynamicModuleFederationReference of dynamicModuleFederationReferences) {
+            const matchingExports = namedExports.filter(exportNode =>
+                (exportNode.meta as Record<string, string>)?.entryName === dynamicModuleFederationReference.name &&
+                exportNode.project === dynamicModuleFederationReference.project
+            )
+
+            for (const exportNode of matchingExports) {
+                await createConnectionIfNotExists(dynamicModuleFederationReference.id, exportNode.id, result)
             }
         }
 

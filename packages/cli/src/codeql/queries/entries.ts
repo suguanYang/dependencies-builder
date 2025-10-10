@@ -1,9 +1,8 @@
-import path from "path"
+import { statSync, readFileSync } from "node:fs"
+import path from "node:path"
 import { existsSync } from "../../utils/fs-helper"
-import { error } from "../../utils/debug"
+import debug, { error } from "../../utils/debug"
 import { getContext } from "../../context"
-import { statSync } from "fs"
-
 
 const CONTROL_EXPORTS = {
     schema: './src/schema.ts',
@@ -17,6 +16,41 @@ const ACTION_EXPORTS = {
     schemaAction: './src/actions/schema.ts',
 };
 
+function runMfExposesMatcher(code: string) {
+    const regex = /exposes\['(.*?)'\]\s*=\s*'(.*?)'/g;
+    const matches = [...code.matchAll(regex)];
+
+    const results = matches.map(match => ({
+        name: match[1].replace('./', ''),
+        path: match[2]
+    }));
+
+    return results;
+}
+
+const getEntriesInWebpackConfig = (wd: string) => {
+    const webpackConfigFile = path.join(wd, 'webpack-overrides.js')
+    if (!existsSync(webpackConfigFile)) {
+        return []
+    }
+
+    const code = readFileSync(webpackConfigFile, 'utf-8')
+    const exposes = runMfExposesMatcher(code)
+
+    const entries = []
+
+    for (const expose of exposes) {
+        if (!expose.path) {
+            continue
+        }
+        entries.push({
+            name: expose.name,
+            path: path.relative(`${wd}/src`, path.join(wd, expose.path))
+        })
+    }
+
+    return entries
+}
 
 const getEntriesInConfig = (wd: string) => {
     const syConfigFile = path.join(wd, 'sy.config.json')
@@ -41,7 +75,7 @@ const getEntriesInConfig = (wd: string) => {
         const validEntries = []
         for (const name in allEntries) {
             const entry = fromCwd(allEntries[name])
-            entry && validEntries.push(entry)
+            entry && validEntries.push({ name, path: entry })
         }
         return validEntries
     } catch (err) {
@@ -53,20 +87,26 @@ const getEntriesInConfig = (wd: string) => {
 
 const getEntries = () => {
     const ctx = getContext()
-    const entries: string[] = []
+    const entries: { name: string, path: string }[] = []
     if (ctx.getType() === 'lib') {
-        entries.push('index.ts')
-        entries.push('index.tsx')
+        entries.push({ name: 'index', path: 'index.ts' })
+        entries.push({ name: 'index', path: 'index.tsx' })
         entries.push(...getEntriesInConfig(ctx.getWorkingDirectory()))
     } else {
-        // entries.push(...getEntriesInWebpackConfig(ctx.getWorkingDirectory()))
+        entries.push(...getEntriesInWebpackConfig(ctx.getWorkingDirectory()))
     }
 
     if (ctx.getMetadata().name === 'main') {
-        entries.push('ui/index.tsx')
-        entries.push('ui/schemas/index.ts')
+        entries.push({ name: 'seeyon_ui_index', path: 'ui/index.tsx' })
+        entries.push({ name: 'seeyon_ui_schemas_index', path: 'ui/schemas/index.ts' })
     }
-    return entries.filter(entry => existsSync(path.join(ctx.getWorkingDirectory(), 'src', entry)))
+
+    debug(`Entries: \n${entries.map(entry => `${entry.name}: ${entry.path}`).join('\n')}`)
+    // ignore the entries that are not in the src directory & reduplicate the entries that have the same name
+    return entries.filter(entry => existsSync(path.join(ctx.getWorkingDirectory(), 'src', entry.path)))
+        .filter((entry, index, self) =>
+            index === self.findIndex(t => t.name === entry.name)
+        )
 }
 
 export default getEntries
