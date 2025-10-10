@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
-import { createReadStream as createFSReadStream } from "fs";
+import { createReadStream as createFSReadStream, existsSync } from "fs";
 
 export const ACTIONS_LOG_DIR = path.join(import.meta.dirname, ".logs", "actions");
 
@@ -29,6 +29,10 @@ export async function getActionLogs(actionId: string): Promise<string> {
 
 export function createActionLogStream(actionId: string) {
   const logPath = getActionLogPath(actionId);
+
+  if (!existsSync(logPath)) {
+    return null;
+  }
 
   // Create the stream - this is async by nature
   return createFSReadStream(logPath, {

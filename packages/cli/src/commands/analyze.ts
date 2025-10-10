@@ -15,13 +15,6 @@ export async function analyzeProject(): Promise<void> {
 
   try {
     if (ctx.isRemote()) {
-      // Checkout from remote repository
-      const projectUrl = ctx.getRepository()
-      const branch = ctx.getBranch()
-
-      debug('Checking out repository: %s', projectUrl)
-      debug('Branch: %s', branch)
-
       await checkoutRepository()
 
       debug('Repository checked out')
@@ -41,7 +34,7 @@ export async function analyzeProject(): Promise<void> {
     })
 
     // Save results to file
-    const outputPath = path.join(ctx.getRepository(), 'analysis-results.json')
+    const outputPath = path.join(ctx.getWorkingDirectory(), 'analysis-results.json')
     writeFileSync(outputPath, JSON.stringify(results, null, 2))
     console.log(`\nResults saved to: ${outputPath}`)
 

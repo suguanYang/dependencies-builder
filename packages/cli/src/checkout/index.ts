@@ -14,18 +14,17 @@ export async function checkoutRepository() {
   const url = ctx.getRepository()
   const branch = ctx.getBranch()
 
-  const gitCommander = await createCommandManager(ctx.getRepository())
+  const gitCommander = await createCommandManager(ctx.getWorkingDirectory())
 
-  debug('Cloning repository: %s#%s to %s', url, branch, ctx.getRepository())
+  debug('Cloning repository: %s#%s to %s', url, branch, ctx.getWorkingDirectory())
 
   try {
     await gitCommander.init()
     await gitCommander.remoteAdd('origin', url)
     await gitCommander.tryDisableAutomaticGarbageCollection()
     await gitCommander.fetch([`${branch}:${branch}`], { fetchDepth: 1, showProgress: true })
+    await gitCommander.checkout(branch)
   } catch (error) {
     throw new RepositorySetupFailedException(`Failed to clone repository: ${error}`)
-  } finally {
-    await gitCommander.cleanup()
   }
 }

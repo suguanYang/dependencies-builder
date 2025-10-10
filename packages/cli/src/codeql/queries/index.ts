@@ -7,29 +7,33 @@ import { entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
 import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType, RemoteLoaderQuery } from "./type"
 import { PACKAGE_ROOT } from "../../utils/constant"
+import { projectNameToCodeQLName } from "../../utils/names"
 
 const qlsDir = path.join(PACKAGE_ROOT, 'qls')
 
 const buildQueries = () => {
     const ctx = getContext()
     ensureDirectoryExistsSync(
-        path.join(ctx.getRepository(), 'queries')
+        path.join(ctx.getWorkingDirectory(), 'queries')
     )
 
     const entries = getEntries()
-    const entryQuery = entryExportsQuery.replace('$$entryQuery$$', entries.map(entry => `
-(
-entry = "${entry}"
-and
-getFileExports(entry, name, location)
-)
-        `).join(' or '))
-    writeFileSync(path.join(ctx.getRepository(), 'queries', 'export.ql'), entryQuery)
+    if (entries.length > 0) {
+        const entryQuery = entryExportsQuery.replace('$$entryQuery$$', entries.map(entry => `
+            (
+            entry = "${entry}"
+            and
+            getFileExports(entry, name, location)
+            )
+                    `).join(' or '))
+        writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
+    }
 
-    cpSync(qlsDir, path.join(ctx.getRepository(), 'queries'), { recursive: true })
+    cpSync(qlsDir, path.join(ctx.getWorkingDirectory(), 'queries'), { recursive: true })
 
     // cp qlpack.yml to queries
-    writeFileSync(path.join(ctx.getRepository(), 'queries', 'qlpack.yml'), readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8').replace('&&name&&', ctx.getMetadata().name))
+    writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'), readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8')
+        .replace('&&name&&', `"${projectNameToCodeQLName(ctx.getMetadata().name)}"`))
 }
 
 type QueryResults = {

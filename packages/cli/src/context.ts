@@ -36,10 +36,14 @@ class Context {
         this.tmpDir = getOutputDir()
     }
 
-    getRepository(): string {
+    getWorkingDirectory(): string {
         if (this.remote) {
             return this.tmpDir
         }
+        return this.options.repository
+    }
+
+    getRepository(): string {
         return this.options.repository
     }
 
@@ -56,6 +60,20 @@ class Context {
     }
 
     getMetadata(): METADATA {
+        if (this.metadata) {
+            return this.metadata
+        }
+
+        if (!existsSync(join(this.getWorkingDirectory(), 'package.json'))) {
+            throw new Error('Package.json not found')
+        }
+
+        try {
+            this.metadata = JSON.parse(readFileSync(join(this.getWorkingDirectory(), 'package.json'), 'utf-8')) as METADATA
+        } catch (error) {
+            throw new Error(`Failed to parse package.json: ${error}`)
+        }
+
         return this.metadata!
     }
 
@@ -64,26 +82,16 @@ class Context {
             throw new Error('Repository must be provided')
         }
 
-        if (this.options.repository.startsWith('http')) {
+        if (this.options.repository.startsWith('http') || this.options.repository.startsWith('git')) {
             this.remote = true
         } else if (!existsSync(this.options.repository)) {
             throw new Error('Repository must be a existing local directory')
         }
 
-        if (!existsSync(join(this.options.repository, 'package.json'))) {
-            throw new Error('Package.json not found')
-        }
-
-        try {
-            this.metadata = JSON.parse(readFileSync(join(this.getRepository(), 'package.json'), 'utf-8')) as METADATA
-        } catch (error) {
-            throw new Error(`Failed to parse package.json: ${error}`)
-        }
-
-        if (this.getRepository().includes('libs')) {
-            this.type = 'lib'
-        } else {
+        if (this.options.repository.includes('apps')) {
             this.type = 'app'
+        } else {
+            this.type = 'lib'
         }
     }
 }

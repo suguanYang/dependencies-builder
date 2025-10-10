@@ -16,6 +16,7 @@ interface IGitCommander {
     remoteAdd(remoteName: string, remoteUrl: string): Promise<void>
     tryDisableAutomaticGarbageCollection(): Promise<boolean>
     version(): Promise<string>
+    checkout(ref: string): Promise<void>
     cleanup(): Promise<void>
 }
 
@@ -89,6 +90,15 @@ class GitCommander implements IGitCommander {
         const result = await run('git', ['version'], { cwd: this.workingDirectory }, true)
         return result
     }
+
+    async checkout(ref: string): Promise<void> {
+        const args = ['checkout', '--progress', '--force']
+
+        args.push(ref)
+
+        await run('git', args, { cwd: this.workingDirectory })
+    }
+
 
     async cleanup(): Promise<void> {
         rmSync(this.workingDirectory, { recursive: true })

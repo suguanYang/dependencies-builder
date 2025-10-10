@@ -9,6 +9,9 @@
     "qls",
     "scan"
   ],
+  "bin": {
+    "dms": "dist/index.js"
+  },
   "scripts": {
     "typecheck": "tsgo",
     "build": "rimraf dist && rolldown -c rolldown.config.ts",

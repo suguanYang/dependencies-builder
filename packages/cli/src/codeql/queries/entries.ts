@@ -57,16 +57,16 @@ const getEntries = () => {
     if (ctx.getType() === 'lib') {
         entries.push('index.ts')
         entries.push('index.tsx')
-        entries.push(...getEntriesInConfig(ctx.getRepository()))
+        entries.push(...getEntriesInConfig(ctx.getWorkingDirectory()))
     } else {
-        // entries.push(...getEntriesInWebpackConfig(ctx.getRepository()))
+        // entries.push(...getEntriesInWebpackConfig(ctx.getWorkingDirectory()))
     }
 
     if (ctx.getMetadata().name === 'main') {
         entries.push('ui/index.tsx')
         entries.push('ui/schemas/index.ts')
     }
-    return entries.filter(entry => existsSync(path.join(ctx.getRepository(), 'src', entry)))
+    return entries.filter(entry => existsSync(path.join(ctx.getWorkingDirectory(), 'src', entry)))
 }
 
 export default getEntries

@@ -1,11 +1,12 @@
 import path, { join } from 'node:path'
 import run from '../utils/run'
-import debug from '../utils/debug'
+import debug, { error } from '../utils/debug'
 import { getContext } from '../context'
 import { cpus } from 'node:os'
 import { globSync } from 'node:fs'
 import { ensureDirectoryExistsSync } from '../utils/fs-helper'
 import { PACKAGE_ROOT } from '../utils/constant'
+import { projectNameToCodeQLName } from '../utils/names'
 
 const scanDir = path.join(PACKAGE_ROOT, 'scan')
 
@@ -28,10 +29,10 @@ export class CodeQL {
 
     constructor() {
         const ctx = getContext()
-        this.repoPath = ctx.getRepository()
+        this.repoPath = ctx.getWorkingDirectory()
         this.queries = path.join(this.repoPath, 'queries')
         this.databasePath = join(this.repoPath, 'codeql-database')
-        this.results = path.join(this.databasePath, 'results', ctx.getMetadata().name)
+        this.results = path.join(this.databasePath, 'results', projectNameToCodeQLName(ctx.getMetadata().name))
 
         this.outputPath = path.join(this.repoPath, 'results')
     }
@@ -91,8 +92,9 @@ export class CodeQL {
                 this.queries,
                 `--threads=${CodeQL.THREADS_NUMBER}`
             ])
-        } catch (error) {
-            throw new Error(`Failed to run CodeQL queries: ${error}`)
+        } catch (err) {
+            error('Failed to run CodeQL queries: %o', err)
+            throw err
         }
     }
 
