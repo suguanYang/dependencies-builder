@@ -106,7 +106,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
     const ctx = getContext()
     const project = ctx.getMetadata().name
     try {
-        const dynamicImportResult = JSON.parse(readFileSync(path.join(queryResultDir, 'libs-dynamic-import.json'), 'utf-8')) as LibsDynamicImportQuery
+        const dynamicImportResult = JSON.parse(readFileSync(path.join(queryResultDir, 'libsDynamicImport.json'), 'utf-8')) as LibsDynamicImportQuery
         return dynamicImportResult['#select'].tuples.map((tuple: [string, string, string, string]) => ({
             project,
             branch: ctx.getBranch(),
@@ -126,7 +126,7 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
     const ctx = getContext()
     const project = ctx.getMetadata().name
     try {
-        const globalVarResult = JSON.parse(readFileSync(path.join(queryResultDir, 'global-variable.json'), 'utf-8')) as GlobalVariableQuery
+        const globalVarResult = JSON.parse(readFileSync(path.join(queryResultDir, 'globalVariable.json'), 'utf-8')) as GlobalVariableQuery
         return globalVarResult['#select'].tuples.map((tuple: [string, "Write" | "Read", string]) => ({
             project,
             branch: ctx.getBranch(),
@@ -166,7 +166,7 @@ const parseWebStorageQuery = (queryResultDir: string) => {
     const ctx = getContext()
     const project = ctx.getMetadata().name
     try {
-        const webStorageResult = JSON.parse(readFileSync(path.join(queryResultDir, 'web-storage.json'), 'utf-8')) as WebStorageQuery
+        const webStorageResult = JSON.parse(readFileSync(path.join(queryResultDir, 'webStorage.json'), 'utf-8')) as WebStorageQuery
         return webStorageResult['#select'].tuples.map((tuple: [string, "Write" | "Read", "LocalStorage" | "SessionStorage", string]) => ({
             project,
             branch: ctx.getBranch(),
@@ -188,7 +188,7 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
     const ctx = getContext()
     const project = ctx.getMetadata().name
     try {
-        const remoteLoaderResult = JSON.parse(readFileSync(path.join(queryResultDir, 'remote-loader.json'), 'utf-8')) as RemoteLoaderQuery
+        const remoteLoaderResult = JSON.parse(readFileSync(path.join(queryResultDir, 'remoteLoader.json'), 'utf-8')) as RemoteLoaderQuery
         return remoteLoaderResult['#select'].tuples.map((tuple: [string, string, string]) => ({
             project,
             branch: ctx.getBranch(),
