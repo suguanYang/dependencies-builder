@@ -140,18 +140,18 @@ function ActionsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Fixed Back to Home Button */}
+      <Link href="/" className="fixed top-4 right-4 z-50">
+        <Button variant="outline" className="shadow-sm">
+          <HomeIcon className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
+      </Link>
+
       <header className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Actions Management</h1>
-            <p className="text-gray-600 mt-2">Create and manage static analysis actions</p>
-          </div>
-          <Link href="/">
-            <Button variant="outline">
-              <HomeIcon className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Actions Management</h1>
+          <p className="text-gray-600 mt-2">Create and manage static analysis actions</p>
         </div>
       </header>
 

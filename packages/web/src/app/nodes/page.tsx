@@ -118,18 +118,18 @@ function NodesContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Fixed Back to Home Button */}
+      <Link href="/" className="fixed top-4 right-4 z-50">
+        <Button variant="outline" className="shadow-sm">
+          <HomeIcon className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
+      </Link>
+
       <header className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Nodes Management</h1>
-            <p className="text-gray-600 mt-2">Manage all nodes in the system</p>
-          </div>
-          <Link href="/">
-            <Button variant="outline">
-              <HomeIcon className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Nodes Management</h1>
+          <p className="text-gray-600 mt-2">Manage all nodes in the system</p>
         </div>
       </header>
 
@@ -184,11 +184,20 @@ function NodesContent() {
       {!isLoading && nodes.length > 0 && (
         <VirtualTable
           items={nodes}
-          height={400}
+          height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
           itemHeight={64}
           columns={[
             { key: 'id', header: 'ID', width: 200 },
-            { key: 'name', header: 'Name', width: 300 },
+            {
+              key: 'name',
+              header: 'Name',
+              width: 300,
+              render: (node: Node) => (
+                <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                  {node.name}
+                </Link>
+              )
+            },
             { key: 'project', header: 'Project', width: 150 },
             { key: 'type', header: 'Type', width: 150 }
           ]}

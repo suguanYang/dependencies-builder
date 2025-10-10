@@ -121,3 +121,7 @@ Documentation
 - Use proper links
 - Use proper headings
 - Use proper lists
+
+
+Instructions
+- Do not run the build command unless I ask you to do so

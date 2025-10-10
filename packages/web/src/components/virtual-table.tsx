@@ -2,6 +2,15 @@
 
 import React from 'react'
 import { List } from 'react-window'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 
 interface VirtualTableProps<T> {
   items: T[]
@@ -106,43 +115,95 @@ export function VirtualTable<T>({
             Showing {((pagination.currentPage - 1) * pagination.pageSize) + 1} to{' '}
             {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems)} of {pagination.totalItems} items
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
-              disabled={pagination.currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = i + 1
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => pagination.onPageChange(pageNum)}
-                    className={`px-3 py-1 text-sm border rounded ${
-                      pagination.currentPage === pageNum
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                )
-              })}
-              {totalPages > 5 && (
-                <span className="px-2 text-sm text-gray-500">...</span>
-              )}
-            </div>
-            <button
-              onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage === totalPages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+                  className={pagination.currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+
+              {/* Generate page numbers with ellipsis for large page counts */}
+              {(() => {
+                const pages: (number | string)[] = []
+                const maxVisiblePages = 7
+                const currentPage = pagination.currentPage
+
+                if (totalPages <= maxVisiblePages) {
+                  // Show all pages if total pages is small
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i)
+                  }
+                } else {
+                  // Always show first page
+                  pages.push(1)
+
+                  // Calculate start and end of visible pages
+                  let startPage = Math.max(2, currentPage - 2)
+                  let endPage = Math.min(totalPages - 1, currentPage + 2)
+
+                  // Adjust if we're near the beginning
+                  if (currentPage <= 3) {
+                    endPage = 5
+                  }
+
+                  // Adjust if we're near the end
+                  if (currentPage >= totalPages - 2) {
+                    startPage = totalPages - 4
+                  }
+
+                  // Add ellipsis after first page if needed
+                  if (startPage > 2) {
+                    pages.push('...')
+                  }
+
+                  // Add middle pages
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(i)
+                  }
+
+                  // Add ellipsis before last page if needed
+                  if (endPage < totalPages - 1) {
+                    pages.push('...')
+                  }
+
+                  // Always show last page
+                  pages.push(totalPages)
+                }
+
+                return pages.map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )
+                  }
+
+                  const pageNum = page as number
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => pagination.onPageChange(pageNum)}
+                        isActive={pagination.currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                })
+              })()}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+                  className={pagination.currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
     </div>

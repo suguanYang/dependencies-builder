@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, SearchIcon, RefreshCwIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, SearchIcon, RefreshCwIcon, ChevronDownIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -40,6 +40,7 @@ function ConnectionsContent() {
     fromId: '',
     toId: ''
   })
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -127,23 +128,37 @@ function ConnectionsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Fixed Back to Home Button */}
+      <Link href="/" className="fixed top-4 right-4 z-50">
+        <Button variant="outline" className="shadow-sm">
+          <HomeIcon className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
+      </Link>
+
       <header className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Connections Management</h1>
-            <p className="text-gray-600 mt-2">Manage all dependency connections in the system</p>
-          </div>
-          <Link href="/">
-            <Button variant="outline">
-              <HomeIcon className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Connections Management</h1>
+          <p className="text-gray-600 mt-2">Manage all dependency connections in the system</p>
         </div>
       </header>
 
       <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">Search Connections</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Search Connections</h2>
+          <Button
+            variant="outline"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="flex items-center gap-2"
+          >
+            {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
+            <ChevronDownIcon
+              className={`h-4 w-4 transition-transform ${
+                showAdvancedFilters ? 'rotate-180' : ''
+              }`}
+            />
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">From Node ID</label>
@@ -169,56 +184,58 @@ function ConnectionsContent() {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">From Node Name</label>
-            <Input
-              placeholder="Filter by from node name"
-              value={searchFilters.fromNodeName || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
-            />
+        {showAdvancedFilters && (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">From Node Name</label>
+              <Input
+                placeholder="Filter by from node name"
+                value={searchFilters.fromNodeName || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">From Node Project</label>
+              <Input
+                placeholder="Filter by from node project"
+                value={searchFilters.fromNodeProject || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">From Node Type</label>
+              <Input
+                placeholder="Filter by from node type"
+                value={searchFilters.fromNodeType || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To Node Name</label>
+              <Input
+                placeholder="Filter by to node name"
+                value={searchFilters.toNodeName || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To Node Project</label>
+              <Input
+                placeholder="Filter by to node project"
+                value={searchFilters.toNodeProject || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To Node Type</label>
+              <Input
+                placeholder="Filter by to node type"
+                value={searchFilters.toNodeType || ''}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">From Node Project</label>
-            <Input
-              placeholder="Filter by from node project"
-              value={searchFilters.fromNodeProject || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">From Node Type</label>
-            <Input
-              placeholder="Filter by from node type"
-              value={searchFilters.fromNodeType || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">To Node Name</label>
-            <Input
-              placeholder="Filter by to node name"
-              value={searchFilters.toNodeName || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">To Node Project</label>
-            <Input
-              placeholder="Filter by to node project"
-              value={searchFilters.toNodeProject || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">To Node Type</label>
-            <Input
-              placeholder="Filter by to node type"
-              value={searchFilters.toNodeType || ''}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="mb-6 flex justify-between items-center">
@@ -292,7 +309,7 @@ function ConnectionsContent() {
       {!isLoading && connections.length > 0 && (
         <VirtualTable
           items={connections}
-          height={400}
+          height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
           itemHeight={64}
           columns={[
             { key: 'id', header: 'ID', width: 200 },
@@ -302,11 +319,18 @@ function ConnectionsContent() {
               width: 300,
               render: (connection: Connection) => (
                 <div className="space-y-1">
-                  <div className="font-medium">{connection.fromNode?.name || 'Unknown'}</div>
+                  <div className="font-medium">
+                    {connection.fromNode ? (
+                      <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                        {connection.fromNode.name}
+                      </Link>
+                    ) : (
+                      'Unknown'
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500">
                     {connection.fromNode?.project} • {connection.fromNode?.type}
                   </div>
-                  <div className="text-xs text-gray-400">{connection.fromId}</div>
                 </div>
               )
             },
@@ -316,11 +340,18 @@ function ConnectionsContent() {
               width: 300,
               render: (connection: Connection) => (
                 <div className="space-y-1">
-                  <div className="font-medium">{connection.toNode?.name || 'Unknown'}</div>
+                  <div className="font-medium">
+                    {connection.toNode ? (
+                      <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                        {connection.toNode.name}
+                      </Link>
+                    ) : (
+                      'Unknown'
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500">
                     {connection.toNode?.project} • {connection.toNode?.type}
                   </div>
-                  <div className="text-xs text-gray-400">{connection.toId}</div>
                 </div>
               )
             },

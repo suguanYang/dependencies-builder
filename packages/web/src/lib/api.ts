@@ -122,6 +122,8 @@ export async function getNodeById(id: string): Promise<Node> {
   return apiRequest(`/nodes/${id}`)
 }
 
+export const getNode = getNodeById
+
 export async function getNodesByIds(ids: string[]): Promise<{ data: Node[] }> {
   return apiRequest('/nodes/batch', {
     method: 'POST',
