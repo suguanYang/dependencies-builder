@@ -38,6 +38,7 @@ export interface SearchFilters {
   branch?: string
   type?: NodeType
   name?: string
+  standalone?: boolean
   limit?: number
   offset?: number
 }
@@ -111,6 +112,7 @@ export async function getNodes(filters?: SearchFilters): Promise<{ data: Node[];
   if (filters?.branch) params.append('branch', filters.branch)
   if (filters?.type) params.append('type', filters.type)
   if (filters?.name) params.append('name', filters.name)
+  if (filters?.standalone !== undefined) params.append('standalone', filters.standalone.toString())
   if (filters?.limit) params.append('limit', filters.limit.toString())
   if (filters?.offset) params.append('offset', filters.offset.toString())
 
@@ -166,6 +168,7 @@ export async function getConnectionsList(filters?: {
 }): Promise<{ data: Connection[]; total: number }> {
   const params = new URLSearchParams()
 
+  // Use partial matching for all text fields - backend will use Prisma's contains/startsWith
   if (filters?.fromId) params.append('fromId', filters.fromId)
   if (filters?.toId) params.append('toId', filters.toId)
   if (filters?.fromNodeName) params.append('fromNodeName', filters.fromNodeName)

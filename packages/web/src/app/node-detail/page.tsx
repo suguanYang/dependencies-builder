@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon, ArrowLeftIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -9,7 +9,7 @@ import { AlertCircleIcon } from 'lucide-react'
 import { getNode } from '@/lib/api'
 import { useSearchParams, useRouter } from 'next/navigation'
 
-export default function NodeDetailPage() {
+function NodeDetailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const nodeId = searchParams.get('id')
@@ -199,5 +199,13 @@ export default function NodeDetailPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function NodeDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading node details...</div>}>
+      <NodeDetailContent />
+    </Suspense>
   )
 }

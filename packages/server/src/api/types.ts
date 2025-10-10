@@ -5,6 +5,7 @@ export interface NodeQuery {
   branch?: string
   type?: NodeType
   name?: string
+  standalone?: boolean
   limit?: number
   offset?: number
 }

@@ -20,17 +20,50 @@ function isValidNodeType(type: string): boolean {
   return VALID_NODE_TYPES.includes(type as any)
 }
 
-export async function getNodes(query: Prisma.NodeFindManyArgs, all?: boolean) {
+export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any }, all?: boolean) {
   const { where, take, skip } = query
+
+  // Handle standalone filter - nodes that don't have any connections
+  let finalWhere = where
+  if (where?.standalone !== undefined) {
+    const { standalone, ...otherWhere } = where
+
+    // Convert string "true" to boolean true
+    const standaloneBool = standalone === true || standalone === 'true'
+
+    if (standaloneBool === true) {
+      // Find nodes that don't have any connections (neither fromConnections nor toConnections)
+      finalWhere = {
+        ...otherWhere,
+        AND: [
+          ...(otherWhere.AND || []),
+          {
+            fromConnections: { none: {} },
+            toConnections: { none: {} }
+          }
+        ]
+      }
+    } else if (standaloneBool === false) {
+      // Find nodes that have at least one connection
+      finalWhere = {
+        ...otherWhere,
+        OR: [
+          ...(otherWhere.OR || []),
+          { fromConnections: { some: {} } },
+          { toConnections: { some: {} } }
+        ]
+      }
+    }
+  }
 
   const [data, total] = await Promise.all([
     prisma.node.findMany({
-      where,
+      where: finalWhere,
       orderBy: { createdAt: 'desc' },
       take: all ? undefined : take ?? 100,
       skip: all ? undefined : skip ?? 0,
     }),
-    prisma.node.count({ where }),
+    prisma.node.count({ where: finalWhere }),
   ])
 
   return {

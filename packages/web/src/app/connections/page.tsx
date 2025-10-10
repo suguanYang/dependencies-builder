@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, getConnectionsList, deleteConnection, createConnection, autoCreateDependencies } from '@/lib/api'
+import { type Connection, getConnectionsList, deleteConnection, createConnection, autoCreateDependencies, NodeType } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -40,7 +40,6 @@ function ConnectionsContent() {
     fromId: '',
     toId: ''
   })
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -143,137 +142,6 @@ function ConnectionsContent() {
         </div>
       </header>
 
-      <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Search Connections</h2>
-          <Button
-            variant="outline"
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="flex items-center gap-2"
-          >
-            {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
-            <ChevronDownIcon
-              className={`h-4 w-4 transition-transform ${
-                showAdvancedFilters ? 'rotate-180' : ''
-              }`}
-            />
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">From Node ID</label>
-            <Input
-              placeholder="Enter from node ID"
-              value={searchFilters.fromId}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, fromId: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">To Node ID</label>
-            <Input
-              placeholder="Enter to node ID"
-              value={searchFilters.toId}
-              onChange={(e) => setSearchFilters(prev => ({ ...prev, toId: e.target.value }))}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={handleSearch} className="w-full">
-              <SearchIcon className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-          </div>
-        </div>
-
-        {showAdvancedFilters && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">From Node Name</label>
-              <Input
-                placeholder="Filter by from node name"
-                value={searchFilters.fromNodeName || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">From Node Project</label>
-              <Input
-                placeholder="Filter by from node project"
-                value={searchFilters.fromNodeProject || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">From Node Type</label>
-              <Input
-                placeholder="Filter by from node type"
-                value={searchFilters.fromNodeType || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">To Node Name</label>
-              <Input
-                placeholder="Filter by to node name"
-                value={searchFilters.toNodeName || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">To Node Project</label>
-              <Input
-                placeholder="Filter by to node project"
-                value={searchFilters.toNodeProject || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">To Node Type</label>
-              <Input
-                placeholder="Filter by to node type"
-                value={searchFilters.toNodeType || ''}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Show:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span className="text-sm text-gray-600">per page</span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleAutoCreate}
-              disabled={isAutoCreating}
-              variant="outline"
-            >
-              <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
-              {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
-            </Button>
-            <Button onClick={() => setIsCreating(true)}>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Connection
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircleIcon className="h-4 w-4" />
@@ -294,95 +162,238 @@ function ConnectionsContent() {
         </Alert>
       )}
 
-      {isLoading && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">Loading connections...</p>
+      <div className="flex gap-6">
+        {/* Left side - Filters */}
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6">
+            <h2 className="text-lg font-semibold mb-4">Filters</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node ID</label>
+                <Input
+                  placeholder="Partial match from node ID"
+                  value={searchFilters.fromId}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, fromId: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node ID</label>
+                <Input
+                  placeholder="Partial match to node ID"
+                  value={searchFilters.toId}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, toId: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Name</label>
+                <Input
+                  placeholder="Partial match from node name"
+                  value={searchFilters.fromNodeName || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Project</label>
+                <Input
+                  placeholder="Partial match from node project"
+                  value={searchFilters.fromNodeProject || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Type</label>
+                <select
+                  value={searchFilters.fromNodeType || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Name</label>
+                <Input
+                  placeholder="Partial match to node name"
+                  value={searchFilters.toNodeName || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Project</label>
+                <Input
+                  placeholder="Partial match to node project"
+                  value={searchFilters.toNodeProject || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Type</label>
+                <select
+                  value={searchFilters.toNodeType || ''}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                </select>
+              </div>
+              <Button onClick={handleSearch} className="w-full">
+                <SearchIcon className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </div>
+          </div>
         </div>
-      )}
 
-      {!isLoading && connections.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No connections found.</p>
-        </div>
-      )}
+        {/* Right side - Table */}
+        <div className="flex-1">
 
-      {!isLoading && connections.length > 0 && (
-        <VirtualTable
-          items={connections}
-          height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
-          itemHeight={64}
-          columns={[
-            { key: 'id', header: 'ID', width: 200 },
-            {
-              key: 'fromNode',
-              header: 'From Node',
-              width: 300,
-              render: (connection: Connection) => (
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {connection.fromNode ? (
-                      <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
-                        {connection.fromNode.name}
-                      </Link>
-                    ) : (
-                      'Unknown'
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {connection.fromNode?.project} • {connection.fromNode?.type}
-                  </div>
-                </div>
-              )
-            },
-            {
-              key: 'toNode',
-              header: 'To Node',
-              width: 300,
-              render: (connection: Connection) => (
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {connection.toNode ? (
-                      <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
-                        {connection.toNode.name}
-                      </Link>
-                    ) : (
-                      'Unknown'
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {connection.toNode?.project} • {connection.toNode?.type}
-                  </div>
-                </div>
-              )
-            },
-            {
-              key: 'createdAt',
-              header: 'Created At',
-              width: 150,
-              render: (connection: Connection) => (
-                <div>
-                  {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
-                </div>
-              )
-            }
-          ]}
-          actions={(connection: Connection) => (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleDelete(connection.id)}
-            >
-              <TrashIcon className="h-4 w-4" />
-            </Button>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Show:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm text-gray-600">per page</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAutoCreate}
+                  disabled={isAutoCreating}
+                  variant="outline"
+                >
+                  <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
+                  {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
+                </Button>
+                <Button onClick={() => setIsCreating(true)}>
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Connection
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {isLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Loading connections...</p>
+            </div>
           )}
-          pagination={{
-            pageSize,
-            currentPage,
-            totalItems: totalCount,
-            onPageChange: handlePageChange
-          }}
-        />
-      )}
+
+          {!isLoading && connections.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No connections found.</p>
+            </div>
+          )}
+
+          {!isLoading && connections.length > 0 && (
+            <VirtualTable
+              items={connections}
+              height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
+              itemHeight={64}
+              columns={[
+                { key: 'id', header: 'ID', width: 200 },
+                {
+                  key: 'fromNode',
+                  header: 'From Node',
+                  width: 300,
+                  render: (connection: Connection) => (
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        {connection.fromNode ? (
+                          <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                            {connection.fromNode.name}
+                          </Link>
+                        ) : (
+                          'Unknown'
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {connection.fromNode?.project} • {connection.fromNode?.type}
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  key: 'toNode',
+                  header: 'To Node',
+                  width: 300,
+                  render: (connection: Connection) => (
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        {connection.toNode ? (
+                          <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                            {connection.toNode.name}
+                          </Link>
+                        ) : (
+                          'Unknown'
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {connection.toNode?.project} • {connection.toNode?.type}
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  key: 'createdAt',
+                  header: 'Created At',
+                  width: 150,
+                  render: (connection: Connection) => (
+                    <div>
+                      {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                  )
+                }
+              ]}
+              actions={(connection: Connection) => (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(connection.id)}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </Button>
+              )}
+              pagination={{
+                pageSize,
+                currentPage,
+                totalItems: totalCount,
+                onPageChange: handlePageChange
+              }}
+            />
+          )}
+        </div>
+      </div>
 
       {isCreating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

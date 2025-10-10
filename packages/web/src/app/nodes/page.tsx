@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react'
-import useSWR, { SWRConfig } from 'swr'
+import useSWR, { SWRConfig, mutate } from 'swr'
 import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
@@ -21,10 +21,25 @@ function NodesContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
+  const [searchFilters, setSearchFilters] = useState({
+    project: '',
+    branch: '',
+    type: '',
+    name: '',
+    standalone: false
+  })
 
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
+  const standaloneParam = searchParams.get('standalone') === 'true'
+
+  // Initialize search filters with URL parameters
+  React.useEffect(() => {
+    if (standaloneParam && !searchFilters.standalone) {
+      setSearchFilters(prev => ({ ...prev, standalone: true }))
+    }
+  }, [standaloneParam, searchFilters.standalone])
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -53,9 +68,15 @@ function NodesContent() {
     meta: {}
   })
 
-  const { data: nodesResponse, isLoading, mutate: mutateNodes } = useSWR(
-    ['nodes', currentPage, pageSize],
+  // Fetch nodes with server-side filtering
+  const { data: nodesResponse, isLoading } = useSWR(
+    ['nodes', searchFilters, currentPage, pageSize],
     () => getNodes({
+      project: searchFilters.project || undefined,
+      branch: searchFilters.branch || undefined,
+      type: searchFilters.type as NodeType || undefined,
+      name: searchFilters.name || undefined,
+      standalone: searchFilters.standalone || undefined,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize
     })
@@ -67,7 +88,8 @@ function NodesContent() {
   const handleDelete = async (nodeId: string) => {
     try {
       await deleteNode(nodeId)
-      mutateNodes()
+      // Refresh the nodes data
+      mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete node')
     }
@@ -88,7 +110,8 @@ function NodesContent() {
         version: '1.0.0',
         meta: {}
       })
-      mutateNodes()
+      // Refresh the nodes data
+      mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create node')
     }
@@ -109,7 +132,8 @@ function NodesContent() {
         meta: editingNode.meta
       })
       setEditingNode(null)
-      mutateNodes()
+      // Refresh the nodes data
+      mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update node')
     }
@@ -133,32 +157,6 @@ function NodesContent() {
         </div>
       </header>
 
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Show:</label>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span className="text-sm text-gray-600">per page</span>
-          </div>
-          <Button onClick={() => setIsCreating(true)}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Node
-          </Button>
-        </div>
-      </div>
-
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircleIcon className="h-4 w-4" />
@@ -169,20 +167,114 @@ function NodesContent() {
         </Alert>
       )}
 
-      {isLoading && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">Loading nodes...</p>
+      <div className="flex gap-6">
+        {/* Left side - Filters */}
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6">
+            <h2 className="text-lg font-semibold mb-4">Filters</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Project</label>
+                <Input
+                  placeholder="Partial match project"
+                  value={searchFilters.project}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, project: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Branch</label>
+                <Input
+                  placeholder="Partial match branch"
+                  value={searchFilters.branch}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, branch: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Type</label>
+                <select
+                  value={searchFilters.type}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Name</label>
+                <Input
+                  placeholder="Partial match name"
+                  value={searchFilters.name}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="standalone"
+                  checked={searchFilters.standalone}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, standalone: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="standalone" className="text-sm font-medium">
+                  Show only standalone nodes
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {!isLoading && nodes.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No nodes found.</p>
-        </div>
-      )}
+        {/* Right side - Table */}
+        <div className="flex-1">
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Show:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm text-gray-600">per page</span>
+              </div>
+              <Button onClick={() => setIsCreating(true)}>
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Node
+              </Button>
+            </div>
+          </div>
 
-      {!isLoading && nodes.length > 0 && (
-        <VirtualTable
+          {isLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Loading nodes...</p>
+            </div>
+          )}
+
+          {!isLoading && nodes.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No nodes found.</p>
+            </div>
+          )}
+
+          {!isLoading && nodes.length > 0 && (
+            <VirtualTable
           items={nodes}
           height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
           itemHeight={64}
@@ -219,14 +311,16 @@ function NodesContent() {
               </Button>
             </div>
           )}
-          pagination={{
-            pageSize,
-            currentPage,
-            totalItems: totalCount,
-            onPageChange: handlePageChange
-          }}
-        />
-      )}
+              pagination={{
+                pageSize,
+                currentPage,
+                totalItems: totalCount,
+                onPageChange: handlePageChange
+              }}
+            />
+          )}
+        </div>
+      </div>
 
       {isCreating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
