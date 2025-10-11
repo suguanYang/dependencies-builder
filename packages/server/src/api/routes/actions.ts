@@ -202,5 +202,5 @@ function actionsRoutes(fastify: FastifyInstance) {
 export default actionsRoutes
 
 const path2name = (path: string) => {
-  return path.replaceAll('/', '-')
+  return path.replaceAll('/', '_')
 }

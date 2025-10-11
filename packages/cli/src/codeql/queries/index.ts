@@ -217,6 +217,8 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
             type: NodeType.DynamicModuleFederationReference,
             name: `${tuple[0]}.${tuple[1]}`,
             ...parseLoc(tuple[2]),
+            version: ctx.getMetadata().version,
+            meta: {}
         }))
     } catch (error) {
         console.warn('Failed to parse remote loader query result:', error)
