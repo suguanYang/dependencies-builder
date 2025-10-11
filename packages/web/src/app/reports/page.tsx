@@ -120,9 +120,9 @@ function ReportsContent() {
           {reportActions.map((action: Action) => (
             <Card key={action.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-sm">{action.project}</CardTitle>
+                <CardTitle className="text-sm">{action.parameters.project}</CardTitle>
                 <CardDescription>
-                  Branch: {action.branch}
+                  Branch: {action.parameters.branch}
                   <br />
                   Created: {new Date(action.createdAt).toLocaleDateString()}
                 </CardDescription>

@@ -25,7 +25,7 @@ function ActionsContent() {
       result: any;
     }
   } | null>(null)
-  const [viewingLogs, setViewingLogs] = useState<{ actionId: string; logs: string[] } | null>(null)
+  const [viewingLogs, setViewingLogs] = useState<{ actionId: string; status: string; logs: string[] } | null>(null)
   const logContainerRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [newAction, setNewAction] = useState<CreateActionData>({
@@ -47,7 +47,7 @@ function ActionsContent() {
     viewingLogs ? `action-logs-${viewingLogs.actionId}` : null,
     () => viewingLogs ? getActionLogs(viewingLogs.actionId) : null,
     {
-      refreshInterval: viewingLogs ? 1000 : 0, // Poll every second when viewing logs
+      refreshInterval: viewingLogs && viewingLogs.status === 'running' ? 1000 : 0, // Poll every second only for running actions
       revalidateOnFocus: false,
       dedupingInterval: 500
     }
@@ -128,7 +128,8 @@ function ActionsContent() {
   }
 
   const handleViewLogs = (actionId: string) => {
-    setViewingLogs({ actionId, logs: [] })
+    const action = actions.find(a => a.id === actionId)
+    setViewingLogs({ actionId, status: action?.status || 'unknown', logs: [] })
   }
 
   const handleStopExecution = async (actionId: string) => {
@@ -144,9 +145,10 @@ function ActionsContent() {
     try {
       // Create new action with same parameters
       const retryData: CreateActionData = {
-        project: action.project || '',
-        branch: action.branch || '',
-        type: action.type as CreateActionData['type']
+        project: action.parameters.project,
+        branch: action.parameters.branch,
+        type: action.type as CreateActionData['type'],
+        targetBranch: action.parameters.targetBranch
       }
       await createAction(retryData)
       mutateActions()
@@ -182,16 +184,16 @@ function ActionsContent() {
         </div>
       </header>
 
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-semibold">All Actions ({actions.length})</h2>
         </div>
-        <div className="flex space-x-2">
-          <Button onClick={() => mutateActions()} variant="outline">
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => mutateActions()} variant="outline" size="sm" className="flex-1 sm:flex-none">
             <RefreshCwIcon className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={() => setIsCreating(true)}>
+          <Button onClick={() => setIsCreating(true)} size="sm" className="flex-1 sm:flex-none">
             <PlusIcon className="h-4 w-4 mr-2" />
             Create Action
           </Button>
@@ -230,49 +232,52 @@ function ActionsContent() {
 
       {!isLoading && actions.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {actions.map((action: Action) => (
-                <tr key={action.id}>
-                  <td className="px-6 py-4 text-sm text-gray-900 font-mono">
-                    {action.id.substring(0, 8)}...
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{action.project}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{action.branch}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    <span className="capitalize">{action.type.replace('_', ' ')}</span>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(action.status)}`}>
-                      {action.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {new Date(action.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex space-x-2">
-                      {action.status === 'running' && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewLogs(action.id)}
-                            title="View Live Logs"
-                          >
-                            <TerminalIcon className="h-4 w-4" />
-                          </Button>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-24">ID</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sm:min-w-[200px] max-w-[200px] sm:max-w-[300px]">Project</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-32">Branch</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-24">Type</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 sm:w-28">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 sm:w-32">Created</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 sm:w-48">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {actions.map((action: Action) => (
+                  <tr key={action.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-3 text-sm text-gray-900 font-mono truncate" title={action.id}>
+                      {action.id.substring(0, 8)}...
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-900 truncate" title={action.parameters.project}>
+                      {action.parameters.project}
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-900 truncate">{action.parameters.branch}</td>
+                    <td className="px-3 py-3 text-sm text-gray-900">
+                      <span className="capitalize">{action.type.replace('_', ' ')}</span>
+                    </td>
+                    <td className="px-3 py-3 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(action.status)}`}>
+                        {action.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
+                      {new Date(action.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-3 text-sm">
+                      <div className="flex flex-wrap gap-1">
+                        {/* Log viewing button available for all statuses */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewLogs(action.id)}
+                          title={action.status === 'running' ? 'View Live Logs' : 'View Logs'}
+                        >
+                          <TerminalIcon className="h-4 w-4" />
+                        </Button>
+                        {action.status === 'running' && (
                           <Button
                             variant="destructive"
                             size="sm"
@@ -281,52 +286,52 @@ function ActionsContent() {
                           >
                             <SquareIcon className="h-4 w-4" />
                           </Button>
-                        </>
-                      )}
-                      {action.status === 'completed' && (
+                        )}
+                        {action.status === 'completed' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewResult(action.id)}
+                            title="View Result"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {action.status === 'failed' && action.error && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setError(action.error || 'Unknown error')}
+                            title="View Error"
+                          >
+                            <AlertCircleIcon className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewResult(action.id)}
-                          title="View Result"
+                          onClick={() => handleRetry(action)}
+                          disabled={action.status === 'running'}
+                          title="Retry Action"
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <RotateCcwIcon className="h-4 w-4" />
                         </Button>
-                      )}
-                      {action.status === 'failed' && action.error && (
                         <Button
-                          variant="outline"
+                          variant="destructive"
                           size="sm"
-                          onClick={() => setError(action.error || 'Unknown error')}
-                          title="View Error"
+                          onClick={() => handleDelete(action.id)}
+                          disabled={action.status === 'running'}
+                          title="Delete Action"
                         >
-                          <AlertCircleIcon className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRetry(action)}
-                        disabled={action.status === 'running'}
-                        title="Retry Action"
-                      >
-                        <RotateCcwIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(action.id)}
-                        disabled={action.status === 'running'}
-                        title="Delete Action"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -426,8 +431,11 @@ function ActionsContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-lg font-semibold">Live Action Logs</h3>
+                <h3 className="text-lg font-semibold">
+                  {viewingLogs.status === 'running' ? 'Live Action Logs' : 'Action Logs'}
+                </h3>
                 <p className="text-sm text-gray-500">Action ID: {viewingLogs.actionId}</p>
+                <p className="text-sm text-gray-500">Status: {viewingLogs.status}</p>
               </div>
               <div className="flex space-x-2">
                 <Button

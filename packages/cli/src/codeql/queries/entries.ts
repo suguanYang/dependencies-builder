@@ -45,7 +45,7 @@ const getEntriesInWebpackConfig = (wd: string) => {
         }
         entries.push({
             name: expose.name,
-            path: path.relative(`${wd}/dist`, path.join(wd, expose.path))
+            path: expose.path.replace(`./src/`, '')
         })
     }
 
@@ -98,7 +98,7 @@ const getEntries = () => {
 
     if (ctx.getMetadata().name === 'main') {
         entries.push({ name: 'seeyon_ui_index', path: 'ui/index.tsx' })
-        entries.push({ name: 'seeyon_ui_schemas_index', path: 'ui/schemas/index.ts' })
+        // entries.push({ name: 'seeyon_ui_schemas_index', path: 'ui/schemas/index.ts' })
     }
 
     // ignore the entries that are not in the dist directory & reduplicate the entries that have the same name

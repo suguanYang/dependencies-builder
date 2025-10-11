@@ -4,6 +4,7 @@ export interface CreateActionData {
   project: string
   branch: string
   type: 'static_analysis' | 'report'
+  targetBranch?: string
 }
 
 export interface UpdateActionData {
@@ -59,9 +60,12 @@ export async function createAction(actionData: CreateActionData) {
   return prisma.action.create({
     data: {
       status: 'pending',
-      project: actionData.project,
-      branch: actionData.branch,
       type: actionData.type,
+      parameters: {
+        project: actionData.project,
+        branch: actionData.branch,
+        targetBranch: actionData.targetBranch,
+      },
     },
   })
 }

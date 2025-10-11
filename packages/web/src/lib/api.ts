@@ -203,9 +203,12 @@ export async function deleteConnection(id: string): Promise<{ success: boolean }
 export interface Action {
   id: string
   status: 'pending' | 'running' | 'completed' | 'failed'
-  project?: string
-  branch?: string
   type: string
+  parameters: {
+    project: string
+    branch: string
+    targetBranch?: string
+  }
   createdAt: string
   updatedAt: string
   result?: any

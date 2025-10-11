@@ -81,9 +81,8 @@ enum ActionStatus {
 model Action {
   id        String      @id @default(cuid())
   status    ActionStatus
-  project   String?
-  branch    String?
   type      ActionType
+  parameters Json
   result    Json?
   error     String?
   logs      Json?
@@ -92,7 +91,6 @@ model Action {
 
   // Indexes
   @@index([status])
-  @@index([project, branch])
   @@index([type])
   @@index([createdAt])
 }

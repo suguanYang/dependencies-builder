@@ -169,19 +169,7 @@ function getCLICommand(actionData: ActionData): string[] {
         '--branch',
         actionData.branch,
         '--target-branch',
-        actionData.targetBranch || 'main',
-        "--verbose"
-      ]
-    case 'dependency_check':
-    case 'validation':
-      // For now, these types use the same command as static_analysis
-      return [
-        'npx',
-        '@dms/cli',
-        'analyze',
-        actionData.project,
-        '--branch',
-        actionData.branch,
+        actionData.targetBranch!,
         "--verbose"
       ]
     default:

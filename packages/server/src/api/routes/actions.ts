@@ -119,7 +119,9 @@ function actionsRoutes(fastify: FastifyInstance) {
         return
       }
 
-      if (!action.project || !action.branch) {
+      const parameters = action.parameters as { project: string, branch: string, targetBranch: string }
+
+      if (!parameters.project || !parameters.branch) {
         reply.code(400).send({ error: 'Action missing project or branch information' })
         return
       }
@@ -127,9 +129,9 @@ function actionsRoutes(fastify: FastifyInstance) {
       // Determine file path based on action type
       let resultPath: string
       if (action.type === 'static_analysis') {
-        resultPath = path.join(homedir(), '.dms', path2name(action.project), action.branch, 'analysis-results.json')
+        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), parameters.branch, 'analysis-results.json')
       } else if (action.type === 'report') {
-        resultPath = path.join(homedir(), '.dms', path2name(action.project), action.branch, 'report.json')
+        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), parameters.branch, 'report.json')
       } else {
         reply.code(400).send({ error: 'Unsupported action type' })
         return
@@ -150,8 +152,8 @@ function actionsRoutes(fastify: FastifyInstance) {
 
       return {
         actionId: id,
-        project: action.project,
-        branch: action.branch,
+        project: parameters.project,
+        branch: parameters.branch,
         type: action.type,
         report: resultData
       }
@@ -174,6 +176,12 @@ function actionsRoutes(fastify: FastifyInstance) {
     reply.header('Cache-Control', 'no-cache')
 
     const logStream = createActionLogStream(id)
+    if (!logStream) {
+      // Return empty logs if log file doesn't exist
+      reply.send('')
+      return
+    }
+
     reply.send(logStream)
   })
 

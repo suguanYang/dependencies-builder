@@ -52,7 +52,7 @@ function getAnalysisResults(targetBranch: string): Results & {
   callGraph: string[]
 } {
   const ctx = getContext()
-  const resFile = path.join(ctx.getLocalDirectory(ctx.getMetadata().name, targetBranch), 'analysis-results.json')
+  const resFile = path.join(ctx.getLocalDirectory(targetBranch), 'analysis-results.json')
   if (!existsSync(resFile)) {
     throw new Error(`Analysis results ${resFile} file not found`)
   }

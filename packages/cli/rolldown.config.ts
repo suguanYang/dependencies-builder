@@ -9,6 +9,7 @@ const sharedNodeOptions = defineConfig({
   define: {
     __PROD__: 'true'
   },
+  external: ["tsc-alias"],
   output: {
     dir: './dist',
     entryFileNames: `[name].js`,
