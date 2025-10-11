@@ -3,17 +3,11 @@
  * @description Reusable library for analyzing ES2015 module exports and their origins
  */
 
+import location
 import callStack
 import javascript
 import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.TaintTracking
-
-/**
- * Utility function to get the location string of an AST node.
- */
-string getLocation(AstNode node) {
-  result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
 
 /**
  * A source node that represents potential origins for exported values.

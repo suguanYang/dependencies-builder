@@ -9,13 +9,7 @@
 import javascript
 import semmle.javascript.ES2015Modules
 import semmle.javascript.dataflow.DataFlow
-
-/**
- * Gets a string representation of an AST node's location.
- */
-string getLocation(AstNode node) {
-  result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
+import libs.location
 
 /**
  * Gets the imported names from an import declaration.

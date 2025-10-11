@@ -138,6 +138,8 @@ describe('API smoke tests', () => {
       relativePath: 'src/index.ts',
       startLine: 1,
       startColumn: 1,
+      endLine: 1,
+      endColumn: 1,
       version: '1.0.0',
       meta: {}
     }
@@ -180,6 +182,8 @@ describe('API smoke tests', () => {
         relativePath: 'src/app.ts',
         startLine: 15,
         startColumn: 8,
+        endLine: 1,
+        endColumn: 1,
         version: '1.0.0',
         meta: {},
         createdAt: new Date().toISOString(),
@@ -194,6 +198,8 @@ describe('API smoke tests', () => {
         relativePath: 'src/lib.ts',
         startLine: 10,
         startColumn: 5,
+        endLine: 1,
+        endColumn: 1,
         version: '1.0.0',
         meta: {},
         createdAt: new Date().toISOString(),

@@ -24,6 +24,8 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       relativePath: node.relativePath,
       startLine: node.startLine,
       startColumn: node.startColumn,
+      endLine: node.endLine,
+      endColumn: node.endColumn,
       version: node.version,
       meta: node.meta
     }))

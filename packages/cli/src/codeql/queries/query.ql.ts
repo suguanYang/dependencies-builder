@@ -20,7 +20,7 @@ select entry, name, location
 export const callChainQuery = `
 /**
  * @name universal call graph(include React render tree)
- * @description This query is used to find the render tree of a React component.
+ * @description This query is used to build a render tree
  * @kind table
  * @id js/call-graph-universal
  * @tags summary
@@ -29,12 +29,11 @@ export const callChainQuery = `
 import javascript
 import libs.callStack
 
-from ComponentNode parent, ComponentNode leaf, string path
+from CallAbleNode parent, CallAbleNode leaf, string path
 where
-  parent.getComponentName() = "hoc:WrapperAttachment" and
+  $$filter$$ and
   isLeaf(leaf) and
-  renders+(parent, leaf) and
-  renderPath(parent, leaf, path)
+  calls+(parent, leaf) and
+  callStack(parent, leaf, path)
 select path
-
 `

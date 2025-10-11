@@ -1,10 +1,7 @@
 import javascript
 import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
-
-string getLocation(AstNode node) {
-  result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
+import libs.location
 
 class DynamicImportSourceNode extends DataFlow::Node {
   DynamicImportSourceNode() {

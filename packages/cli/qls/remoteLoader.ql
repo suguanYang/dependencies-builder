@@ -3,9 +3,7 @@ import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
 import semmle.javascript.frameworks.React
 
-string getLocation(AstNode node) {
-    result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
+import libs.location
 
 private class ReactJsxElement extends JsxElement {
   RemoteLoaderSourceNode component;

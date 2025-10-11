@@ -1,10 +1,8 @@
+import libs.location
 import javascript
 import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
 
-string getLocation(AstNode node) {
-  result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
 
 // eventOn,
 //   eventOnOnce,

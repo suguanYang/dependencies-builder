@@ -44,10 +44,12 @@ xxx.yyy()
 
 
 ## Commands
-It only provides one command to run the static analysis
+
+### analyze
+Analyze the project and upload/update the result to the server
 
 ```bash
-clis analyze --project=<git http url> --branch=<branch name>
+cli analyze --project=<git http url> --branch=<branch name> --type=<app | lib>
 ```
 At its internal, it will do the following steps:
 1. Checkout the repository
@@ -56,6 +58,30 @@ At its internal, it will do the following steps:
 4. Run the Queries
 5. Interprete the query results
 6. Upload the result to the server
+
+### report
+Generate a dependency report from the analysis result and the server database
+
+```bash
+cli report --project=<git http url> --branch=<branch name> --target-branch=<target branch name> --type=<app | lib>
+```
+At its internal, it will do the following steps:
+1. analyze step.1
+2. analyze step.2
+3. analyze step.3
+4. analyze step.4
+5. analyze step.5
+6. build a call-graph for the callable "to nodes" in the result
+7. diff with the target branch, and get all changed lines
+8. for each changed line, get the affected "to nodes"(use the line numbers' Union to find the affected)
+9. find deleted "to nodes", and to search on the server side to know whether there still has connections that associated with it
+10. find new "from nodes", and to search on the server side to know whether there has a "to node" that can associate with it
+11. upload the report.json file to the server
+12. generate a report.json file, it should include the following information:
+  - the affected "to nodes"
+  - the deleted "to nodes" that still has connections that associated with it
+  - the new "from nodes" that has no "to node" that can associate with it
+
 
 ## The Checkout
 The checkout is a function to checkout the repository from the gitlab, it will use the gitlab api to get the repository, and then checkout the repository to the local.

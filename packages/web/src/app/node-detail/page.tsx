@@ -179,6 +179,16 @@ function NodeDetailContent() {
                 <p className="text-sm">{node.startColumn || 'N/A'}</p>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">End Line</label>
+                <p className="text-sm">{node.endLine || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">End Column</label>
+                <p className="text-sm">{node.endColumn || 'N/A'}</p>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Version</label>
               <p className="text-sm">{node.version || 'N/A'}</p>

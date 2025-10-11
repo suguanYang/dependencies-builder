@@ -21,6 +21,8 @@ export interface Node {
   relativePath?: string
   startLine?: number
   startColumn?: number
+  endLine?: number
+  endColumn?: number
   meta?: Record<string, any>
 }
 

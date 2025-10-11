@@ -1,4 +1,5 @@
 import javascript
+import libs.location
 
 private module PersistentWebStorage {
   private DataFlow::SourceNode webStorage(string kind) {
@@ -53,9 +54,5 @@ private module PersistentWebStorage {
 
 }
 
-string getLocation(DataFlow::Node node) {
-  result = node.getAstNode().getFile().getRelativePath() + ":" + node.getAstNode().getLocation().getStartLine() + ":" + node.getAstNode().getLocation().getStartColumn()
-}
-
 from PersistentWebStorage::ReadWriteAccess readOrWrite
-select readOrWrite.getKey(), readOrWrite.getType(), readOrWrite.getKind(), getLocation(readOrWrite)
+select readOrWrite.getKey(), readOrWrite.getType(), readOrWrite.getKind(), getLocation(readOrWrite.getAstNode())

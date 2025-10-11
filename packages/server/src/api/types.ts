@@ -18,6 +18,8 @@ export interface NodeCreationBody {
   relativePath: string
   startLine: number
   startColumn: number
+  endLine: number
+  endColumn: number
   version: string
   meta: Record<string, string>
 }

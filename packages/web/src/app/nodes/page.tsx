@@ -64,6 +64,8 @@ function NodesContent() {
     relativePath: '',
     startLine: 0,
     startColumn: 0,
+    endLine: 0,
+    endColumn: 0,
     version: '1.0.0',
     meta: {}
   })
@@ -107,6 +109,8 @@ function NodesContent() {
         relativePath: '',
         startLine: 0,
         startColumn: 0,
+        endLine: 0,
+        endColumn: 0,
         version: '1.0.0',
         meta: {}
       })
@@ -128,6 +132,8 @@ function NodesContent() {
         relativePath: editingNode.relativePath,
         startLine: editingNode.startLine,
         startColumn: editingNode.startColumn,
+        endLine: editingNode.endLine,
+        endColumn: editingNode.endColumn,
         version: editingNode.version,
         meta: editingNode.meta
       })

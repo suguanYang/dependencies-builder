@@ -3,7 +3,7 @@ import { cpSync, readFileSync, writeFileSync } from "node:fs"
 
 import getEntries from "./entries"
 import { getContext } from "../../context"
-import { entryExportsQuery } from "./query.ql"
+import { callChainQuery, entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
 import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType, RemoteLoaderQuery } from "./type"
 import { PACKAGE_ROOT } from "../../utils/constant"
@@ -34,6 +34,9 @@ const buildQueries = () => {
     // cp qlpack.yml to queries
     writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'), readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8')
         .replace('&&name&&', `"${projectNameToCodeQLName(ctx.getMetadata().name)}"`))
+}
+
+const buildCallGraphQuery = () => {
 }
 
 type QueryResults = {
@@ -247,12 +250,14 @@ const formatResults = (results: QueryResults) => {
 }
 
 const parseLoc = (loc: string) => {
-    const [relativePath, startLine, startColumn] = loc.split(':')
+    const [relativePath, startLine, startColumn, endLine, endColumn] = loc.split(':')
 
     return {
         relativePath,
         startLine: parseInt(startLine),
         startColumn: parseInt(startColumn),
+        endLine: parseInt(endLine),
+        endColumn: parseInt(endColumn),
     }
 }
 

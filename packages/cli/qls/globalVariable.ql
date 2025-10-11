@@ -1,10 +1,8 @@
 import javascript
 import semmle.javascript.dataflow.TaintTracking
+import libs.location
 import libs.builtInGlobalVars
 
-string getLocation(AstNode node) {
-  result = node.getFile().getRelativePath() + ":" + node.getLocation().getStartLine() + ":" + node.getLocation().getStartColumn()
-}
 
 module GlobalVarRefTrackingConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node source) {
