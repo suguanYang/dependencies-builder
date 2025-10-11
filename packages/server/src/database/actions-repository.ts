@@ -3,7 +3,7 @@ import { prisma } from "./prisma"
 export interface CreateActionData {
   project: string
   branch: string
-  type: 'static_analysis' | 'dependency_check' | 'validation'
+  type: 'static_analysis' | 'report'
 }
 
 export interface UpdateActionData {
@@ -15,7 +15,7 @@ export interface UpdateActionData {
 export interface ActionQuery {
   project?: string
   branch?: string
-  type?: 'static_analysis' | 'dependency_check' | 'validation'
+  type?: 'static_analysis' | 'report'
   status?: 'pending' | 'running' | 'completed' | 'failed'
   limit?: number
   offset?: number

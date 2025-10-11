@@ -7,7 +7,8 @@ import { writeActionLog } from '../logging/action-logger'
 interface ActionData {
   project: string
   branch: string
-  type: 'static_analysis' | 'dependency_check' | 'validation'
+  type: 'static_analysis' | 'dependency_check' | 'validation' | 'report'
+  targetBranch?: string
 }
 
 export interface CLIExecutionResult {
@@ -150,6 +151,30 @@ export function getActiveExecution(actionId: string): CLIExecution | undefined {
 function getCLICommand(actionData: ActionData): string[] {
   switch (actionData.type) {
     case 'static_analysis':
+      return [
+        'npx',
+        '@dms/cli',
+        'analyze',
+        actionData.project,
+        '--branch',
+        actionData.branch,
+        "--verbose"
+      ]
+    case 'report':
+      return [
+        'npx',
+        '@dms/cli',
+        'report',
+        actionData.project,
+        '--branch',
+        actionData.branch,
+        '--target-branch',
+        actionData.targetBranch || 'main',
+        "--verbose"
+      ]
+    case 'dependency_check':
+    case 'validation':
+      // For now, these types use the same command as static_analysis
       return [
         'npx',
         '@dms/cli',

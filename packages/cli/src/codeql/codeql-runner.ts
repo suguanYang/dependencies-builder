@@ -138,19 +138,15 @@ export class CodeQL {
         return this.databasePath
     }
 
-    async runSingleQuery(queryContent: string, queryName: string): Promise<void> {
-        debug('Running single query: %s', queryName)
-
-        const queryPath = path.join(this.queries, `${queryName}.ql`)
-
-        writeFileSync(queryPath, queryContent)
+    async runSingleQuery(query: string, queryName: string): Promise<void> {
+        debug('Running single query: %s', query, queryName)
 
         try {
             await run(CodeQL.EXECUTABLE_PATH, [
                 'database',
                 'run-queries',
                 this.databasePath,
-                queryPath,
+                query,
                 '--threads=4'
             ])
         } catch (error) {

@@ -3,7 +3,7 @@ import { cpSync, readFileSync, writeFileSync } from "node:fs"
 
 import getEntries from "./entries"
 import { getContext } from "../../context"
-import { entryExportsQuery } from "./query.ql"
+import { callChainQuery, entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
 import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType, RemoteLoaderQuery } from "./type"
 import { PACKAGE_ROOT } from "../../utils/constant"
@@ -33,6 +33,24 @@ const buildQueries = () => {
 
     // cp qlpack.yml to queries
     writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'), `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` + readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'))
+}
+
+export function buildCallGraphQuery(nodes: Results['nodes']) {
+    const ctx = getContext()
+
+    const toNodes = nodes.filter(node =>
+        node.type === 'NamedExport' ||
+        node.type === 'GlobalVarWrite' ||
+        node.type === 'WebStorageWrite' ||
+        node.type === 'EventEmit'
+    )
+
+    const queryContent = callChainQuery.replace('$$nodeQuery$$', toNodes.map(node => `getLocation(parent) = "${node.relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}"`).join(' or \n'))
+
+    const callGraphQuery = path.join(ctx.getWorkingDirectory(), 'queries', 'callGraph.ql')
+    writeFileSync(callGraphQuery, queryContent)
+
+    return callGraphQuery
 }
 
 type QueryResults = {

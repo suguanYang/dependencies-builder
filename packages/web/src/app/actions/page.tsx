@@ -15,14 +15,24 @@ import { type Action, type CreateActionData, getActions, deleteAction, createAct
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
-  const [viewingResult, setViewingResult] = useState<{ actionId: string; result: any } | null>(null)
+  const [viewingResult, setViewingResult] = useState<{
+    actionId: string;
+    result: {
+      actionId: string;
+      project: string;
+      branch: string;
+      type: string;
+      result: any;
+    }
+  } | null>(null)
   const [viewingLogs, setViewingLogs] = useState<{ actionId: string; logs: string[] } | null>(null)
   const logContainerRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [newAction, setNewAction] = useState<CreateActionData>({
     project: '',
     branch: '',
-    type: 'static_analysis'
+    type: 'static_analysis',
+    targetBranch: ''
   })
 
   const { data: actionsResponse, isLoading, mutate: mutateActions } = useSWR(
@@ -32,7 +42,7 @@ function ActionsContent() {
 
   const actions = actionsResponse?.data || []
 
-  // SWR hook for action logs with auto-refresh
+  // SWR hook for action logs with auto-refresh and error detection
   const { data: actionLogs, error: logsError, mutate: mutateLogs } = useSWR(
     viewingLogs ? `action-logs-${viewingLogs.actionId}` : null,
     () => viewingLogs ? getActionLogs(viewingLogs.actionId) : null,
@@ -50,6 +60,22 @@ function ActionsContent() {
       container.scrollTop = container.scrollHeight
     }
   }, [actionLogs, autoScroll])
+
+  // Detect errors in logs and refresh action status
+  useEffect(() => {
+    if (actionLogs && viewingLogs) {
+      // Check if logs contain error indicators
+      const hasError = actionLogs.includes('[error]') ||
+                      actionLogs.toLowerCase().includes('error:') ||
+                      actionLogs.toLowerCase().includes('failed') ||
+                      actionLogs.toLowerCase().includes('exception')
+
+      if (hasError) {
+        // Refresh actions to update status if action failed
+        mutateActions()
+      }
+    }
+  }, [actionLogs, viewingLogs, mutateActions])
 
   const scrollToBottom = () => {
     if (logContainerRef.current) {
@@ -83,7 +109,8 @@ function ActionsContent() {
       setNewAction({
         project: '',
         branch: '',
-        type: 'static_analysis'
+        type: 'static_analysis',
+        targetBranch: ''
       })
       mutateActions()
     } catch (err) {
@@ -327,6 +354,17 @@ function ActionsContent() {
                   placeholder="Branch name (e.g., main, develop)"
                 />
               </div>
+
+              {newAction.type === 'report' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Target Branch</label>
+                  <Input
+                    value={newAction.targetBranch}
+                    onChange={(e) => setNewAction(prev => ({ ...prev, targetBranch: e.target.value }))}
+                    placeholder="Target branch for comparison (e.g., main)"
+                  />
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium mb-2">Action Type</label>
@@ -335,9 +373,8 @@ function ActionsContent() {
                   onChange={(e) => setNewAction(prev => ({ ...prev, type: e.target.value as CreateActionData['type'] }))}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  <option value="static_analysis">Static Analysis</option>
-                  <option value="dependency_check">Dependency Check</option>
-                  <option value="validation">Validation</option>
+                  <option value="static_analysis">Analysis</option>
+                  <option value="report">Report</option>
                 </select>
               </div>
               
@@ -367,9 +404,16 @@ function ActionsContent() {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Action ID: {viewingResult.actionId}</h4>
+              <div className="mb-4">
+                <h4 className="font-medium">Action Details</h4>
+                <p className="text-sm text-gray-600">ID: {viewingResult.result.actionId}</p>
+                <p className="text-sm text-gray-600">Project: {viewingResult.result.project}</p>
+                <p className="text-sm text-gray-600">Branch: {viewingResult.result.branch}</p>
+                <p className="text-sm text-gray-600">Type: {viewingResult.result.type}</p>
+              </div>
+              <h4 className="font-medium mb-2">Result Data</h4>
               <pre className="text-sm overflow-auto bg-white p-4 rounded border">
-                {JSON.stringify(viewingResult.result, null, 2)}
+                {JSON.stringify(viewingResult.result.result, null, 2)}
               </pre>
             </div>
           </div>

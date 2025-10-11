@@ -1,9 +1,13 @@
-import os from 'node:os';
-import { join } from 'node:path';
+import os, { homedir } from 'node:os';
+import path, { join } from 'node:path';
 import { AsyncLocalStorage } from 'node:async_hooks'
 
-import { existsSync } from './utils/fs-helper';
+import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper';
 import { readFileSync } from 'node:fs';
+
+const path2name = (path: string) => {
+    return path.replaceAll('/', '_')
+}
 
 type REPO_TYPE = 'app' | 'lib'
 
@@ -31,6 +35,7 @@ class Context {
     private remote: boolean = false;
     private tmpDir: string
     private options: AnalyzeOptions
+    private localDirectory?: string
 
     constructor(options: AnalyzeOptions) {
         this.options = options
@@ -58,6 +63,14 @@ class Context {
 
     getType(): REPO_TYPE {
         return this.type!
+    }
+
+    getLocalDirectory(branch?: string): string {
+        if (branch) {
+            return path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(branch))
+        }
+
+        return this.localDirectory!
     }
 
     getMetadata(): METADATA {
@@ -88,6 +101,9 @@ class Context {
         } else if (!existsSync(this.options.repository)) {
             throw new Error('Repository must be a existing local directory')
         }
+
+        this.localDirectory = path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(this.getBranch()))
+        ensureDirectoryExistsSync(this.localDirectory)
 
         if (this.options.type) {
             this.type = this.options.type

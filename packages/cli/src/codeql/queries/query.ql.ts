@@ -18,22 +18,23 @@ select entry, name, location
 `
 
 export const callChainQuery = `
-/**
- * @name universal call graph(include React render tree)
- * @description This query is used to build a render tree
- * @kind table
- * @id js/call-graph-universal
- * @tags summary
- */
-
-import javascript
-import libs.callStack
-
-from CallAbleNode parent, CallAbleNode leaf, string path
-where
-  $$filter$$ and
-  isLeaf(leaf) and
-  calls+(parent, leaf) and
-  callStack(parent, leaf, path)
-select path
+  /**
+   * @name Call graph
+   * @description Build call graph for specific node
+   * @kind table
+   * @id js/call-graph
+   * @tags summary
+   */
+  
+  import javascript
+  import libs.callStack
+  import libs.location
+  
+  from CallAbleNode parent, CallAbleNode leaf, string path
+  where
+    ($$nodeQuery$$) and
+    isLeaf(leaf) and
+    calls+(parent, leaf) and
+    callStack(parent, leaf, path)
+  select path
 `

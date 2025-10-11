@@ -4,6 +4,9 @@ import { formatStringToNumber } from '../request_parameter'
 import { executeCLI, getActiveExecution } from '../../services/cli-service'
 import { error as logError, info } from '../../logging'
 import { createActionLogStream } from '../../logging/action-logger'
+import path from 'node:path'
+import { homedir } from 'node:os'
+import { existsSync, readFileSync } from 'node:fs'
 
 function actionsRoutes(fastify: FastifyInstance) {
   // GET /actions - Get actions with query parameters
@@ -105,7 +108,7 @@ function actionsRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // GET /actions/:id/result - Get action result
+  // GET /actions/:id/result - Get action result from local directory
   fastify.get('/actions/:id/result', async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
@@ -116,7 +119,42 @@ function actionsRoutes(fastify: FastifyInstance) {
         return
       }
 
-      return { result: action.result }
+      if (!action.project || !action.branch) {
+        reply.code(400).send({ error: 'Action missing project or branch information' })
+        return
+      }
+
+      // Determine file path based on action type
+      let resultPath: string
+      if (action.type === 'static_analysis') {
+        resultPath = path.join(homedir(), '.dms', path2name(action.project), action.branch, 'analysis-results.json')
+      } else if (action.type === 'report') {
+        resultPath = path.join(homedir(), '.dms', path2name(action.project), action.branch, 'report.json')
+      } else {
+        reply.code(400).send({ error: 'Unsupported action type' })
+        return
+      }
+
+      // Check if file exists
+      if (!existsSync(resultPath)) {
+        reply.code(404).send({
+          error: 'Result file not found',
+          details: `Expected file at: ${resultPath}`
+        })
+        return
+      }
+
+      // Read and parse the result file
+      const resultContent = readFileSync(resultPath, 'utf-8')
+      const resultData = JSON.parse(resultContent)
+
+      return {
+        actionId: id,
+        project: action.project,
+        branch: action.branch,
+        type: action.type,
+        report: resultData
+      }
     } catch (error) {
       reply
         .code(500)
@@ -126,6 +164,7 @@ function actionsRoutes(fastify: FastifyInstance) {
         })
     }
   })
+
 
   // GET /actions/:id/logs - Stream action-specific logs
   fastify.get('/actions/:id/logs', (request, reply) => {
@@ -161,3 +200,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 }
 
 export default actionsRoutes
+
+const path2name = (path: string) => {
+  return path.replaceAll('/', '-')
+}

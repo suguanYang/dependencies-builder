@@ -215,7 +215,8 @@ export interface Action {
 export interface CreateActionData {
   project: string
   branch: string
-  type: 'static_analysis' | 'dependency_check' | 'validation'
+  type: 'static_analysis' | 'report'
+  targetBranch?: string
 }
 
 export async function getActions(): Promise<{ data: Action[]; total: number }> {

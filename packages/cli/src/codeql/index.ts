@@ -2,7 +2,7 @@ import path from 'path'
 import { cpSync, rmSync } from 'fs'
 import { replaceTscAliasPaths } from 'tsc-alias'
 import { CodeQL } from './codeql-runner'
-import { buildQueries, processQuery } from './queries'
+import { buildCallGraphQuery, buildQueries, processQuery } from './queries'
 import { getContext } from '../context'
 import debug, { error } from '../utils/debug'
 import { existsSync } from '../utils/fs-helper'
@@ -16,7 +16,17 @@ export const runCodeQL = async () => {
 
   await codeql.run()
 
-  return processQuery(codeql.outputPath)
+  const results = processQuery(codeql.outputPath)
+
+  const callGraphQuery = buildCallGraphQuery(results.nodes)
+  await codeql.runSingleQuery(callGraphQuery, 'callGraph')
+
+  const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
+
+  return {
+    ...results,
+    callGraph: callGraphResults
+  }
 }
 
 const postRun = async () => {

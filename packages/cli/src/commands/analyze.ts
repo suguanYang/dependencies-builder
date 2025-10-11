@@ -34,7 +34,7 @@ export async function analyzeProject(): Promise<void> {
     })
 
     // Save results to file
-    const outputPath = path.join(ctx.getWorkingDirectory(), 'analysis-results.json')
+    const outputPath = path.join(ctx.getLocalDirectory(), 'analysis-results.json')
     writeFileSync(outputPath, JSON.stringify(results, null, 2))
     console.log(`\nResults saved to: ${outputPath}`)
 

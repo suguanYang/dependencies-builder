@@ -17,21 +17,28 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, type Connection, getNodes, getConnectionsList } from '@/lib/api'
+import { type Node, type Connection, getNodes, getConnectionsList, getActions } from '@/lib/api'
 
 function HomeContent() {
   const { data: nodesResponse } = useSWR('dashboard-nodes', () => getNodes({ limit: 1 }))
   const { data: connectionsResponse } = useSWR('dashboard-connections', () => getConnectionsList({ limit: 1 }))
   const { data: standaloneNodesResponse } = useSWR('dashboard-standalone-nodes', () => getNodes({ standalone: true, limit: 1 }))
+  const { data: actionsResponse } = useSWR('dashboard-actions', () => getActions())
 
   const nodes = nodesResponse?.data || []
   const connections = connectionsResponse?.data || []
   const standaloneNodes = standaloneNodesResponse?.data || []
+  const actions = actionsResponse?.data || []
 
   // Calculate dashboard statistics
   const totalNodes = nodesResponse?.total || 0
   const totalConnections = connectionsResponse?.total || 0
   const standaloneNodesCount = standaloneNodesResponse?.total || 0
+
+  // Calculate report statistics
+  const reportActions = actions.filter(action => action.type === 'report')
+  const completedReports = reportActions.filter(action => action.status === 'completed').length
+  const failedReports = reportActions.filter(action => action.status === 'failed').length
 
   // Find potential circular dependencies
   const findCycles = (): string[][] => {
@@ -118,11 +125,17 @@ function HomeContent() {
               Manage Actions
             </Button>
           </Link>
+          <Link href="/reports">
+            <Button variant="outline">
+              <TrendingUpIcon className="h-4 w-4 mr-2" />
+              View Reports
+            </Button>
+          </Link>
         </div>
       </header>
 
       {/* System Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Nodes</CardTitle>
@@ -175,6 +188,19 @@ function HomeContent() {
             <div className="text-2xl font-bold">{cycles.length}</div>
             <p className="text-xs text-muted-foreground">
               Potential cycles detected
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reports</CardTitle>
+            <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedReports}</div>
+            <p className="text-xs text-muted-foreground">
+              {failedReports > 0 ? `${failedReports} failed` : 'All successful'}
             </p>
           </CardContent>
         </Card>
@@ -266,10 +292,67 @@ function HomeContent() {
         )}
       </div>
 
+      {/* Recent Reports */}
+      {reportActions.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Recent Reports</h2>
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {reportActions.slice(0, 5).map((action) => (
+                  <tr key={action.id}>
+                    <td className="px-6 py-4 text-sm text-gray-900">{action.project}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{action.branch}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        action.status === 'completed' ? 'text-green-600 bg-green-100' :
+                        action.status === 'running' ? 'text-blue-600 bg-blue-100' :
+                        action.status === 'failed' ? 'text-red-600 bg-red-100' :
+                        'text-yellow-600 bg-yellow-100'
+                      }`}>
+                        {action.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {new Date(action.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <Link href="/actions">
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {reportActions.length > 5 && (
+              <div className="px-6 py-3 bg-gray-50 text-center">
+                <Link href="/actions">
+                  <Button variant="outline" size="sm">
+                    View All Reports
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Auto-create Connections</CardTitle>
@@ -295,6 +378,21 @@ function HomeContent() {
                 <Button className="w-full" variant="outline">
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Start Analysis
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Generate Report</CardTitle>
+              <CardDescription>Create comprehensive dependency analysis report</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/actions">
+                <Button className="w-full" variant="outline">
+                  <TrendingUpIcon className="h-4 w-4 mr-2" />
+                  Create Report
                 </Button>
               </Link>
             </CardContent>

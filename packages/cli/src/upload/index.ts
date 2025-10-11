@@ -1,4 +1,3 @@
-import { getContext } from '../context'
 import debug from '../utils/debug'
 
 export interface UploadResult {
@@ -9,7 +8,6 @@ export interface UploadResult {
 }
 
 export async function uploadResults(results: any): Promise<UploadResult> {
-  const ctx = getContext()
   const serverUrl = process.env.DMS_SERVER_URL || 'http://localhost:3001'
 
   debug('Uploading results to server: %s', serverUrl)

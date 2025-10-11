@@ -68,8 +68,7 @@ model Connection {
 
 enum ActionType {
   static_analysis
-  dependency_check
-  validation
+  report
 }
 
 enum ActionStatus {
