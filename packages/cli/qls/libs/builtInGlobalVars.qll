@@ -10,6 +10,7 @@ predicate isBuiltinGlobalVar(string name) {
   name = "document" or
   name = "name" or
   name = "location" or
+  name = "Blob" or
   name = "customElements" or
   name = "history" or
   name = "navigation" or

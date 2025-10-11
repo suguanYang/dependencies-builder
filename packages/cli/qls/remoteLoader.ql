@@ -14,7 +14,7 @@ private class ReactJsxElement extends JsxElement {
 }
 
 // RemotePageLoader, RemoteLoader, UDCRuntimePage, 
-class RemoteLoaderSourceNode extends DataFlow::Node {
+private class RemoteLoaderSourceNode extends DataFlow::Node {
     RemoteLoaderSourceNode() {
         this = DataFlow::moduleMember("@seeyon/global", "RemotePageLoader")
         or

@@ -105,22 +105,9 @@ class CallAbleNode extends AstNode { // AstNode base from many QL classes
     )
   }
 
-  // prefer declarator name, else function name, else synthesized anonymous id
-  // Source: Functions.qll getName(); Location APIs from common AST
-  string getName() {
-    if exists(this.getNameByVarDecl()) then
-      result = this.getNameByVarDecl()
-    else if this instanceof Function and
-            exists(string fn | fn = this.(Function).getName() and not fn = "") then
-      result = this.(Function).getName()
-    else
-      // fallback: base name from file + line:col as stable id, avoiding plain "anonymous"
-      result = "anonymous"
-  }
-
   // unique id for cycle detection and path readability
   string getId() {
-    result = this.getName() + "@ " + this.getFile().getRelativePath() + ":" + this.getLocation().getStartLine() + ":" + this.getLocation().getStartColumn()
+    result = this.getFile().getRelativePath() + ":" + this.getLocation().getStartLine() + ":" + this.getLocation().getStartColumn() + ":" + this.getLocation().getEndLine() + ":" + this.getLocation().getEndColumn()
   }
 
   // unify creator-reference access across different underlying kinds
@@ -191,7 +178,7 @@ predicate calls(CallAbleNode parent, CallAbleNode child) {
  */
 predicate callStack(CallAbleNode parent, CallAbleNode child, string path) {
   // base edge
-  calls(parent, child) and path = parent.getId() + " -> " + child.getId()
+  calls(parent, child) and path = parent.getId() + "->" + child.getId()
   or
   // recursive extension with cycle check via string containment
   exists(CallAbleNode mid, string parentPath |

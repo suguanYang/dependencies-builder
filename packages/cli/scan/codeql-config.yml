@@ -1,3 +1,2 @@
 paths-ignore:
   - node_modules
-  - '*.js'

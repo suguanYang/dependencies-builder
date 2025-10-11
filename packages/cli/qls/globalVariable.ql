@@ -19,7 +19,7 @@ module GlobalVarRefTrackingConfig implements DataFlow::ConfigSig {
 
 module GlobalVarRefFlow = TaintTracking::Global<GlobalVarRefTrackingConfig>;
 
-predicate isAssignToGlobalVar(DataFlow::Node source) {
+private predicate isAssignToGlobalVar(DataFlow::Node source) {
   exists(AssignExpr ass |
     ass.getLhs().flow() = source
   )

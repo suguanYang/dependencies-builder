@@ -5,15 +5,15 @@ import debug, { error } from "../../utils/debug"
 import { getContext } from "../../context"
 
 const CONTROL_EXPORTS = {
-    schema: './src/schema.ts',
-    runtime: './src/runtime.tsx',
-    attr: './src/components/attr.tsx',
-    design: './src/components/design.tsx',
+    schema: './dist/schema.ts',
+    runtime: './dist/runtime.tsx',
+    attr: './dist/components/attr.tsx',
+    design: './dist/components/design.tsx',
 };
 
 const ACTION_EXPORTS = {
-    runtimeAction: ['./src/actions/runtime.ts', './src/actions/runtime.tsx'],
-    schemaAction: './src/actions/schema.ts',
+    runtimeAction: ['./dist/actions/runtime.ts', './dist/actions/runtime.tsx'],
+    schemaAction: './dist/actions/schema.ts',
 };
 
 function runMfExposesMatcher(code: string) {
@@ -45,7 +45,7 @@ const getEntriesInWebpackConfig = (wd: string) => {
         }
         entries.push({
             name: expose.name,
-            path: path.relative(`${wd}/src`, path.join(wd, expose.path))
+            path: path.relative(`${wd}/dist`, path.join(wd, expose.path))
         })
     }
 
@@ -101,9 +101,8 @@ const getEntries = () => {
         entries.push({ name: 'seeyon_ui_schemas_index', path: 'ui/schemas/index.ts' })
     }
 
-    debug(`Entries: \n${entries.map(entry => `${entry.name}: ${entry.path}`).join('\n')}`)
-    // ignore the entries that are not in the src directory & reduplicate the entries that have the same name
-    return entries.filter(entry => existsSync(path.join(ctx.getWorkingDirectory(), 'src', entry.path)))
+    // ignore the entries that are not in the dist directory & reduplicate the entries that have the same name
+    return entries.filter(entry => existsSync(path.join(ctx.getWorkingDirectory(), 'dist', entry.path)))
         .filter((entry, index, self) =>
             index === self.findIndex(t => t.name === entry.name)
         )

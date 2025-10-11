@@ -4,12 +4,7 @@ import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
 
 
-// eventOn,
-//   eventOnOnce,
-//   eventEmit,
-//   eventEmitAsyncResult,
-//   eventEmitBroadcast,
-class EventSourceNode extends DataFlow::Node {
+private class EventSourceNode extends DataFlow::Node {
   string type;
 
   EventSourceNode() {

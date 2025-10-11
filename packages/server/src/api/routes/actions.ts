@@ -85,7 +85,7 @@ function actionsRoutes(fastify: FastifyInstance) {
       const success = await repository.deleteAction(id)
       const activeExecution = getActiveExecution(id)
       if (activeExecution) {
-        activeExecution.stop()
+        await activeExecution.stop()
       }
 
       if (!success) {
@@ -146,7 +146,7 @@ function actionsRoutes(fastify: FastifyInstance) {
       const activeExecution = getActiveExecution(id)
 
       if (activeExecution) {
-        activeExecution.stop()
+        await activeExecution.stop()
         return { success: true, message: 'Action execution stopped' }
       } else {
         reply.code(404).send({ error: 'Action not found or not running' })

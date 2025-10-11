@@ -3,7 +3,7 @@ import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
 import libs.location
 
-class DynamicImportSourceNode extends DataFlow::Node {
+private class DynamicImportSourceNode extends DataFlow::Node {
   DynamicImportSourceNode() {
     this = DataFlow::moduleMember("@seeyon/global", "dynamicImport")
     or

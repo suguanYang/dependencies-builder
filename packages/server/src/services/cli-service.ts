@@ -1,6 +1,6 @@
-import { ChildProcess, spawn } from 'child_process'
+import { spawn } from 'node:child_process'
+import kill from 'tree-kill'
 import * as repository from '../database/actions-repository'
-import { Readable } from 'stream'
 import { error, info } from '../logging'
 import { writeActionLog } from '../logging/action-logger'
 
@@ -19,7 +19,7 @@ export interface CLIExecutionResult {
 
 export interface CLIExecution {
   actionId: string
-  stop(): void
+  stop(): Promise<void>
 }
 
 const activeExecutions = new Map<string, CLIExecution>()
@@ -116,9 +116,17 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     // Create CLIExecution object
     const execution: CLIExecution = {
       actionId,
-      stop: () => {
-        childProcess.kill('SIGTERM')
-        activeExecutions.delete(actionId)
+      stop: async () => {
+        return new Promise((resolve, reject) => {
+          kill(childProcess.pid!, (err) => {
+            if (err) {
+              reject(err)
+              return
+            }
+            activeExecutions.delete(actionId)
+            resolve()
+          })
+        })
       }
     }
 

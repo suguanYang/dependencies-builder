@@ -3,7 +3,7 @@ import { cpSync, readFileSync, writeFileSync } from "node:fs"
 
 import getEntries from "./entries"
 import { getContext } from "../../context"
-import { callChainQuery, entryExportsQuery } from "./query.ql"
+import { entryExportsQuery } from "./query.ql"
 import { ensureDirectoryExistsSync } from "../../utils/fs-helper"
 import { ExportQuery, ImportQuery, LibsDynamicImportQuery, GlobalVariableQuery, EventQuery, WebStorageQuery, NodeType, RemoteLoaderQuery } from "./type"
 import { PACKAGE_ROOT } from "../../utils/constant"
@@ -18,25 +18,21 @@ const buildQueries = () => {
     )
 
     const entries = getEntries()
-    if (entries.length > 0) {
-        const entryQuery = entryExportsQuery.replace('$$entryQuery$$', entries.map(entry => `
-            (
-            entry = "${entry.path}"
-            and
-            getFileExports(entry, name, location)
-            )`
-        ).join(' or '))
-        writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
+    if (entries.length === 0) {
+        throw new Error('No entries found')
     }
-
+    const entryQuery = entryExportsQuery.replace('$$entryQuery$$', entries.map(entry => `
+        (
+        entry = "${entry.path}"
+        and
+        getFileExports(entry, name, location)
+        )`
+    ).join(' or '))
+    writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
     cpSync(qlsDir, path.join(ctx.getWorkingDirectory(), 'queries'), { recursive: true })
 
     // cp qlpack.yml to queries
-    writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'), readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8')
-        .replace('&&name&&', `"${projectNameToCodeQLName(ctx.getMetadata().name)}"`))
-}
-
-const buildCallGraphQuery = () => {
+    writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'), `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` + readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'))
 }
 
 type QueryResults = {
@@ -248,6 +244,8 @@ const formatResults = (results: QueryResults) => {
         nodes: allNodes
     }
 }
+
+export type Results = ReturnType<typeof formatResults>
 
 const parseLoc = (loc: string) => {
     const [relativePath, startLine, startColumn, endLine, endColumn] = loc.split(':')

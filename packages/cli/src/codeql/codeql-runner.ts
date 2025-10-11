@@ -3,8 +3,8 @@ import run from '../utils/run'
 import debug, { error } from '../utils/debug'
 import { getContext } from '../context'
 import { cpus } from 'node:os'
-import { globSync } from 'node:fs'
-import { ensureDirectoryExistsSync } from '../utils/fs-helper'
+import { globSync, readFileSync, writeFileSync } from 'node:fs'
+import { ensureDirectoryExistsSync, existsSync } from '../utils/fs-helper'
 import { PACKAGE_ROOT } from '../utils/constant'
 import { projectNameToCodeQLName } from '../utils/names'
 
@@ -70,7 +70,7 @@ export class CodeQL {
                 'create',
                 this.databasePath,
                 `--language=${CodeQL.LANGUAGE}`,
-                `--source-root=${this.repoPath}/src`,
+                `--source-root=${this.repoPath}/dist`,
                 '--build-mode=none',
                 `--threads=${CodeQL.THREADS_NUMBER}`,
                 '--no-calculate-baseline',
@@ -136,5 +136,52 @@ export class CodeQL {
 
     getDatabasePath(): string {
         return this.databasePath
+    }
+
+    async runSingleQuery(queryContent: string, queryName: string): Promise<void> {
+        debug('Running single query: %s', queryName)
+
+        const queryPath = path.join(this.queries, `${queryName}.ql`)
+
+        writeFileSync(queryPath, queryContent)
+
+        try {
+            await run(CodeQL.EXECUTABLE_PATH, [
+                'database',
+                'run-queries',
+                this.databasePath,
+                queryPath,
+                '--threads=4'
+            ])
+        } catch (error) {
+            debug('Failed to run query %s: %o', queryName, error)
+            throw error
+        }
+    }
+
+    async decodeSingleResult<T = any>(queryName: string): Promise<T[]> {
+        debug('Decoding single result: %s', queryName)
+
+        const resultsPath = path.join(this.results, `${queryName}.bqrs`)
+
+        if (!existsSync(resultsPath)) {
+            return []
+        }
+
+        try {
+            await run(CodeQL.EXECUTABLE_PATH, [
+                'bqrs',
+                'decode',
+                resultsPath,
+                `--output=${path.join(this.outputPath, queryName)}.json`,
+                '--format=json'
+            ], {})
+
+            const result = JSON.parse(readFileSync(path.join(this.outputPath, `${queryName}.json`)).toString())
+            return result['#select']?.tuples || []
+        } catch (error) {
+            debug('Failed to decode result %s: %o', queryName, error)
+            return []
+        }
     }
 }
