@@ -3,7 +3,7 @@ import path, { join } from 'node:path';
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const path2name = (path: string) => {
     return path.replaceAll('/', '_')
@@ -22,11 +22,13 @@ type METADATA = {
 
 export interface AnalyzeOptions {
     branch?: string
+    targetBranch?: string
     /**
      * The repository to analyze, it can be a local directory or a remote git repository
      */
     repository: string
     type?: REPO_TYPE
+    name?: string
 }
 
 class Context {
@@ -36,6 +38,7 @@ class Context {
     private tmpDir: string
     private options: AnalyzeOptions
     private localDirectory?: string
+    private workDirectory?: string
 
     constructor(options: AnalyzeOptions) {
         this.options = options
@@ -43,6 +46,10 @@ class Context {
     }
 
     getWorkingDirectory(): string {
+        if (this.workDirectory) {
+            return this.workDirectory
+        }
+
         if (this.remote) {
             return this.tmpDir
         }
@@ -55,6 +62,10 @@ class Context {
 
     getBranch(): string {
         return this.options.branch || 'main'
+    }
+
+    getTargetBranch(): string | undefined {
+        return this.options.targetBranch
     }
 
     isRemote(): boolean {
@@ -78,17 +89,70 @@ class Context {
             return this.metadata
         }
 
-        if (!existsSync(join(this.getWorkingDirectory(), 'package.json'))) {
-            throw new Error('Package.json not found')
+        const workingDir = this.getWorkingDirectory()
+        const packageJsonPath = join(workingDir, 'package.json')
+
+        if (!existsSync(packageJsonPath)) {
+            throw new Error(`Package.json not found at ${packageJsonPath}`)
         }
 
         try {
-            this.metadata = JSON.parse(readFileSync(join(this.getWorkingDirectory(), 'package.json'), 'utf-8')) as METADATA
+            this.metadata = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as METADATA
         } catch (error) {
             throw new Error(`Failed to parse package.json: ${error}`)
         }
 
         return this.metadata!
+    }
+
+    findPackageDirectory() {
+        const packageName = this.options.name
+        const baseDir = this.remote ? this.tmpDir : this.options.repository
+
+        // Search for package.json files recursively
+        const searchDirectories = [baseDir]
+        const visited = new Set<string>()
+
+        while (searchDirectories.length > 0 && visited.size < 200) {
+            const currentDir = searchDirectories.pop()!
+
+            if (visited.has(currentDir)) {
+                continue
+            }
+            visited.add(currentDir)
+
+            try {
+                const entries = readdirSync(currentDir, { withFileTypes: true })
+
+                for (const entry of entries) {
+                    const fullPath = join(currentDir, entry.name)
+
+                    if (entry.isDirectory()) {
+                        // Skip node_modules and other common directories
+                        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+                            continue
+                        }
+                        searchDirectories.push(fullPath)
+                    } else if (entry.name === 'package.json') {
+                        try {
+                            const packageJson = JSON.parse(readFileSync(fullPath, 'utf-8'))
+                            if (packageJson.name === packageName) {
+                                this.workDirectory = currentDir
+                                return
+                            }
+                        } catch (error) {
+                            // Skip invalid package.json files
+                            continue
+                        }
+                    }
+                }
+            } catch (error) {
+                // Skip directories that can't be read
+                continue
+            }
+        }
+
+        throw new Error(`Package '${packageName}' not found in repository`)
     }
 
     setup(): void {

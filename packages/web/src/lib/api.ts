@@ -208,6 +208,7 @@ export interface Action {
     project: string
     branch: string
     targetBranch?: string
+    name?: string
   }
   createdAt: string
   updatedAt: string
@@ -220,6 +221,7 @@ export interface CreateActionData {
   branch: string
   type: 'static_analysis' | 'report'
   targetBranch?: string
+  name?: string
 }
 
 export async function getActions(): Promise<{ data: Action[]; total: number }> {

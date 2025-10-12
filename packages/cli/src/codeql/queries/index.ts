@@ -80,12 +80,17 @@ const processQuery = (queryResultDir: string) => {
 
 const parseExportQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    let project = ctx.getMetadata().name
     const entries = getEntries()
     try {
         const entryQueryResult = JSON.parse(readFileSync(path.join(queryResultDir, 'export.json'), 'utf-8')) as ExportQuery
         return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => {
             const entryName = entries.find(entry => entry.path === tuple[0])?.name
+            let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)
+            if (entryName === 'seeyon_ui_index') {
+                name = tuple[1]
+                project = '@seeyon/ui'
+            }
             return ({
                 project,
                 branch: ctx.getBranch(),

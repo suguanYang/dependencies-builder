@@ -5,6 +5,7 @@ export interface CreateActionData {
   branch: string
   type: 'static_analysis' | 'report'
   targetBranch?: string
+  name?: string
 }
 
 export interface UpdateActionData {
@@ -65,6 +66,7 @@ export async function createAction(actionData: CreateActionData) {
         project: actionData.project,
         branch: actionData.branch,
         targetBranch: actionData.targetBranch,
+        name: actionData.name,
       },
     },
   })

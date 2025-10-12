@@ -23,6 +23,11 @@ export async function checkoutRepository() {
     await gitCommander.remoteAdd('origin', url)
     await gitCommander.tryDisableAutomaticGarbageCollection()
     await gitCommander.fetch([`${branch}:${branch}`], { fetchDepth: 1, showProgress: true })
+
+    if (ctx.getTargetBranch()) {
+      await gitCommander.fetch([`${ctx.getTargetBranch()}:${ctx.getTargetBranch()}`], { fetchDepth: 1, showProgress: true })
+    }
+
     await gitCommander.checkout(branch)
   } catch (error) {
     throw new RepositorySetupFailedException(`Failed to clone repository: ${error}`)

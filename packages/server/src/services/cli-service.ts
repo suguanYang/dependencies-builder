@@ -9,6 +9,7 @@ interface ActionData {
   branch: string
   type: 'static_analysis' | 'dependency_check' | 'validation' | 'report'
   targetBranch?: string
+  name?: string
 }
 
 export interface CLIExecutionResult {
@@ -151,7 +152,7 @@ export function getActiveExecution(actionId: string): CLIExecution | undefined {
 function getCLICommand(actionData: ActionData): string[] {
   switch (actionData.type) {
     case 'static_analysis':
-      return [
+      const analyzeArgs = [
         'npx',
         '@dms/cli',
         'analyze',
@@ -160,8 +161,12 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.branch,
         "--verbose"
       ]
+      if (actionData.name) {
+        analyzeArgs.push('--name', actionData.name)
+      }
+      return analyzeArgs
     case 'report':
-      return [
+      const reportArgs = [
         'npx',
         '@dms/cli',
         'report',
@@ -172,6 +177,10 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.targetBranch!,
         "--verbose"
       ]
+      if (actionData.name) {
+        reportArgs.push('--name', actionData.name)
+      }
+      return reportArgs
     default:
       throw new Error(`Unknown action type: ${actionData.type}`)
   }

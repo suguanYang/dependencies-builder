@@ -10,16 +10,19 @@ interface ReportResult {
   affectedToNodes: any[]
 }
 
-export async function generateReport(targetBranch: string): Promise<void> {
+export async function generateReport(): Promise<void> {
   debug('Starting report generation')
 
   const ctx = getContext()
+  const targetBranch = ctx.getTargetBranch()!
 
   try {
     if (ctx.isRemote()) {
       await checkoutRepository()
       debug('Repository checked out')
     }
+
+    ctx.findPackageDirectory()
 
     const workingDir = ctx.getWorkingDirectory()
 

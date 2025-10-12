@@ -29,6 +29,10 @@ yargs(hideBin(process.argv))
           describe: 'Type of the project',
           type: 'string',
         })
+        .option('name', {
+          describe: 'Package name for monorepo analysis',
+          type: 'string',
+        })
         .conflicts('project', 'local-repo-path')
     },
     async (argv) => {
@@ -41,6 +45,7 @@ yargs(hideBin(process.argv))
         branch: argv.branch,
         repository: argv.repository,
         type: argv.type as 'app' | 'lib',
+        name: argv.name,
       }, analyzeProject)
     },
   )
@@ -68,6 +73,10 @@ yargs(hideBin(process.argv))
           describe: 'Type of the project',
           type: 'string',
         })
+        .option('name', {
+          describe: 'Package name for monorepo analysis',
+          type: 'string',
+        })
         .option('verbose', {
           alias: 'v',
           describe: 'Enable verbose output',
@@ -84,8 +93,10 @@ yargs(hideBin(process.argv))
       await runWithContext({
         branch: argv.branch,
         repository: argv.repository,
+        targetBranch: argv.targetBranch,
         type: argv.type as 'app' | 'lib',
-      }, () => generateReport(argv.targetBranch))
+        name: argv.name,
+      }, () => generateReport())
     },
   )
   .demandCommand(1, 'You need to specify a command')

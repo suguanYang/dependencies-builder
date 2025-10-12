@@ -20,6 +20,11 @@ export async function analyzeProject(): Promise<void> {
       debug('Repository checked out')
     }
 
+
+    // Handle monorepo package name search
+    ctx.findPackageDirectory()
+
+
     const results = await runCodeQL()
 
     // Display results summary

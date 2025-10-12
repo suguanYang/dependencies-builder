@@ -32,7 +32,8 @@ function ActionsContent() {
     project: '',
     branch: '',
     type: 'static_analysis',
-    targetBranch: ''
+    targetBranch: '',
+    name: ''
   })
 
   const { data: actionsResponse, isLoading, mutate: mutateActions } = useSWR(
@@ -110,7 +111,8 @@ function ActionsContent() {
         project: '',
         branch: '',
         type: 'static_analysis',
-        targetBranch: ''
+        targetBranch: '',
+        name: ''
       })
       mutateActions()
     } catch (err) {
@@ -148,7 +150,8 @@ function ActionsContent() {
         project: action.parameters.project,
         branch: action.parameters.branch,
         type: action.type as CreateActionData['type'],
-        targetBranch: action.parameters.targetBranch
+        targetBranch: action.parameters.targetBranch,
+        name: action.parameters.name
       }
       await createAction(retryData)
       mutateActions()
@@ -358,6 +361,18 @@ function ActionsContent() {
                   onChange={(e) => setNewAction(prev => ({ ...prev, branch: e.target.value }))}
                   placeholder="Branch name (e.g., main, develop)"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Package Name</label>
+                <Input
+                  value={newAction.name}
+                  onChange={(e) => setNewAction(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Package name from package.json (e.g., @myorg/myapp)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  For monorepos, specify which package to analyze. Leave empty for standalone repos.
+                </p>
               </div>
 
               {newAction.type === 'report' && (
