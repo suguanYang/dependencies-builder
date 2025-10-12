@@ -3,6 +3,7 @@ predicate isBuiltinGlobalVar(string name) {
   name = "undefined" or
   name = "null" or
   name = "NaN" or
+  name = "isNaN" or
   name = "Infinity" or
   name = "eval" or
   name = "arguments" or

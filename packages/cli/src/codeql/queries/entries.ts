@@ -49,6 +49,12 @@ const getEntriesInWebpackConfig = (wd: string) => {
         })
     }
 
+    // defalut mf entry
+    entries.push({
+        name: 'Entry',
+        path: 'app.tsx'
+    })
+
     return entries
 }
 

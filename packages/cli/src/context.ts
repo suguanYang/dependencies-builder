@@ -109,6 +109,10 @@ class Context {
         const packageName = this.options.name
         const baseDir = this.remote ? this.tmpDir : this.options.repository
 
+        if (!packageName) {
+            return
+        }
+
         // Search for package.json files recursively
         const searchDirectories = [baseDir]
         const visited = new Set<string>()
@@ -130,6 +134,10 @@ class Context {
                     if (entry.isDirectory()) {
                         // Skip node_modules and other common directories
                         if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+                            continue
+                        }
+                        const depth = path.relative(baseDir, fullPath).split('/').length
+                        if (depth > 2) {
                             continue
                         }
                         searchDirectories.push(fullPath)

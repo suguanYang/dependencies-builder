@@ -285,19 +285,33 @@ function NodesContent() {
           height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
           itemHeight={64}
           columns={[
-            { key: 'id', header: 'ID', width: 200 },
+            { key: 'id', header: 'ID', width: 180 },
             {
               key: 'name',
               header: 'Name',
-              width: 300,
+              width: 'auto',
               render: (node: Node) => (
-                <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
                   {node.name}
                 </Link>
               )
             },
-            { key: 'project', header: 'Project', width: 150 },
-            { key: 'type', header: 'Type', width: 150 }
+            {
+              key: 'project',
+              header: 'Project',
+              width: 'auto',
+              render: (node: Node) => (
+                <div className="truncate">{node.project}</div>
+              )
+            },
+            {
+              key: 'type',
+              header: 'Type',
+              width: 160,
+              render: (node: Node) => (
+                <div className="text-sm">{node.type}</div>
+              )
+            }
           ]}
           actions={(node) => (
             <div className="flex space-x-2">

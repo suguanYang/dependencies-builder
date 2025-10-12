@@ -321,23 +321,23 @@ function ConnectionsContent() {
               height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
               itemHeight={64}
               columns={[
-                { key: 'id', header: 'ID', width: 200 },
+                { key: 'id', header: 'ID', width: 180 },
                 {
                   key: 'fromNode',
                   header: 'From Node',
-                  width: 300,
+                  width: 'auto',
                   render: (connection: Connection) => (
-                    <div className="space-y-1">
-                      <div className="font-medium">
+                    <div className="space-y-1 min-w-0">
+                      <div className="font-medium truncate">
                         {connection.fromNode ? (
-                          <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                          <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
                             {connection.fromNode.name}
                           </Link>
                         ) : (
                           'Unknown'
                         )}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 truncate">
                         {connection.fromNode?.project} • {connection.fromNode?.type}
                       </div>
                     </div>
@@ -346,19 +346,19 @@ function ConnectionsContent() {
                 {
                   key: 'toNode',
                   header: 'To Node',
-                  width: 300,
+                  width: 'auto',
                   render: (connection: Connection) => (
-                    <div className="space-y-1">
-                      <div className="font-medium">
+                    <div className="space-y-1 min-w-0">
+                      <div className="font-medium truncate">
                         {connection.toNode ? (
-                          <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                          <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
                             {connection.toNode.name}
                           </Link>
                         ) : (
                           'Unknown'
                         )}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 truncate">
                         {connection.toNode?.project} • {connection.toNode?.type}
                       </div>
                     </div>
@@ -367,9 +367,9 @@ function ConnectionsContent() {
                 {
                   key: 'createdAt',
                   header: 'Created At',
-                  width: 150,
+                  width: 140,
                   render: (connection: Connection) => (
-                    <div>
+                    <div className="text-sm">
                       {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
                     </div>
                   )

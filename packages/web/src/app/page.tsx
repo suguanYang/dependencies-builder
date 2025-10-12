@@ -300,19 +300,19 @@ function HomeContent() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Project</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Branch</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Created</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {reportActions.slice(0, 5).map((action) => (
                   <tr key={action.id}>
-                    <td className="px-6 py-4 text-sm text-gray-900">{action.parameters.project}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{action.parameters.branch}</td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.project}</td>
+                    <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.branch}</td>
+                    <td className="px-4 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         action.status === 'completed' ? 'text-green-600 bg-green-100' :
                         action.status === 'running' ? 'text-blue-600 bg-blue-100' :
@@ -322,10 +322,10 @@ function HomeContent() {
                         {action.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-4 py-4 text-sm text-gray-900">
                       {new Date(action.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-4 text-sm">
                       <Link href="/actions">
                         <Button variant="outline" size="sm">
                           View Details

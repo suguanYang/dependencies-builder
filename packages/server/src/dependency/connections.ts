@@ -134,9 +134,10 @@ export async function autoCreateConnections(): Promise<{
         // Rule 6: DynamicModuleFederationReference -> NamedExport
         const dynamicModuleFederationReferences = nodesByType.get('DynamicModuleFederationReference') || []
         for (const dynamicModuleFederationReference of dynamicModuleFederationReferences) {
+            const [referProject, referName] = dynamicModuleFederationReference.name.split('.')
             const matchingExports = namedExports.filter(exportNode =>
-                (exportNode.meta as Record<string, string>)?.entryName === dynamicModuleFederationReference.name &&
-                exportNode.project === dynamicModuleFederationReference.project
+                (exportNode.meta as Record<string, string>)?.entryName === referName &&
+                exportNode.project === referProject
             )
 
             for (const exportNode of matchingExports) {

@@ -19,7 +19,7 @@ interface VirtualTableProps<T> {
   columns: {
     key: string
     header: string
-    width: number
+    width?: number | string
     render?: (item: T) => React.ReactNode
   }[]
   actions?: (item: T) => React.ReactNode
@@ -54,14 +54,19 @@ export function VirtualTable<T>({
         {columns.map((column) => (
           <div
             key={column.key}
-            className="px-6 py-4 text-sm text-gray-900"
-            style={{ width: column.width }}
+            className="px-6 py-4 text-sm text-gray-900 flex-1 min-w-0"
+            style={{
+              width: column.width,
+              flex: typeof column.width === 'number' ? `0 0 ${column.width}px` :
+                    column.width === 'auto' ? '1 1 auto' :
+                    column.width || '1 1 auto'
+            }}
           >
             {column.render ? column.render(item) : (item as any)[column.key]}
           </div>
         ))}
         {actions && (
-          <div className="px-6 py-4 text-sm" style={{ width: 120 }}>
+          <div className="px-6 py-4 text-sm flex-shrink-0" style={{ width: 120 }}>
             {actions(item)}
           </div>
         )}
@@ -69,7 +74,13 @@ export function VirtualTable<T>({
     )
   }
 
-  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) + (actions ? 120 : 0)
+  const totalWidth = columns.reduce((sum, col) => {
+    if (typeof col.width === 'number') {
+      return sum + col.width
+    }
+    // For flexible widths, use a reasonable minimum
+    return sum + 100
+  }, 0) + (actions ? 120 : 0)
 
   return (
     <div className="bg-white rounded-lg shadow-sm border overflow-hidden w-full">
@@ -78,8 +89,13 @@ export function VirtualTable<T>({
         {columns.map((column) => (
           <div
             key={column.key}
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0"
-            style={{ width: column.width }}
+            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0 min-w-0"
+            style={{
+              width: column.width,
+              flex: typeof column.width === 'number' ? `0 0 ${column.width}px` :
+                    column.width === 'auto' ? '1 1 auto' :
+                    column.width || '1 1 auto'
+            }}
           >
             {column.header}
           </div>
