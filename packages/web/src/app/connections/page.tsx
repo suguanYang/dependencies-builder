@@ -321,11 +321,11 @@ function ConnectionsContent() {
               height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
               itemHeight={64}
               columns={[
-                { key: 'id', header: 'ID', width: 180 },
+                { key: 'id', header: 'ID', width: 200 },
                 {
                   key: 'fromNode',
                   header: 'From Node',
-                  width: 'auto',
+                  width: '400',
                   render: (connection: Connection) => (
                     <div className="space-y-1 min-w-0">
                       <div className="font-medium truncate">
@@ -346,7 +346,7 @@ function ConnectionsContent() {
                 {
                   key: 'toNode',
                   header: 'To Node',
-                  width: 'auto',
+                  width: '400',
                   render: (connection: Connection) => (
                     <div className="space-y-1 min-w-0">
                       <div className="font-medium truncate">

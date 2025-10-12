@@ -285,11 +285,11 @@ function NodesContent() {
           height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
           itemHeight={64}
           columns={[
-            { key: 'id', header: 'ID', width: 180 },
+            { key: 'id', header: 'ID', width: 200 },
             {
               key: 'name',
               header: 'Name',
-              width: 'auto',
+              width: '400',
               render: (node: Node) => (
                 <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
                   {node.name}
@@ -299,7 +299,7 @@ function NodesContent() {
             {
               key: 'project',
               header: 'Project',
-              width: 'auto',
+              width: '140',
               render: (node: Node) => (
                 <div className="truncate">{node.project}</div>
               )
