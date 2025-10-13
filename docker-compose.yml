@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  dms-server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    container_name: dms-server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOST=0.0.0.0
+      - CORS_ORIGIN=http://localhost:3000
+      - DATABASE_URL=file:/data/dms.db
+    volumes:
+      - dms_data:/data
+      - dms_logs:/app/packages/server/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  dms_data:
+    driver: local
+  dms_logs:
+    driver: local
