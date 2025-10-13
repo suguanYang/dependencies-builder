@@ -57,6 +57,18 @@ function actionsRoutes(fastify: FastifyInstance) {
     try {
       const actionData = request.body as repository.CreateActionData
 
+      // Check if there are too many running actions (limit: 10)
+      const runningActionsCount = await repository.countRunningActions()
+      if (runningActionsCount >= 10) {
+        reply
+          .code(429)
+          .send({
+            error: 'Too many running actions',
+            details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
+          })
+        return
+      }
+
       // Debug: Log the received action data
       info(`Received action data for creation: ${JSON.stringify(actionData)}`)
 

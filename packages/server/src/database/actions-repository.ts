@@ -99,3 +99,9 @@ export async function getActionsByStatus(status: 'pending' | 'running' | 'comple
     orderBy: { createdAt: 'asc' },
   })
 }
+
+export async function countRunningActions(): Promise<number> {
+  return prisma.action.count({
+    where: { status: 'running' },
+  })
+}

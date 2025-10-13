@@ -116,7 +116,11 @@ function ActionsContent() {
       })
       mutateActions()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create action')
+      if (err instanceof Error && err.message.includes('Too many running actions')) {
+        setError('Too many running actions. Please wait for some actions to complete before creating new ones.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to create action')
+      }
     }
   }
 
@@ -156,7 +160,11 @@ function ActionsContent() {
       await createAction(retryData)
       mutateActions()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to retry action')
+      if (err instanceof Error && err.message.includes('Too many running actions')) {
+        setError('Too many running actions. Please wait for some actions to complete before retrying.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to retry action')
+      }
     }
   }
 
