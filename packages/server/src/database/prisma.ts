@@ -1,5 +1,5 @@
-import { PrismaClient } from '../generated/prisma'
-import { info } from '../logging'
+import { PrismaClient } from '../generated/prisma/client'
+import { error, info } from '../logging'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -22,6 +22,10 @@ prisma.$on('query', (e) => {
   info('Query: ' + e.query)
   info('Params: ' + e.params)
   info('Duration: ' + e.duration + 'ms')
+})
+
+prisma.$on('error', (e) => {
+  error('Error: ' + e.message)
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

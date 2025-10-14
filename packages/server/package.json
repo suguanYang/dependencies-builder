@@ -4,9 +4,11 @@
   "description": "",
   "scripts": {
     "typecheck": "tsgo",
-    "build": "rolldown -c rolldown.config.ts",
+    "build": "rimraf dist && rolldown -c rolldown.config.ts",
     "dev": "vite-node -w src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "npx prisma generate",
+    "db:deploy": "npx prisma migrate deploy"
   },
   "type": "module",
   "keywords": [],

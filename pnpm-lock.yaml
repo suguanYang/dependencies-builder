@@ -51,16 +51,16 @@ importers:
 
   packages/cli:
     dependencies:
-      '@types/yargs':
-        specifier: ^17.0.33
-        version: 17.0.33
+      tsc-alias:
+        specifier: ^1.8.16
+        version: 1.8.16
       yargs:
         specifier: ^18.0.0
         version: 18.0.0
     devDependencies:
-      tsc-alias:
-        specifier: ^1.8.16
-        version: 1.8.16
+      '@types/yargs':
+        specifier: ^17.0.33
+        version: 17.0.33
 
   packages/server:
     dependencies:

@@ -141,9 +141,9 @@ function actionsRoutes(fastify: FastifyInstance) {
       // Determine file path based on action type
       let resultPath: string
       if (action.type === 'static_analysis') {
-        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), parameters.branch, 'analysis-results.json')
+        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), path2name(parameters.branch), 'analysis-results.json')
       } else if (action.type === 'report') {
-        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), parameters.branch, 'report.json')
+        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), path2name(parameters.branch), 'report.json')
       } else {
         reply.code(400).send({ error: 'Unsupported action type' })
         return
