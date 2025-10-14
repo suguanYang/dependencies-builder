@@ -23,9 +23,10 @@
   "license": "ISC",
   "packageManager": "pnpm@10.15.1",
   "dependencies": {
-    "@types/yargs": "^17.0.33",
     "yargs": "^18.0.0",
     "tsc-alias": "^1.8.16"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/yargs": "^17.0.33"
+  }
 }

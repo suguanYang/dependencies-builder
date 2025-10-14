@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import debug from '../utils/debug'
 import { checkoutRepository } from '../checkout'
 import { getContext } from '../context'
@@ -48,6 +48,8 @@ export async function generateReport(): Promise<void> {
   } catch (error) {
     debug('Report generation failed: %o', error)
     throw error
+  } finally {
+    rmSync(path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
   }
 }
 

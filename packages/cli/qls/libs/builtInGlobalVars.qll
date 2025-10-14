@@ -2,6 +2,11 @@ predicate isBuiltinGlobalVar(string name) {
   name = "window" or
   name = "undefined" or
   name = "null" or
+  name = "Element" or
+  name = "decodeURI" or
+  name = "encodeURI" or
+  name = "decodeURIComponent" or
+  name = "encodeURIComponent" or
   name = "NaN" or
   name = "isNaN" or
   name = "Infinity" or

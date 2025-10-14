@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { writeFileSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
 import debug from '../utils/debug'
 import { checkoutRepository } from '../checkout'
 import {
@@ -61,5 +61,7 @@ export async function analyzeProject(): Promise<void> {
   } catch (error) {
     debug('Analysis failed: %o', error)
     throw error
+  } finally {
+    rmSync(path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
   }
 }
