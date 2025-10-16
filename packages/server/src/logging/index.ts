@@ -1,9 +1,12 @@
 import path from "path";
 import pino from "pino";
+import { homedir } from "node:os";
 
-export const LOG_INFO_FILE = path.join(import.meta.dirname, ".logs", "info.log");
-export const LOG_ERROR_FILE = path.join(import.meta.dirname, ".logs", "error.log");
-export const LOG_FATAL_FILE = path.join(import.meta.dirname, ".logs", "fatal.log");
+const DMS_LOGS_DIR = process.env.DMS_LOGS_DIR || path.join(homedir(), '.dms', 'logs');
+
+export const LOG_INFO_FILE = path.join(DMS_LOGS_DIR, "info.log");
+export const LOG_ERROR_FILE = path.join(DMS_LOGS_DIR, "error.log");
+export const LOG_FATAL_FILE = path.join(DMS_LOGS_DIR, "fatal.log");
 
 const log = pino(
   {

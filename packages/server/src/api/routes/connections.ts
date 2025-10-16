@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import type { ConnectionQuery } from '../types'
-import type { Connection, Node } from '../../generated/prisma'
+import type { Connection, Node } from '../../generated/prisma/client'
 import { formatStringToNumber } from '../request_parameter'
 import { autoCreateConnections } from '../../dependency/connections'
 import { error } from '../../logging'

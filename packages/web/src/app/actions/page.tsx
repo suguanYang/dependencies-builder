@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon, ArrowDownIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, getActionLogs, stopActionExecution } from '@/lib/api'
+import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, stopActionExecution } from '@/lib/api'
 
 function ActionsContent() {
   const [error, setError] = useState<string>('')
@@ -42,57 +42,6 @@ function ActionsContent() {
   )
 
   const actions = actionsResponse?.data || []
-
-  // SWR hook for action logs with auto-refresh and error detection
-  const { data: actionLogs, error: logsError, mutate: mutateLogs } = useSWR(
-    viewingLogs ? `action-logs-${viewingLogs.actionId}` : null,
-    () => viewingLogs ? getActionLogs(viewingLogs.actionId) : null,
-    {
-      refreshInterval: viewingLogs && viewingLogs.status === 'running' ? 1000 : 0, // Poll every second only for running actions
-      revalidateOnFocus: false,
-      dedupingInterval: 500
-    }
-  )
-
-  // Auto-scroll to bottom when new logs arrive
-  useEffect(() => {
-    if (autoScroll && logContainerRef.current && actionLogs) {
-      const container = logContainerRef.current
-      container.scrollTop = container.scrollHeight
-    }
-  }, [actionLogs, autoScroll])
-
-  // Detect errors in logs and refresh action status
-  useEffect(() => {
-    if (actionLogs && viewingLogs) {
-      // Check if logs contain error indicators
-      const hasError = actionLogs.includes('[error]') ||
-                      actionLogs.toLowerCase().includes('error:') ||
-                      actionLogs.toLowerCase().includes('failed') ||
-                      actionLogs.toLowerCase().includes('exception')
-
-      if (hasError) {
-        // Refresh actions to update status if action failed
-        mutateActions()
-      }
-    }
-  }, [actionLogs, viewingLogs, mutateActions])
-
-  const scrollToBottom = () => {
-    if (logContainerRef.current) {
-      const container = logContainerRef.current
-      container.scrollTop = container.scrollHeight
-      setAutoScroll(true)
-    }
-  }
-
-  const handleLogScroll = () => {
-    if (logContainerRef.current) {
-      const container = logContainerRef.current
-      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 10
-      setAutoScroll(isAtBottom)
-    }
-  }
 
   const handleDelete = async (actionId: string) => {
     try {
@@ -279,15 +228,6 @@ function ActionsContent() {
                     </td>
                     <td className="px-3 py-3 text-sm">
                       <div className="flex flex-wrap gap-1">
-                        {/* Log viewing button available for all statuses */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewLogs(action.id)}
-                          title={action.status === 'running' ? 'View Live Logs' : 'View Logs'}
-                        >
-                          <TerminalIcon className="h-4 w-4" />
-                        </Button>
                         {action.status === 'running' && (
                           <Button
                             variant="destructive"
@@ -443,79 +383,6 @@ function ActionsContent() {
               <pre className="text-sm overflow-auto bg-white p-4 rounded border">
                 {JSON.stringify(viewingResult.result.result, null, 2)}
               </pre>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Logs Modal */}
-      {viewingLogs && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-6xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {viewingLogs.status === 'running' ? 'Live Action Logs' : 'Action Logs'}
-                </h3>
-                <p className="text-sm text-gray-500">Action ID: {viewingLogs.actionId}</p>
-                <p className="text-sm text-gray-500">Status: {viewingLogs.status}</p>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setViewingLogs(null)
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-
-            <div
-              ref={logContainerRef}
-              className="flex-1 bg-black text-green-400 font-mono text-sm p-4 rounded-lg overflow-auto relative"
-              onScroll={handleLogScroll}
-            >
-              {logsError ? (
-                <div className="text-center text-red-400 py-8">
-                  <p>Error loading logs: {logsError.message}</p>
-                </div>
-              ) : !actionLogs ? (
-                <div className="text-center text-gray-500 py-8">
-                  <p>Loading logs...</p>
-                </div>
-              ) : actionLogs.trim() === '' ? (
-                <div className="text-center text-gray-500 py-8">
-                  <p>No logs available yet...</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {actionLogs
-                    .split('\n')
-                    .filter(line => line.trim())
-                    .map((log, index) => (
-                      <div key={index} className="flex">
-                        <span className={log.includes('[error]') ? 'text-red-400' : 'text-green-400'}>
-                          {log}
-                        </span>
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-
-              {/* Scroll to bottom button */}
-              {!autoScroll && (
-                <Button
-                  size="sm"
-                  className="absolute bottom-4 right-4 bg-gray-800 hover:bg-gray-700 text-white"
-                  onClick={scrollToBottom}
-                >
-                  <ArrowDownIcon className="h-4 w-4 mr-1" />
-                  Scroll to Bottom
-                </Button>
-              )}
             </div>
           </div>
         </div>

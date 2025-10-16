@@ -5,6 +5,7 @@ generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
   moduleFormat = "esm"
+  driver = "better-sqlite3"
 
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }

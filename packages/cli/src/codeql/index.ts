@@ -1,5 +1,5 @@
 import path from 'path'
-import { cpSync, rmSync } from 'fs'
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { replaceTscAliasPaths } from 'tsc-alias'
 import { CodeQL } from './codeql-runner'
 import { buildCallGraphQuery, buildQueries, processQuery } from './queries'
@@ -21,7 +21,8 @@ export const runCodeQL = async () => {
   const callGraphQuery = buildCallGraphQuery(results.nodes)
   await codeql.runSingleQuery(callGraphQuery, 'callGraph')
 
-  const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
+  // const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
+  const callGraphResults: string[] = []
 
   return {
     ...results,
@@ -39,6 +40,14 @@ const postRun = async () => {
 
   debug('Copying src/**/*.{ts,tsx} to dist/')
   cpSync(path.join(ctx.getWorkingDirectory(), 'src'), path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
+
+  // ignore extends in tsconfig.json
+  const tsconfigContent = readFileSync(tsconfig, 'utf-8')
+  const tsconfigJson = JSON.parse(tsconfigContent)
+  if (tsconfigJson.extends) {
+    delete tsconfigJson.extends
+    writeFileSync(tsconfig, JSON.stringify(tsconfigJson, null, 2))
+  }
 
   debug('Replacing tsc-alias paths')
   await replaceTscAliasPaths({

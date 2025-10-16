@@ -1,4 +1,4 @@
-import { NodeType } from '../../src/generated/prisma'
+import { NodeType } from '../../src/generated/prisma/client'
 
 export const mockNodes = [
   {

@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: packages/server/Dockerfile
+      network: host
     container_name: dms-server
     ports:
       - "0.0.0.0:3001:3001"
@@ -10,7 +11,7 @@ services:
       - packages/server/.env.prod
     volumes:
       - dms_data:/data
-      - dms_logs:/app/packages/server/logs
+      - dms_logs:/var/logs
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001"]
@@ -26,12 +27,9 @@ services:
     volumes:
       - dms_data:/data
       - .:/app
-    command: npx prisma studio --port 5555 --browser none
+    command: npx prisma studio --port 3333 --browser none
     ports:
-      - "0.0.0.0:5555:5555"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=file:/data/dms.db
+      - "0.0.0.0:3333:3333"
     depends_on:
       dms-server:
         condition: service_started

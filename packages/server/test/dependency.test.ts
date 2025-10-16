@@ -5,7 +5,7 @@ import {
   validateEdgeCreation
 } from '../src/dependency'
 import { mockNodes, mockConnections, mockDependencyGraph, mockProjectGraph } from './__mocks__/test-data'
-import { NodeType } from '../src/generated/prisma'
+import { NodeType } from '../src/generated/prisma/client'
 
 describe('Dependency Module', () => {
   it('getFullDependencyGraph - should build dependency graph from nodes and connections', () => {

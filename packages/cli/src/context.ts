@@ -78,6 +78,10 @@ class Context {
 
     getLocalDirectory(branch?: string): string {
         if (branch) {
+            if (process.env.DMS_LOCAL_DIR) {
+                return path.join(process.env.DMS_LOCAL_DIR, path2name(this.getRepository()), path2name(branch))
+            }
+
             return path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(branch))
         }
 

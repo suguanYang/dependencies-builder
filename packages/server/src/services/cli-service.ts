@@ -2,7 +2,6 @@ import { spawn } from 'node:child_process'
 import kill from 'tree-kill'
 import * as repository from '../database/actions-repository'
 import { error, info } from '../logging'
-import { writeActionLog } from '../logging/action-logger'
 
 interface ActionData {
   project: string
@@ -43,7 +42,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://localhost:3001',
+        DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
       },
     })
 
@@ -52,26 +51,18 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       const output = data.toString()
       const trimmedOutput = output.trim()
 
-      // Write to action-specific log file
-      writeActionLog(actionId, 'info', trimmedOutput).catch(err => {
-        console.error(`Failed to write action log for ${actionId}:`, err)
-      })
-
       // Also write to general info log for backward compatibility
       info(`action:${actionId} ${trimmedOutput}`)
     })
 
+    let errorMessage = ''
     childProcess.stderr?.on('data', (data) => {
       const output = data.toString()
       const trimmedOutput = output.trim()
 
-      // Write to action-specific log file
-      writeActionLog(actionId, 'error', trimmedOutput).catch(err => {
-        console.error(`Failed to write action log for ${actionId}:`, err)
-      })
-
       // Also write to general error log for backward compatibility
       error(`action:${actionId} ${trimmedOutput}`)
+      errorMessage += trimmedOutput
     })
 
     childProcess.on('close', async (code) => {
@@ -88,6 +79,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         error(`action:${actionId} CLI closed with code: ` + code)
         repository.updateAction(actionId, {
           status: 'failed',
+          error: errorMessage,
         })
 
         error(`action:${actionId} is failed`)

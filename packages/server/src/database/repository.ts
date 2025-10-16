@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { Prisma } from '../generated/prisma'
+import { Prisma } from '../generated/prisma/client'
 import { ConnectionQuery } from '../api/types'
 
 // Valid NodeType values from Prisma schema

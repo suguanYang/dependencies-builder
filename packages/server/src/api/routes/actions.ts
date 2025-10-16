@@ -3,7 +3,6 @@ import * as repository from '../../database/actions-repository'
 import { formatStringToNumber } from '../request_parameter'
 import { executeCLI, getActiveExecution } from '../../services/cli-service'
 import { error as logError, info } from '../../logging'
-import { createActionLogStream } from '../../logging/action-logger'
 import path from 'node:path'
 import { homedir } from 'node:os'
 import { existsSync, readFileSync } from 'node:fs'
@@ -138,36 +137,12 @@ function actionsRoutes(fastify: FastifyInstance) {
         return
       }
 
-      // Determine file path based on action type
-      let resultPath: string
-      if (action.type === 'static_analysis') {
-        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), path2name(parameters.branch), 'analysis-results.json')
-      } else if (action.type === 'report') {
-        resultPath = path.join(homedir(), '.dms', path2name(parameters.project), path2name(parameters.branch), 'report.json')
-      } else {
-        reply.code(400).send({ error: 'Unsupported action type' })
-        return
-      }
-
-      // Check if file exists
-      if (!existsSync(resultPath)) {
-        reply.code(404).send({
-          error: 'Result file not found',
-          details: `Expected file at: ${resultPath}`
-        })
-        return
-      }
-
-      // Read and parse the result file
-      const resultContent = readFileSync(resultPath, 'utf-8')
-      const resultData = JSON.parse(resultContent)
-
       return {
         actionId: id,
         project: parameters.project,
         branch: parameters.branch,
         type: action.type,
-        report: resultData
+        error: action.error,
       }
     } catch (error) {
       reply
@@ -178,25 +153,6 @@ function actionsRoutes(fastify: FastifyInstance) {
         })
     }
   })
-
-
-  // GET /actions/:id/logs - Stream action-specific logs
-  fastify.get('/actions/:id/logs', (request, reply) => {
-    const { id } = request.params as { id: string }
-
-    reply.header('Content-Type', 'text/plain; charset=utf-8')
-    reply.header('Cache-Control', 'no-cache')
-
-    const logStream = createActionLogStream(id)
-    if (!logStream) {
-      // Return empty logs if log file doesn't exist
-      reply.send('')
-      return
-    }
-
-    reply.send(logStream)
-  })
-
 
   // POST /actions/:id/stop - Stop action execution
   fastify.post('/actions/:id/stop', async (request, reply) => {

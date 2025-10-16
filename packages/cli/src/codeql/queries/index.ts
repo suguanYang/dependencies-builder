@@ -91,11 +91,15 @@ const parseExportQuery = (queryResultDir: string) => {
                 name = tuple[1]
                 project = '@seeyon/ui'
             }
+            if (entryName === 'seeyon_mui_index') {
+                name = tuple[1]
+                project = '@seeyon/mui'
+            }
             return ({
+                name,
                 project,
                 branch: ctx.getBranch(),
                 type: NodeType.NamedExport,
-                name: tuple[1] + (entryName === 'index' ? '' : '.' + entryName),
                 ...parseLoc(tuple[2]),
                 version: ctx.getMetadata().version,
                 meta: {
@@ -154,15 +158,27 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
     const project = ctx.getMetadata().name
     try {
         const globalVarResult = JSON.parse(readFileSync(path.join(queryResultDir, 'globalVariable.json'), 'utf-8')) as GlobalVariableQuery
-        return globalVarResult['#select'].tuples.map((tuple: [string, "Write" | "Read", string]) => ({
-            project,
-            branch: ctx.getBranch(),
-            type: tuple[1] === "Write" ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
-            name: tuple[0], // variableName
-            ...parseLoc(tuple[2]),
-            version: ctx.getMetadata().version,
-            meta: {}
-        }))
+        const nodes: Node[] = []
+        globalVarResult['#select'].tuples.forEach((tuple: [string, "Write" | "Read", string]) => {
+            const name = tuple[0]
+            if (
+                name === "__VERSION__"
+            ) {
+                return
+            }
+
+            nodes.push({
+                project,
+                branch: ctx.getBranch(),
+                type: tuple[1] === "Write" ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
+                name: tuple[0], // variableName
+                ...parseLoc(tuple[2]),
+                version: ctx.getMetadata().version,
+                meta: {}
+            })
+        })
+
+        return nodes
     } catch (error) {
         console.warn('Failed to parse global variable query result:', error)
         return []
@@ -268,6 +284,20 @@ const formatResults = (results: QueryResults) => {
         summary,
         nodes: allNodes
     }
+}
+
+type Node = {
+    project: string
+    branch: string
+    type: NodeType
+    name: string
+    relativePath: string
+    startLine: number
+    startColumn: number
+    endLine: number
+    endColumn: number
+    version: string
+    meta: Record<string, any>
 }
 
 export type Results = ReturnType<typeof formatResults>

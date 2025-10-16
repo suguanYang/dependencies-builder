@@ -1,4 +1,4 @@
-import { NodeType } from '../generated/prisma'
+import { NodeType } from '../generated/prisma/client'
 
 export interface NodeQuery {
   project?: string

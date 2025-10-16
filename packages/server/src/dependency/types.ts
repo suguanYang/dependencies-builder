@@ -1,4 +1,4 @@
-import { NodeType } from '../generated/prisma'
+import { NodeType } from '../generated/prisma/client'
 
 // For dependency layer - only graph-related properties
 export interface GraphNode {

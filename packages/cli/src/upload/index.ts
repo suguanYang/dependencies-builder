@@ -8,7 +8,7 @@ export interface UploadResult {
 }
 
 export async function uploadResults(results: any): Promise<UploadResult> {
-  const serverUrl = process.env.DMS_SERVER_URL || 'http://localhost:3001'
+  const serverUrl = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
 
   debug('Uploading results to server: %s', serverUrl)
 

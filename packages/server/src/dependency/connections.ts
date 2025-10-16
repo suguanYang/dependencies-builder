@@ -1,5 +1,5 @@
 import * as repository from '../database/repository'
-import { Node } from '../generated/prisma'
+import { Node } from '../generated/prisma/client'
 
 /**
  * Automatically creates connections between nodes based on the rules:
@@ -29,8 +29,6 @@ export async function autoCreateConnections(): Promise<{
             }
         }, true)
         const nodes = nodesResult.data
-
-        console.log('nodesnodesnodes: ', nodes.length, nodesResult.total)
 
         // Group nodes by type for efficient lookup
         const nodesByType = new Map<string, Node[]>()

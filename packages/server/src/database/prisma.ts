@@ -18,14 +18,12 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   ],
 })
 
-prisma.$on('query', (e) => {
-  info('Query: ' + e.query)
-  info('Params: ' + e.params)
-  info('Duration: ' + e.duration + 'ms')
+prisma.$on('error', (e) => {
+  error('prisma Error: ' + e.message)
 })
 
-prisma.$on('error', (e) => {
-  error('Error: ' + e.message)
+prisma.$on('warn', (e) => {
+  info('prisma Warn: ' + e.message)
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

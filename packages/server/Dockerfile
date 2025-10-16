@@ -1,8 +1,15 @@
-FROM node:22-alpine AS base
+FROM ubuntu:24.04 AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV DATABASE_URL=file:/data/dms.db
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs git
+
 RUN corepack enable
 
 WORKDIR /app
@@ -16,6 +23,9 @@ FROM base AS builder
 COPY packages/cli ./packages/cli
 COPY packages/server ./packages/server
 
+# get codeql bundle
+RUN tar -xzf packages/cli/release/codeql-bundle-linux64.tar.gz -C /usr/local
+
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
@@ -28,8 +38,8 @@ RUN pnpm run -r build
 FROM base AS production
 
 # Create app user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S dms -u 1001
+RUN groupadd --gid 1001 nodejs && \
+    useradd --system --uid 1001 --create-home --gid nodejs dms
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -37,14 +47,19 @@ COPY packages/server/package.json ./packages/server/
 COPY packages/cli/package.json ./packages/cli/
 
 # Copy built application from builder stage
-COPY --from=builder --chown=dms:nodejs /app/packages/server/dist ./packages/server/dist
 COPY --from=builder --chown=dms:nodejs /app/packages/cli/dist ./packages/cli/dist
+COPY --from=builder --chown=dms:nodejs /app/packages/cli/qls ./packages/cli/qls
+COPY --from=builder --chown=dms:nodejs /app/packages/cli/scan ./packages/cli/scan
+COPY --from=builder --chown=dms:nodejs /app/packages/server/dist ./packages/server/dist
 COPY --from=builder --chown=dms:nodejs /app/packages/server/prisma ./packages/server/prisma
+COPY --from=builder --chown=dms:nodejs /usr/local/codeql /usr/local/codeql
 
 # Install production dependencies only
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
 
-RUN mkdir -p /data && chown dms:nodejs /data
+RUN mkdir -p /data /data/dms_local && chown -R dms:nodejs /data
+
+RUN mkdir -p /var/logs /var/logs/dms_local && chown -R dms:nodejs /var/logs
 
 WORKDIR /app/packages/server
 
