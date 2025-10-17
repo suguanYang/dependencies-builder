@@ -118,7 +118,15 @@ export async function optimizedAutoCreateConnections(
       )
 
       for (const writeNode of matchingWrites) {
-        await createConnectionIfNotExists(readNode.id, writeNode.id, result)
+        const connectionKey = `${readNode.id}:${writeNode.id}`
+        if (!existingConnectionSet.has(connectionKey)) {
+          connectionsToCreate.push({
+            fromId: readNode.id,
+            toId: writeNode.id
+          })
+        } else {
+          result.skippedConnections++
+        }
       }
     }
 

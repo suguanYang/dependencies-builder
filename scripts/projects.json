@@ -1,0 +1,374 @@
+[
+    {
+        "name": "bi-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/bi-mobile.git"
+    },
+    {
+        "name": "bi",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/bi.git"
+    },
+    {
+        "name": "ai",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ai.git"
+    },
+    {
+        "name": "ai-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ai-mobile.git"
+    },
+    {
+        "name": "delivery-service",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/delivery-service.git"
+    },
+    {
+        "name": "cip-connector",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/cip-connector.git"
+    },
+    {
+        "name": "login-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/login-mobile.git"
+    },
+    {
+        "name": "portal-frame",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/portal-frame.git"
+    },
+    {
+        "name": "third",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/third.git"
+    },
+    {
+        "name": "oauth",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/oauth.git"
+    },
+    {
+        "name": "lcjx2204114084702273826932271",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/lcjx2204114084702273826932271.git"
+    },
+    {
+        "name": "demo-blank",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/demo-blank.git"
+    },
+    {
+        "name": "mui-test",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/mui-test.git"
+    },
+    {
+        "name": "ui-test",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ui-test.git"
+    },
+    {
+        "name": "ci-service",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ci-service.git"
+    },
+    {
+        "name": "organization-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/organization-mobile.git"
+    },
+    {
+        "name": "portal-portlet",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/portal-portlet.git"
+    },
+    {
+        "name": "ctp-affair-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ctp-affair-mobile.git"
+    },
+    {
+        "name": "ctp-message",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ctp-message.git"
+    },
+    {
+        "name": "ctp-affair",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ctp-affair.git"
+    },
+    {
+        "name": "app-office",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-office.git"
+    },
+    {
+        "name": "app-doc-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-doc-mobile.git"
+    },
+    {
+        "name": "m5-login",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/m5-login.git"
+    },
+    {
+        "name": "cdp-data-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/cdp-data-mobile.git"
+    },
+    {
+        "name": "portal-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/portal-mobile.git"
+    },
+    {
+        "name": "login",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/login.git"
+    },
+    {
+        "name": "m5-cloud",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/m5-cloud.git"
+    },
+    {
+        "name": "ctp-user-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ctp-user-mobile.git"
+    },
+    {
+        "name": "cip-manager",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/cip-manager.git"
+    },
+    {
+        "name": "cdp-data",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/cdp-data.git"
+    },
+    {
+        "name": "main-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/main-mobile.git"
+    },
+    {
+        "name": "app-approval-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-approval-mobile.git"
+    },
+    {
+        "name": "app-approval",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-approval.git"
+    },
+    {
+        "name": "ctp-user",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/ctp-user.git"
+    },
+    {
+        "name": "app-common",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-common.git"
+    },
+    {
+        "name": "app-doc",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/app-doc.git"
+    },
+    {
+        "name": "m5-manage",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/m5-manage.git"
+    },
+    {
+        "name": "m5-mobile",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/m5-mobile.git"
+    },
+    {
+        "name": "m5-desktop",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/m5-desktop.git"
+    },
+    {
+        "name": "bpm",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/bpm.git"
+    },
+    {
+        "name": "organization",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/organization.git"
+    },
+    {
+        "name": "portal",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/portal.git"
+    },
+    {
+        "name": "udc",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/udc.git"
+    },
+    {
+        "name": "main",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/main.git"
+    },
+    {
+        "name": "demo-order",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/apps/demo-order.git"
+    },
+    {
+        "name": "udc-code-engine",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/nodejs/udc-code-engine.git"
+    },
+    {
+        "name": "udc-sandbox",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/nodejs/udc-sandbox.git"
+    },
+    {
+        "name": "icon",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/nodejs/icon.git"
+    },
+    {
+        "name": "udc-app-runtime",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/nodejs/udc-app-runtime.git"
+    },
+    {
+        "name": "tools",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/nodejs/tools.git"
+    },
+    {
+        "name": "udc-extend-action",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/udc-extend-action.git"
+    },
+    {
+        "name": "biz-sdk",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-sdk.git"
+    },
+    {
+        "name": "biz-westlake-university",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-westlake-university.git"
+    },
+    {
+        "name": "biz-zhongqiyunlian",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-zhongqiyunlian.git"
+    },
+    {
+        "name": "biz-zhangtong",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-zhangtong.git"
+    },
+    {
+        "name": "biz-demo",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-demo.git"
+    },
+    {
+        "name": "biz-ruijie",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-ruijie.git"
+    },
+    {
+        "name": "biz-base",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-base.git"
+    },
+    {
+        "name": "biz-bpm",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-bpm.git"
+    },
+    {
+        "name": "biz-bi",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-bi.git"
+    },
+    {
+        "name": "biz-udc",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-udc.git"
+    },
+    {
+        "name": "biz-portal",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-portal.git"
+    },
+    {
+        "name": "biz-org",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-org.git"
+    },
+    {
+        "name": "biz-office",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-office.git"
+    },
+    {
+        "name": "biz-whs",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-whs.git"
+    },
+    {
+        "name": "biz-custom",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-custom.git"
+    },
+    {
+        "name": "biz-cip",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-cip.git"
+    },
+    {
+        "name": "biz-common",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-common.git"
+    },
+    {
+        "name": "biz-expression-engine",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-expression-engine.git"
+    },
+    {
+        "name": "biz-quick-search",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-quick-search.git"
+    },
+    {
+        "name": "biz-udc-filter",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-udc-filter.git"
+    },
+    {
+        "name": "biz-ehr",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-ehr.git"
+    },
+    {
+        "name": "crypto-helper",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/crypto-helper.git"
+    },
+    {
+        "name": "custom-theme",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/custom-theme.git"
+    },
+    {
+        "name": "bpm-core",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/bpm-core.git"
+    },
+    {
+        "name": "udc-sdk",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/udc-sdk.git"
+    },
+    {
+        "name": "udc-asset-utils",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/udc-asset-utils.git"
+    },
+    {
+        "name": "biz-edoc-components",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-edoc-components.git"
+    },
+    {
+        "name": "mbiz-bpm-run",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/mbiz-bpm-run.git"
+    },
+    {
+        "name": "biz-bpm-run",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/libs/biz-bpm-run.git"
+    },
+    {
+        "name": "seeyon-apm",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/seeyon-apm.git"
+    },
+    {
+        "name": "udc-core",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/udc-core.git"
+    },
+    {
+        "name": "seeyon-version",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/seeyon-version.git"
+    },
+    {
+        "name": "udc-runtime-core",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/udc-runtime-core.git"
+    },
+    {
+        "name": "udc-shared-deps",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/udc-shared-deps.git"
+    },
+    {
+        "name": "pre-cache",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/pre-cache.git"
+    },
+    {
+        "name": "atomic-state",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/atomic-state.git"
+    },
+    {
+        "name": "seeyon-global",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/seeyon-global.git"
+    },
+    {
+        "name": "seeyon-mui",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/seeyon-mui.git"
+    },
+    {
+        "name": "js-sdk",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/js-sdk.git"
+    },
+    {
+        "name": "seeyon-ui",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/common/seeyon-ui.git"
+    },
+    {
+        "name": "npmBuild",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/tools/npmbuild.git"
+    },
+    {
+        "name": "syf",
+        "url": "http://gitlab.seeyon.com/a9/code/frontend/tools/syf.git"
+    }
+]

@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
 import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -145,24 +144,8 @@ function NodesContent() {
     }
   }
 
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Fixed Back to Home Button */}
-      <Link href="/" className="fixed top-4 right-4 z-50">
-        <Button variant="outline" className="shadow-sm">
-          <HomeIcon className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
-      </Link>
-
-      <header className="mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Nodes Management</h1>
-          <p className="text-gray-600 mt-2">Manage all nodes in the system</p>
-        </div>
-      </header>
-
+    <div className="pt-6 px-6">
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircleIcon className="h-4 w-4" />
@@ -172,181 +155,180 @@ function NodesContent() {
           </AlertDescription>
         </Alert>
       )}
-
-      <div className="flex gap-6">
-        {/* Left side - Filters */}
-        <div className="w-64 flex-shrink-0">
-          <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6">
-            <h2 className="text-lg font-semibold mb-4">Filters</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
-                <Input
-                  placeholder="Partial match project"
-                  value={searchFilters.project}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, project: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Branch</label>
-                <Input
-                  placeholder="Partial match branch"
-                  value={searchFilters.branch}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, branch: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Type</label>
-                <select
-                  value={searchFilters.type}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md text-sm"
-                >
-                  <option value="">All Types</option>
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <Input
-                  placeholder="Partial match name"
-                  value={searchFilters.name}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="standalone"
-                  checked={searchFilters.standalone}
-                  onChange={(e) => setSearchFilters(prev => ({ ...prev, standalone: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="standalone" className="text-sm font-medium">
-                  Show only standalone nodes
-                </label>
+        <div className="flex gap-6 h-full">
+          {/* Left side - Filters */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6 h-fit">
+              <h2 className="text-lg font-semibold mb-4">Filters</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Project</label>
+                  <Input
+                    placeholder="Partial match project"
+                    value={searchFilters.project}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, project: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Branch</label>
+                  <Input
+                    placeholder="Partial match branch"
+                    value={searchFilters.branch}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, branch: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Type</label>
+                  <select
+                    value={searchFilters.type}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value={NodeType.NamedExport}>NamedExport</option>
+                    <option value={NodeType.NamedImport}>NamedImport</option>
+                    <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                    <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                    <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                    <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                    <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                    <option value={NodeType.EventOn}>EventOn</option>
+                    <option value={NodeType.EventEmit}>EventEmit</option>
+                    <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Name</label>
+                  <Input
+                    placeholder="Partial match name"
+                    value={searchFilters.name}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="standalone"
+                    checked={searchFilters.standalone}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, standalone: e.target.checked }))}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="standalone" className="text-sm font-medium">
+                    Show only standalone nodes
+                  </label>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right side - Table */}
-        <div className="flex-1">
-          <div className="mb-6 flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Show:</label>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span className="text-sm text-gray-600">per page</span>
+          {/* Right side - Table */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="mb-6 flex justify-between items-center flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
               </div>
-              <Button onClick={() => setIsCreating(true)}>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Node
-              </Button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Show:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span className="text-sm text-gray-600">per page</span>
+                </div>
+                <Button onClick={() => setIsCreating(true)}>
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Node
+                </Button>
+              </div>
             </div>
+
+            {isLoading && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Loading nodes...</p>
+              </div>
+            )}
+
+            {!isLoading && nodes.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No nodes found.</p>
+              </div>
+            )}
+
+            {!isLoading && nodes.length > 0 && (
+              <VirtualTable
+                items={nodes}
+                height={600}
+                itemHeight={64}
+                columns={[
+                  { key: 'id', header: 'ID', width: 200 },
+                  {
+                    key: 'name',
+                    header: 'Name',
+                    width: '400',
+                    render: (node: Node) => (
+                      <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
+                        {node.name}
+                      </Link>
+                    )
+                  },
+                  {
+                    key: 'project',
+                    header: 'Project',
+                    width: '140',
+                    render: (node: Node) => (
+                      <div className="truncate">{node.project}</div>
+                    )
+                  },
+                  {
+                    key: 'type',
+                    header: 'Type',
+                    width: 160,
+                    render: (node: Node) => (
+                      <div className="text-sm">{node.type}</div>
+                    )
+                  }
+                ]}
+                actions={(node) => (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingNode(node)}
+                    >
+                      <EditIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(node.id)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                pagination={{
+                  pageSize,
+                  currentPage,
+                  totalItems: totalCount,
+                  onPageChange: handlePageChange
+                }}
+              />
+            )}
           </div>
-
-          {isLoading && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Loading nodes...</p>
-            </div>
-          )}
-
-          {!isLoading && nodes.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No nodes found.</p>
-            </div>
-          )}
-
-          {!isLoading && nodes.length > 0 && (
-            <VirtualTable
-          items={nodes}
-          height={typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600}
-          itemHeight={64}
-          columns={[
-            { key: 'id', header: 'ID', width: 200 },
-            {
-              key: 'name',
-              header: 'Name',
-              width: '400',
-              render: (node: Node) => (
-                <Link href={`/node-detail?id=${node.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
-                  {node.name}
-                </Link>
-              )
-            },
-            {
-              key: 'project',
-              header: 'Project',
-              width: '140',
-              render: (node: Node) => (
-                <div className="truncate">{node.project}</div>
-              )
-            },
-            {
-              key: 'type',
-              header: 'Type',
-              width: 160,
-              render: (node: Node) => (
-                <div className="text-sm">{node.type}</div>
-              )
-            }
-          ]}
-          actions={(node) => (
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditingNode(node)}
-              >
-                <EditIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleDelete(node.id)}
-              >
-                <TrashIcon className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-              pagination={{
-                pageSize,
-                currentPage,
-                totalItems: totalCount,
-                onPageChange: handlePageChange
-              }}
-            />
-          )}
         </div>
-      </div>
 
       {isCreating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create New Node</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Project</label>
@@ -356,7 +338,7 @@ function NodesContent() {
                   placeholder="Project name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Branch</label>
                 <Input
@@ -365,7 +347,7 @@ function NodesContent() {
                   placeholder="Branch name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
@@ -385,7 +367,7 @@ function NodesContent() {
                   <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Name</label>
                 <Input
@@ -394,7 +376,7 @@ function NodesContent() {
                   placeholder="Node name"
                 />
               </div>
-              
+
               <div className="flex space-x-4">
                 <Button onClick={handleCreate} className="flex-1">
                   Create
@@ -413,7 +395,7 @@ function NodesContent() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Edit Node</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Project</label>
@@ -423,7 +405,7 @@ function NodesContent() {
                   placeholder="Project name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Branch</label>
                 <Input
@@ -432,7 +414,7 @@ function NodesContent() {
                   placeholder="Branch name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
@@ -452,7 +434,7 @@ function NodesContent() {
                   <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Name</label>
                 <Input
@@ -461,7 +443,7 @@ function NodesContent() {
                   placeholder="Node name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2">Relative Path</label>
                 <Input
@@ -470,7 +452,7 @@ function NodesContent() {
                   placeholder="Relative path"
                 />
               </div>
-              
+
               <div className="flex space-x-4">
                 <Button onClick={handleUpdate} className="flex-1">
                   Update

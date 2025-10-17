@@ -4,14 +4,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import useSWR, { SWRConfig } from 'swr'
 import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
 import { type Action, type CreateActionData, getActions, deleteAction, createAction,  stopActionExecution, getActionById } from '@/lib/api'
-
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
@@ -128,37 +126,29 @@ function ActionsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Fixed Back to Home Button */}
-      <Link href="/" className="fixed top-4 right-4 z-50">
-        <Button variant="outline" className="shadow-sm">
-          <HomeIcon className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
-      </Link>
+    <div className="pt-6 px-6">
+        <header className="mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Actions</h1>
+            <p className="text-gray-600 mt-2">Manage and monitor dependency analysis actions</p>
+          </div>
+        </header>
 
-      <header className="mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Actions Management</h1>
-          <p className="text-gray-600 mt-2">Create and manage static analysis actions</p>
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">All Actions ({actions.length})</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => mutateActions()} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <RefreshCwIcon className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={() => setIsCreating(true)} size="sm" className="flex-1 sm:flex-none">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create Action
+            </Button>
+          </div>
         </div>
-      </header>
-
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">All Actions ({actions.length})</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => mutateActions()} variant="outline" size="sm" className="flex-1 sm:flex-none">
-            <RefreshCwIcon className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button onClick={() => setIsCreating(true)} size="sm" className="flex-1 sm:flex-none">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Action
-          </Button>
-        </div>
-      </div>
 
       {error && (
         <Alert variant="destructive" className="mb-6">

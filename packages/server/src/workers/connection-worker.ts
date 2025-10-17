@@ -80,7 +80,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
 if (parentPort) {
   parentPort.on('message', async (message: { actionId: string }) => {
     try {
-      const result = await connectionWorker(message.actionId)
+      const result = await connectionWorker({ actionId: message.actionId })
       parentPort!.postMessage(result)
     } catch (error) {
       parentPort!.postMessage({
