@@ -1,9 +1,9 @@
 import { prisma } from "./prisma"
 
 export interface CreateActionData {
-  project: string
-  branch: string
-  type: 'static_analysis' | 'report'
+  project?: string
+  branch?: string
+  type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
   name?: string
 }
@@ -17,7 +17,7 @@ export interface UpdateActionData {
 export interface ActionQuery {
   project?: string
   branch?: string
-  type?: 'static_analysis' | 'report'
+  type?: 'static_analysis' | 'report' | 'connection_auto_create'
   status?: 'pending' | 'running' | 'completed' | 'failed'
   limit?: number
   offset?: number
@@ -58,16 +58,19 @@ export async function getActionById(id: string) {
 }
 
 export async function createAction(actionData: CreateActionData) {
+  const parameters: Record<string, any> = {}
+
+  // Only include project and branch if they exist (for connection_auto_create they won't)
+  if (actionData.project) parameters.project = actionData.project
+  if (actionData.branch) parameters.branch = actionData.branch
+  if (actionData.targetBranch) parameters.targetBranch = actionData.targetBranch
+  if (actionData.name) parameters.name = actionData.name
+
   return prisma.action.create({
     data: {
       status: 'pending',
       type: actionData.type,
-      parameters: {
-        project: actionData.project,
-        branch: actionData.branch,
-        targetBranch: actionData.targetBranch,
-        name: actionData.name,
-      },
+      parameters,
     },
   })
 }

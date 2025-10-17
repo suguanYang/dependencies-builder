@@ -1,10 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import type { ConnectionQuery } from '../types'
-import type { Connection, Node } from '../../generated/prisma/client'
+import type { Connection } from '../../generated/prisma/client'
 import { formatStringToNumber } from '../request_parameter'
-import { autoCreateConnections } from '../../dependency/connections'
-import { error } from '../../logging'
 
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
@@ -62,29 +60,6 @@ function connectionsRoutes(fastify: FastifyInstance) {
         .send({
           error: 'Failed to delete connections',
           details: error instanceof Error ? error.message : 'Unknown error',
-        })
-    }
-  })
-
-  // POST /connections/auto-create - Automatically create connections between nodes
-  fastify.post('/connections/auto-create', async (request, reply) => {
-    try {
-      const result = await autoCreateConnections()
-
-      return {
-        success: true,
-        message: 'Connections created successfully',
-        createdConnections: result.createdConnections,
-        skippedConnections: result.skippedConnections,
-        errors: result.errors
-      }
-    } catch (err) {
-      error('Failed to auto-create connections: %o' + err)
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to auto-create connections',
-          details: err instanceof Error ? err.message : 'Unknown error',
         })
     }
   })

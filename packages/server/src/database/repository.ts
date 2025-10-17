@@ -144,6 +144,13 @@ export async function updateNode(
   return updatedNode
 }
 
+export async function createNodes(nodes: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]) {
+  const createdNodes = await prisma.node.createMany({
+    data: nodes,
+  })
+  return createdNodes
+}
+
 export async function deleteNode(id: string) {
   try {
     await prisma.node.delete({

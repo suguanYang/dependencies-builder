@@ -3,10 +3,7 @@ import kill from 'tree-kill'
 import * as repository from '../database/actions-repository'
 import { error, info } from '../logging'
 
-interface ActionData {
-  project: string
-  branch: string
-  type: 'static_analysis' | 'dependency_check' | 'validation' | 'report'
+export type ActionData = Required<repository.CreateActionData> & {
   targetBranch?: string
   name?: string
 }

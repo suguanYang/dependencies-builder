@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, type CreateActionData, getActions, deleteAction, createAction, getActionResult, stopActionExecution } from '@/lib/api'
+import { type Action, type CreateActionData, getActions, deleteAction, createAction,  stopActionExecution, getActionById } from '@/lib/api'
 
 function ActionsContent() {
   const [error, setError] = useState<string>('')
@@ -19,15 +19,12 @@ function ActionsContent() {
     actionId: string;
     result: {
       actionId: string;
-      project: string;
-      branch: string;
+      project?: string;
+      branch?: string;
       type: string;
       result: any;
     }
   } | null>(null)
-  const [viewingLogs, setViewingLogs] = useState<{ actionId: string; status: string; logs: string[] } | null>(null)
-  const logContainerRef = useRef<HTMLDivElement>(null)
-  const [autoScroll, setAutoScroll] = useState(true)
   const [newAction, setNewAction] = useState<CreateActionData>({
     project: '',
     branch: '',
@@ -75,17 +72,20 @@ function ActionsContent() {
 
   const handleViewResult = async (actionId: string) => {
     try {
-      const result = await getActionResult(actionId)
+      const response = await getActionById(actionId)
+      const result = {
+        actionId,
+        project: response.parameters.project,
+        branch: response.parameters.branch,
+        type: response.type,
+        result: response.result
+      }
       setViewingResult({ actionId, result })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch action result')
     }
   }
 
-  const handleViewLogs = (actionId: string) => {
-    const action = actions.find(a => a.id === actionId)
-    setViewingLogs({ actionId, status: action?.status || 'unknown', logs: [] })
-  }
 
   const handleStopExecution = async (actionId: string) => {
     try {

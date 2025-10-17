@@ -203,10 +203,10 @@ export async function deleteConnection(id: string): Promise<{ success: boolean }
 export interface Action {
   id: string
   status: 'pending' | 'running' | 'completed' | 'failed'
-  type: string
+  type: 'static_analysis' | 'report' | 'connection_auto_create'
   parameters: {
-    project: string
-    branch: string
+    project?: string
+    branch?: string
     targetBranch?: string
     name?: string
   }
@@ -217,9 +217,9 @@ export interface Action {
 }
 
 export interface CreateActionData {
-  project: string
-  branch: string
-  type: 'static_analysis' | 'report'
+  project?: string
+  branch?: string
+  type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
   name?: string
 }
@@ -243,10 +243,6 @@ export async function deleteAction(id: string): Promise<{ success: boolean }> {
   return apiRequest(`/actions/${id}`, {
     method: 'DELETE',
   })
-}
-
-export async function getActionResult(id: string): Promise<any> {
-  return apiRequest(`/actions/${id}/result`)
 }
 
 export async function streamActionLogs(
@@ -306,19 +302,6 @@ export async function streamActionLogs(
 
 export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
   return apiRequest(`/actions/${actionId}/stop`, {
-    method: 'POST',
-  })
-}
-
-// Auto-create connections API
-export async function autoCreateDependencies(): Promise<{
-  success: boolean
-  message: string
-  createdConnections: number
-  skippedConnections: number
-  errors: string[]
-}> {
-  return apiRequest('/connections/auto-create', {
     method: 'POST',
   })
 }

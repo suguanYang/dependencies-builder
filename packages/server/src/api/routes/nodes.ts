@@ -99,15 +99,10 @@ function nodesRoutes(fastify: FastifyInstance) {
         return
       }
 
-      const createdNodes = []
-      for (const nodeData of nodesData) {
-        const node = await repository.createNode(nodeData)
-        createdNodes.push(node)
-      }
+      const createdNodes = await repository.createNodes(nodesData)
 
       reply.code(201).send({
-        message: `Successfully created ${createdNodes.length} nodes`,
-        data: createdNodes
+        message: `Successfully created ${createdNodes.count} nodes`,
       })
     } catch (error) {
       reply

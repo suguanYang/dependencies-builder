@@ -38,6 +38,7 @@ const nodeConfig = defineConfig({
   ...sharedNodeOptions,
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
+    'workers/connection-worker': path.resolve(__dirname, 'src/workers/connection-worker.ts'),
   },
   external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 })

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, getConnectionsList, deleteConnection, createConnection, autoCreateDependencies, NodeType } from '@/lib/api'
+import { type Connection, getConnectionsList, deleteConnection, createConnection, createAction, NodeType, getActionById, type Action } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -22,6 +22,7 @@ function ConnectionsContent() {
   const [success, setSuccess] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [isAutoCreating, setIsAutoCreating] = useState(false)
+  const [currentActionId, setCurrentActionId] = useState<string | null>(null)
 
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
@@ -73,6 +74,37 @@ function ConnectionsContent() {
     })
   )
 
+  // Use SWR to poll action status when an action is running
+  const { data: currentAction } = useSWR(
+    currentActionId ? ['action', currentActionId] : null,
+    () => getActionById(currentActionId!),
+    {
+      refreshInterval: currentActionId ? 2000 : 0, // Poll every 2 seconds if action is running
+      revalidateOnFocus: false,
+      onSuccess: (action) => {
+        // If action is completed or failed, stop polling and refresh connections
+        if (action.status === 'completed' || action.status === 'failed') {
+          setCurrentActionId(null)
+          mutateConnections() // Refresh connections list
+
+          if (action.status === 'completed') {
+            const result = action.result
+            if (result) {
+              setSuccess(`Auto-creation completed: ${result.createdConnections} connections created, ${result.skippedConnections} skipped`)
+            } else {
+              setSuccess('Connection auto-creation completed successfully')
+            }
+          } else if (action.status === 'failed') {
+            setError(`Auto-creation failed: ${action.error || 'Unknown error'}`)
+          }
+        }
+      },
+      onError: (err) => {
+        console.error('Failed to poll action status:', err)
+      }
+    }
+  )
+
   const connections = connectionsResponse?.data || []
   const totalCount = connectionsResponse?.total || 0
 
@@ -102,20 +134,16 @@ function ConnectionsContent() {
       setError('')
       setSuccess('')
 
-      const result = await autoCreateDependencies()
+      // Trigger async connection auto-creation
+      const action = await createAction({
+        type: 'connection_auto_create'
+      })
+      setCurrentActionId(action.id)
 
-      if (result.success) {
-        setSuccess(`Auto-created ${result.createdConnections} connections. ${result.skippedConnections} already existed.`)
-        if (result.errors.length > 0) {
-          setError(`Some errors occurred: ${result.errors.join(', ')}`)
-        }
-      } else {
-        setError('Failed to auto-create connections')
-      }
-
-      mutateConnections()
+      // Show initial success message
+      setSuccess('Connection auto-creation started in background...')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to auto-create connections')
+      setError(err instanceof Error ? err.message : 'Failed to trigger connection auto-creation')
     } finally {
       setIsAutoCreating(false)
     }
@@ -159,6 +187,37 @@ function ConnectionsContent() {
           <AlertDescription>
             {success}
           </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Action Status Indicator */}
+      {currentAction && (
+        <Alert className="mb-6">
+          <div className="flex items-center">
+            <RefreshCwIcon className={`h-4 w-4 mr-2 ${currentAction.status === 'running' ? 'animate-spin' : ''}`} />
+            <div>
+              <AlertTitle>
+                {currentAction.status === 'running' ? 'Auto-creation in progress...' :
+                 currentAction.status === 'completed' ? 'Auto-creation completed' :
+                 'Auto-creation failed'}
+              </AlertTitle>
+              <AlertDescription>
+                {currentAction.status === 'running' && 'Processing connections in background...'}
+                {currentAction.status === 'completed' && currentAction.result && (
+                  <span>
+                    Created {currentAction.result.createdConnections} connections,
+                    skipped {currentAction.result.skippedConnections} duplicates
+                    {currentAction.result.errors && currentAction.result.errors.length > 0 && (
+                      <span className="text-yellow-600"> (with {currentAction.result.errors.length} errors)</span>
+                    )}
+                  </span>
+                )}
+                {currentAction.status === 'failed' && (
+                  <span>Error: {currentAction.error || 'Unknown error'}</span>
+                )}
+              </AlertDescription>
+            </div>
+          </div>
         </Alert>
       )}
 

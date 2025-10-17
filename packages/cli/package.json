@@ -24,7 +24,8 @@
   "packageManager": "pnpm@10.15.1",
   "dependencies": {
     "yargs": "^18.0.0",
-    "tsc-alias": "^1.8.16"
+    "tsc-alias": "^1.8.16",
+    "get-tsconfig": "^4.10.0"
   },
   "devDependencies": {
     "@types/yargs": "^17.0.33"

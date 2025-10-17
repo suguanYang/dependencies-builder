@@ -73,6 +73,7 @@ model Connection {
 enum ActionType {
   static_analysis
   report
+  connection_auto_create
 }
 
 enum ActionStatus {
