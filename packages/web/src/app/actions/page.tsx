@@ -182,7 +182,6 @@ function ActionsContent() {
 
       {!isLoading && actions.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
             <table className="w-full min-w-max">
               <thead className="bg-gray-50">
                 <tr>
@@ -272,7 +271,6 @@ function ActionsContent() {
                 ))}
               </tbody>
             </table>
-          </div>
         </div>
       )}
 

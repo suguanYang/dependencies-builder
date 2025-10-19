@@ -14,7 +14,7 @@ import {
 
 interface VirtualTableProps<T> {
   items: T[]
-  height: number
+  height: number | string
   itemHeight: number
   columns: {
     key: string
@@ -28,6 +28,7 @@ interface VirtualTableProps<T> {
     currentPage: number
     totalItems: number
     onPageChange: (page: number) => void
+    onPageSizeChange?: (size: number) => void
   }
 }
 
@@ -108,7 +109,6 @@ export function VirtualTable<T>({
       </div>
 
       {/* Virtual List */}
-      <div className="overflow-x-auto">
         <List<{}>
           style={{ height, minWidth: totalWidth }}
           rowCount={displayItems.length}
@@ -116,7 +116,6 @@ export function VirtualTable<T>({
           rowComponent={Row}
           rowProps={{}}
         />
-      </div>
 
       {displayItems.length === 0 && (
         <div className="text-center py-8">
@@ -125,20 +124,40 @@ export function VirtualTable<T>({
       )}
 
       {/* Pagination Controls */}
-      {pagination && totalPages > 1 && (
+      {pagination && (
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="text-sm text-gray-700">
-            Showing {((pagination.currentPage - 1) * pagination.pageSize) + 1} to{' '}
-            {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems)} of {pagination.totalItems} items
+          <div className="flex items-center gap-4">
+            {/* Item Count */}
+            <div className="text-sm text-gray-700">
+              Showing {((pagination.currentPage - 1) * pagination.pageSize) + 1} to{' '}
+              {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems)} of {pagination.totalItems} items
+            </div>
           </div>
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
-                  className={pagination.currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
+          {/* Page Navigation - Only show if there are multiple pages */}
+          {totalPages > 1 && (
+            <Pagination className='justify-end'>
+                        {/* Page Size Selector */}
+          {pagination.onPageSizeChange && (
+            <div className="flex items-center gap-2">
+              <select
+                value={pagination.pageSize}
+                onChange={(e) => pagination.onPageSizeChange?.(parseInt(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          )}
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+                    className={pagination.currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
 
               {/* Generate page numbers with ellipsis for large page counts */}
               {(() => {
@@ -212,14 +231,15 @@ export function VirtualTable<T>({
                 })
               })()}
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
-                  className={pagination.currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+                    className={pagination.currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
     </div>

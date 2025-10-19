@@ -104,33 +104,6 @@ function HomeContent() {
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dependency Management System</h1>
           <p className="text-gray-600 mt-2">Monitor and manage project dependencies</p>
-
-          <div className="mt-4 flex space-x-4">
-            <Link href="/nodes">
-              <Button variant="outline">
-                <ListIcon className="h-4 w-4 mr-2" />
-                Manage Nodes
-              </Button>
-            </Link>
-            <Link href="/connections">
-              <Button variant="outline">
-                <NetworkIcon className="h-4 w-4 mr-2" />
-                Manage Connections
-              </Button>
-            </Link>
-            <Link href="/actions">
-              <Button variant="outline">
-                <PlayIcon className="h-4 w-4 mr-2" />
-                Manage Actions
-              </Button>
-            </Link>
-            <Link href="/reports">
-              <Button variant="outline">
-                <TrendingUpIcon className="h-4 w-4 mr-2" />
-                View Reports
-              </Button>
-            </Link>
-          </div>
         </header>
 
         {/* System Overview */}

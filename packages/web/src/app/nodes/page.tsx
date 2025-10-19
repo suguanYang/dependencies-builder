@@ -228,20 +228,6 @@ function NodesContent() {
                 <h2 className="text-xl font-semibold">All Nodes ({nodes.length})</h2>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">Show:</label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                  <span className="text-sm text-gray-600">per page</span>
-                </div>
                 <Button onClick={() => setIsCreating(true)}>
                   <PlusIcon className="h-4 w-4 mr-2" />
                   Add Node
@@ -264,7 +250,7 @@ function NodesContent() {
             {!isLoading && nodes.length > 0 && (
               <VirtualTable
                 items={nodes}
-                height={600}
+                height={pageSize >= 20 ? "70vh" : "640px"}
                 itemHeight={64}
                 columns={[
                   { key: 'id', header: 'ID', width: 200 },
@@ -317,7 +303,8 @@ function NodesContent() {
                   pageSize,
                   currentPage,
                   totalItems: totalCount,
-                  onPageChange: handlePageChange
+                  onPageChange: handlePageChange,
+                  onPageSizeChange: handlePageSizeChange
                 }}
               />
             )}

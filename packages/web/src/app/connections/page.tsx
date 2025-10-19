@@ -337,20 +337,6 @@ function ConnectionsContent() {
                 <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">Show:</label>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                  <span className="text-sm text-gray-600">per page</span>
-                </div>
                 <div className="flex gap-2">
                   <Button
                     onClick={handleAutoCreate}
@@ -383,7 +369,7 @@ function ConnectionsContent() {
             {!isLoading && connections.length > 0 && (
               <VirtualTable
                 items={connections}
-                height={600}
+                height={pageSize >= 20 ? "70vh" : "640px"}
                 itemHeight={64}
                 columns={[
                   { key: 'id', header: 'ID', width: 200 },
@@ -453,7 +439,8 @@ function ConnectionsContent() {
                   pageSize,
                   currentPage,
                   totalItems: totalCount,
-                  onPageChange: handlePageChange
+                  onPageChange: handlePageChange,
+                  onPageSizeChange: handlePageSizeChange
                 }}
               />
             )}

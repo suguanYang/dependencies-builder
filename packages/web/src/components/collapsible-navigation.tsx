@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { HomeIcon, NetworkIcon, SettingsIcon, BarChart3Icon, PanelLeftOpenIcon, PanelLeftCloseIcon } from 'lucide-react'
+import { HomeIcon, NetworkIcon, BarChart3Icon, PanelLeftOpenIcon, PanelLeftCloseIcon, Cuboid, Send } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -23,7 +23,7 @@ const navigationItems: NavigationItem[] = [
   {
     name: 'Nodes',
     href: '/nodes',
-    icon: NetworkIcon,
+    icon: Cuboid,
     description: 'Manage all nodes'
   },
   {
@@ -35,7 +35,7 @@ const navigationItems: NavigationItem[] = [
   {
     name: 'Actions',
     href: '/actions',
-    icon: SettingsIcon,
+    icon: Send,
     description: 'Create and manage actions'
   },
   {
@@ -61,7 +61,7 @@ export function CollapsibleNavigation() {
         </div>
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+          className="p-2 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0 z-10"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -93,9 +93,9 @@ export function CollapsibleNavigation() {
                   {!isCollapsed && (
                     <div className="flex-1">
                       <div className="font-medium">{item.name}</div>
-                      {item.description && (
+                      {/* {item.description && (
                         <div className="text-xs text-gray-500">{item.description}</div>
-                      )}
+                      )} */}
                     </div>
                   )}
                 </Link>
