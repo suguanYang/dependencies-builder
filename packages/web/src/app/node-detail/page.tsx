@@ -6,14 +6,14 @@ import { ArrowLeftIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
-import { getNode } from '@/lib/api'
+import { getNode, Node } from '@/lib/api'
 import { useSearchParams, useRouter } from 'next/navigation'
 function NodeDetailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const nodeId = searchParams.get('id')
 
-  const [node, setNode] = useState<any>(null)
+  const [node, setNode] = useState<Node | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -132,7 +132,7 @@ function NodeDetailContent() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Project</label>
-                <p className="text-sm">{node.project}</p>
+                <p className="text-sm">{node.projectName}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Type</label>

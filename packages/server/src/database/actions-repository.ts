@@ -1,11 +1,11 @@
 import { prisma } from "./prisma"
 
 export interface CreateActionData {
-  project?: string
+  projectAddr?: string
+  projectName?: string
   branch?: string
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
-  name?: string
 }
 
 export interface UpdateActionData {
@@ -15,8 +15,6 @@ export interface UpdateActionData {
 }
 
 export interface ActionQuery {
-  project?: string
-  branch?: string
   type?: 'static_analysis' | 'report' | 'connection_auto_create'
   status?: 'pending' | 'running' | 'completed' | 'failed'
   limit?: number
@@ -28,24 +26,12 @@ export async function getActions(query: ActionQuery = {}) {
 
   const [data, total] = await Promise.all([
     prisma.action.findMany({
-      where: {
-        ...(where.project && { project: where.project }),
-        ...(where.branch && { branch: where.branch }),
-        ...(where.type && { type: where.type }),
-        ...(where.status && { status: where.status }),
-      },
+      where,
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
     }),
-    prisma.action.count({
-      where: {
-        ...(where.project && { project: where.project }),
-        ...(where.branch && { branch: where.branch }),
-        ...(where.type && { type: where.type }),
-        ...(where.status && { status: where.status }),
-      },
-    }),
+    prisma.action.count(),
   ])
 
   return { data, total }
@@ -61,10 +47,10 @@ export async function createAction(actionData: CreateActionData) {
   const parameters: Record<string, any> = {}
 
   // Only include project and branch if they exist (for connection_auto_create they won't)
-  if (actionData.project) parameters.project = actionData.project
   if (actionData.branch) parameters.branch = actionData.branch
   if (actionData.targetBranch) parameters.targetBranch = actionData.targetBranch
-  if (actionData.name) parameters.name = actionData.name
+  if (actionData.projectName) parameters.projectName = actionData.projectName
+  if (actionData.projectAddr) parameters.projectAddr = actionData.projectAddr
 
   return prisma.action.create({
     data: {
@@ -94,13 +80,6 @@ export async function deleteAction(id: string) {
   } catch (error) {
     return false
   }
-}
-
-export async function getActionsByStatus(status: 'pending' | 'running' | 'completed' | 'failed') {
-  return prisma.action.findMany({
-    where: { status },
-    orderBy: { createdAt: 'asc' },
-  })
 }
 
 export async function countRunningActions(): Promise<number> {

@@ -282,7 +282,8 @@ function HomeContent() {
                 <tbody className="divide-y divide-gray-200">
                   {reportActions.slice(0, 5).map((action) => (
                     <tr key={action.id}>
-                      <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.project}</td>
+                      <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.projectName}</td>
+                      <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.projectAddr}</td>
                       <td className="px-4 py-4 text-sm text-gray-900 truncate">{action.parameters.branch}</td>
                       <td className="px-4 py-4 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${

@@ -5,7 +5,6 @@ import { error, info } from '../logging'
 
 export type ActionData = Required<repository.CreateActionData> & {
   targetBranch?: string
-  name?: string
 }
 
 export interface CLIExecutionResult {
@@ -145,30 +144,30 @@ function getCLICommand(actionData: ActionData): string[] {
         'npx',
         '@dms/cli',
         'analyze',
-        actionData.project,
+        actionData.projectAddr,
         '--branch',
         actionData.branch,
+        "--name",
+        actionData.projectName,
         "--verbose"
       ]
-      if (actionData.name) {
-        analyzeArgs.push('--name', actionData.name)
-      }
+
       return analyzeArgs
     case 'report':
       const reportArgs = [
         'npx',
         '@dms/cli',
         'report',
-        actionData.project,
+        actionData.projectAddr,
         '--branch',
         actionData.branch,
         '--target-branch',
         actionData.targetBranch!,
+        "--name",
+        actionData.projectName,
         "--verbose"
       ]
-      if (actionData.name) {
-        reportArgs.push('--name', actionData.name)
-      }
+
       return reportArgs
     default:
       throw new Error(`Unknown action type: ${actionData.type}`)

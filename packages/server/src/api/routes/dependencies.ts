@@ -29,17 +29,17 @@ function dependenciesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // GET /dependencies/projects/:project/:branch - Get project-level dependency graph
-  fastify.get('/dependencies/projects/:project/:branch', async (request, reply) => {
+  // GET /dependencies/projects/:projectName/:branch - Get project-level dependency graph
+  fastify.get('/dependencies/projects/:projectName/:branch', async (request, reply) => {
     try {
-      const { project, branch } = request.params as { project: string; branch: string }
+      const { projectName, branch } = request.params as { projectName: string; branch: string }
 
       // Get all nodes and edges
       const nodesResult = await repository.getNodes({ take: 0 })
       const connectionsResult = await repository.getConnections({ take: 0 })
 
       const graph = dependencyManager.getProjectDependencyGraph(
-        project,
+        projectName,
         branch,
         nodesResult.data,
         connectionsResult.data

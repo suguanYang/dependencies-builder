@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import { queryContains } from '../../utils'
 import * as repository from '../../database/repository'
 import type { NodeQuery, NodeCreationBody } from '../types'
 import { formatStringToNumber } from '../request_parameter'
@@ -8,6 +9,9 @@ function nodesRoutes(fastify: FastifyInstance) {
   fastify.get('/nodes', async (request, reply) => {
     try {
       const { limit, offset, ...where } = formatStringToNumber(request.query as NodeQuery)
+
+      queryContains(where, ['name', 'branch', 'projectName'])
+
       const result = await repository.getNodes({
         where,
         take: limit,
@@ -77,7 +81,18 @@ function nodesRoutes(fastify: FastifyInstance) {
   fastify.post('/nodes', async (request, reply) => {
     try {
       const nodeData = request.body as NodeCreationBody
-      const node = await repository.createNode(nodeData)
+
+      const project = await repository.getProjectByName(nodeData.projectName)
+
+      if (!project) {
+        reply.code(400).send({ error: 'Project not found' })
+        return
+      }
+
+      const node = await repository.createNode(({
+        ...nodeData,
+        projectId: project.id
+      }))
       reply.code(201).send(node)
     } catch (error) {
       reply
@@ -89,7 +104,7 @@ function nodesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // POST /nodes/batch-create - Create multiple nodes in batch
+  // POST /nodes/batch-create - Create multiple nodes(same project) in batch
   fastify.post('/nodes/batch-create', async (request, reply) => {
     try {
       const nodesData = request.body as NodeCreationBody[]
@@ -99,7 +114,18 @@ function nodesRoutes(fastify: FastifyInstance) {
         return
       }
 
-      const createdNodes = await repository.createNodes(nodesData)
+      const project = await repository.getProjectByName(nodesData[0].projectName);
+
+      if (!project) {
+        reply.code(400).send({ error: 'Project not found' })
+        return
+      }
+
+
+      const createdNodes = await repository.createNodes(nodesData.map((node, idx) => ({
+        ...node,
+        projectId: project.id
+      })))
 
       reply.code(201).send({
         message: `Successfully created ${createdNodes.count} nodes`,

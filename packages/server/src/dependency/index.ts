@@ -23,18 +23,18 @@ export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): bo
 }
 
 export const getProjectDependencyGraph = (
-  project: string,
+  projectName: string,
   branch: string,
   nodes: GraphNode[],
   connections: GraphConnection[]
 ): DependencyGraph => {
   // Filter nodes for the specific project and branch
-  const projectNodes = nodes.filter(node => 
-    node.project === project && node.branch === branch
+  const projectNodes = nodes.filter(node =>
+    node.projectName === projectName && node.branch === branch
   )
-  
+
   // Get all connections involving these nodes
-  const projectConnections = connections.filter(conn => 
+  const projectConnections = connections.filter(conn =>
     projectNodes.some(node => node.id === conn.fromId || node.id === conn.toId)
   )
 

@@ -30,10 +30,9 @@ yargs(hideBin(process.argv))
           type: 'string',
         })
         .option('name', {
-          describe: 'Package name for monorepo analysis',
+          describe: 'Project name for monorepo analysis',
           type: 'string',
         })
-        .conflicts('project', 'local-repo-path')
     },
     async (argv) => {
       const { analyzeProject } = await import('./commands/analyze')
@@ -74,7 +73,7 @@ yargs(hideBin(process.argv))
           type: 'string',
         })
         .option('name', {
-          describe: 'Package name for monorepo analysis',
+          describe: 'Project name for monorepo analysis',
           type: 'string',
         })
         .option('verbose', {

@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, TerminalIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, RefreshCwIcon, PlayIcon, EyeIcon, SquareIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
@@ -17,18 +16,19 @@ function ActionsContent() {
     actionId: string;
     result: {
       actionId: string;
-      project?: string;
+      projectName?: string;
+      projectAddr?: string;
       branch?: string;
       type: string;
       result: any;
     }
   } | null>(null)
   const [newAction, setNewAction] = useState<CreateActionData>({
-    project: '',
+    projectAddr: '',
+    projectName: '',
     branch: '',
     type: 'static_analysis',
     targetBranch: '',
-    name: ''
   })
 
   const { data: actionsResponse, isLoading, mutate: mutateActions } = useSWR(
@@ -52,11 +52,11 @@ function ActionsContent() {
       await createAction(newAction)
       setIsCreating(false)
       setNewAction({
-        project: '',
+        projectAddr: '',
+        projectName: '',
         branch: '',
         type: 'static_analysis',
         targetBranch: '',
-        name: ''
       })
       mutateActions()
     } catch (err) {
@@ -73,7 +73,8 @@ function ActionsContent() {
       const response = await getActionById(actionId)
       const result = {
         actionId,
-        project: response.parameters.project,
+        projectAddr: response.parameters.projectAddr,
+        projectName: response.parameters.projectName,
         branch: response.parameters.branch,
         type: response.type,
         result: response.result
@@ -98,11 +99,11 @@ function ActionsContent() {
     try {
       // Create new action with same parameters
       const retryData: CreateActionData = {
-        project: action.parameters.project,
+        type: action.type,
+        projectAddr: action.parameters.projectAddr,
+        projectName: action.parameters.projectName,
         branch: action.parameters.branch,
-        type: action.type as CreateActionData['type'],
         targetBranch: action.parameters.targetBranch,
-        name: action.parameters.name
       }
       await createAction(retryData)
       mutateActions()
@@ -127,13 +128,6 @@ function ActionsContent() {
 
   return (
     <div className="pt-6 px-6">
-        <header className="mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Actions</h1>
-            <p className="text-gray-600 mt-2">Manage and monitor dependency analysis actions</p>
-          </div>
-        </header>
-
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-xl font-semibold">All Actions ({actions.length})</h2>
@@ -200,8 +194,8 @@ function ActionsContent() {
                     <td className="px-3 py-3 text-sm text-gray-900 font-mono truncate" title={action.id}>
                       {action.id.substring(0, 8)}...
                     </td>
-                    <td className="px-3 py-3 text-sm text-gray-900 truncate" title={action.parameters.project}>
-                      {action.parameters.project}
+                    <td className="px-3 py-3 text-sm text-gray-900 truncate" title={action.parameters.projectName}>
+                      {action.parameters.projectName}
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900 truncate">{action.parameters.branch}</td>
                     <td className="px-3 py-3 text-sm text-gray-900">
@@ -282,14 +276,23 @@ function ActionsContent() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
+                <label className="block text-sm font-medium mb-2">Project Name</label>
                 <Input
-                  value={newAction.project}
-                  onChange={(e) => setNewAction(prev => ({ ...prev, project: e.target.value }))}
-                  placeholder="Project name (e.g., https://gitlab.com/user/repo.git)"
+                  value={newAction.projectName}
+                  onChange={(e) => setNewAction(prev => ({ ...prev, projectName: e.target.value }))}
+                  placeholder="Project name"
                 />
               </div>
-              
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Project Address</label>
+                <Input
+                  value={newAction.projectAddr}
+                  onChange={(e) => setNewAction(prev => ({ ...prev, projectAddr: e.target.value }))}
+                  placeholder="Project address"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Branch</label>
                 <Input
@@ -297,18 +300,6 @@ function ActionsContent() {
                   onChange={(e) => setNewAction(prev => ({ ...prev, branch: e.target.value }))}
                   placeholder="Branch name (e.g., main, develop)"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Package Name</label>
-                <Input
-                  value={newAction.name}
-                  onChange={(e) => setNewAction(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Package name from package.json (e.g., @myorg/myapp)"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  For monorepos, specify which package to analyze. Leave empty for standalone repos.
-                </p>
               </div>
 
               {newAction.type === 'report' && (
@@ -363,7 +354,8 @@ function ActionsContent() {
               <div className="mb-4">
                 <h4 className="font-medium">Action Details</h4>
                 <p className="text-sm text-gray-600">ID: {viewingResult.result.actionId}</p>
-                <p className="text-sm text-gray-600">Project: {viewingResult.result.project}</p>
+                <p className="text-sm text-gray-600">ProjectName: {viewingResult.result.projectName}</p>
+                <p className="text-sm text-gray-600">ProjectAddr: {viewingResult.result.projectAddr}</p>
                 <p className="text-sm text-gray-600">Branch: {viewingResult.result.branch}</p>
                 <p className="text-sm text-gray-600">Type: {viewingResult.result.type}</p>
               </div>

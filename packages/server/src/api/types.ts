@@ -1,7 +1,7 @@
 import { NodeType } from '../generated/prisma/client'
 
 export interface NodeQuery {
-  project?: string
+  projectName?: string
   branch?: string
   type?: NodeType
   name?: string
@@ -11,7 +11,7 @@ export interface NodeQuery {
 }
 
 export interface NodeCreationBody {
-  project: string
+  projectName: string
   branch: string
   type: NodeType
   name: string
@@ -29,12 +29,31 @@ export interface ConnectionQuery {
   toId?: string
   fromNodeName?: string
   toNodeName?: string
-  fromNodeProject?: string
-  toNodeProject?: string
+  fromNodeProjectName?: string
+  toNodeProjectName?: string
   fromNodeType?: string
   toNodeType?: string
   limit?: number
   offset?: number
+}
+
+export interface ProjectQuery {
+  name?: string
+  addr?: string
+  limit?: number
+  offset?: number
+}
+
+export interface ProjectCreationBody {
+  name: string
+  addr: string
+  entries?: Record<string, any>
+}
+
+export interface ProjectUpdateBody {
+  name?: string
+  url?: string
+  entries?: Record<string, any>
 }
 
 export interface PaginatedResponse<T> {

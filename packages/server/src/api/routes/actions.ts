@@ -66,9 +66,6 @@ function actionsRoutes(fastify: FastifyInstance) {
         return
       }
 
-      // Debug: Log the received action data
-      info(`Received action data for creation: ${JSON.stringify(actionData)}`)
-
       // Create the action record
       const action = await repository.createAction(actionData)
 
@@ -88,8 +85,7 @@ function actionsRoutes(fastify: FastifyInstance) {
         }
       } else if (actionData.type === 'static_analysis' || actionData.type === 'report') {
         // Type assertion since we've checked the type
-        const cliActionData = actionData
-        executeCLI(action.id, cliActionData).catch((error) => {
+        executeCLI(action.id, actionData).catch((error) => {
           repository.updateAction(action.id, { status: 'failed' })
           error('Failed to execute action' + error)
         })
@@ -219,7 +215,3 @@ function actionsRoutes(fastify: FastifyInstance) {
 }
 
 export default actionsRoutes
-
-const path2name = (path: string) => {
-  return path.replaceAll('/', '_')
-}

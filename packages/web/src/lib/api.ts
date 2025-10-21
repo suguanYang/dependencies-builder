@@ -14,7 +14,7 @@ export enum NodeType {
 export interface Node {
   id: string
   name: string
-  project: string
+  projectName: string
   type: NodeType
   branch: string
   version?: string
@@ -36,7 +36,7 @@ export interface Connection {
 }
 
 export interface SearchFilters {
-  project?: string
+  projectName?: string
   branch?: string
   type?: NodeType
   name?: string
@@ -50,7 +50,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://172.20.169.243:3001'
 export async function searchNodes(filters: SearchFilters): Promise<Node[]> {
   const params = new URLSearchParams()
 
-  if (filters.project) params.append('project', filters.project)
+  if (filters.projectName) params.append('projectName', filters.projectName)
   if (filters.branch) params.append('branch', filters.branch)
   if (filters.type) params.append('type', filters.type)
   if (filters.name) params.append('name', filters.name)
@@ -110,7 +110,7 @@ export async function apiRequest<T>(
 export async function getNodes(filters?: SearchFilters): Promise<{ data: Node[]; total: number }> {
   const params = new URLSearchParams()
 
-  if (filters?.project) params.append('project', filters.project)
+  if (filters?.projectName) params.append('projectName', filters.projectName)
   if (filters?.branch) params.append('branch', filters.branch)
   if (filters?.type) params.append('type', filters.type)
   if (filters?.name) params.append('name', filters.name)
@@ -161,8 +161,8 @@ export async function getConnectionsList(filters?: {
   toId?: string
   fromNodeName?: string
   toNodeName?: string
-  fromNodeProject?: string
-  toNodeProject?: string
+  fromNodeProjectName?: string
+  toNodeProjectName?: string
   fromNodeType?: string
   toNodeType?: string
   limit?: number
@@ -175,8 +175,8 @@ export async function getConnectionsList(filters?: {
   if (filters?.toId) params.append('toId', filters.toId)
   if (filters?.fromNodeName) params.append('fromNodeName', filters.fromNodeName)
   if (filters?.toNodeName) params.append('toNodeName', filters.toNodeName)
-  if (filters?.fromNodeProject) params.append('fromNodeProject', filters.fromNodeProject)
-  if (filters?.toNodeProject) params.append('toNodeProject', filters.toNodeProject)
+  if (filters?.fromNodeProjectName) params.append('fromNodeProjectName', filters.fromNodeProjectName)
+  if (filters?.toNodeProjectName) params.append('toNodeProjectName', filters.toNodeProjectName)
   if (filters?.fromNodeType) params.append('fromNodeType', filters.fromNodeType)
   if (filters?.toNodeType) params.append('toNodeType', filters.toNodeType)
   if (filters?.limit) params.append('limit', filters.limit.toString())
@@ -205,10 +205,10 @@ export interface Action {
   status: 'pending' | 'running' | 'completed' | 'failed'
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   parameters: {
-    project?: string
+    projectAddr?: string;
+    projectName?: string;
     branch?: string
     targetBranch?: string
-    name?: string
   }
   createdAt: string
   updatedAt: string
@@ -217,11 +217,11 @@ export interface Action {
 }
 
 export interface CreateActionData {
-  project?: string
+  projectAddr?: string
+  projectName?: string
   branch?: string
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
-  name?: string
 }
 
 export async function getActions(): Promise<{ data: Action[]; total: number }> {
@@ -303,5 +303,74 @@ export async function streamActionLogs(
 export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
   return apiRequest(`/actions/${actionId}/stop`, {
     method: 'POST',
+  })
+}
+
+// Projects API
+export interface Project {
+  id: string
+  name: string
+  addr: string
+  entries?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProjectQuery {
+  name?: string
+  addr?: string
+  limit?: number
+  offset?: number
+}
+
+export interface ProjectCreationData {
+  name: string
+  addr: string
+  entries?: Record<string, any>
+}
+
+export interface ProjectUpdateData {
+  name?: string
+  addr?: string
+  entries?: Record<string, any>
+}
+
+export async function getProjects(filters?: ProjectQuery): Promise<{ data: Project[]; total: number }> {
+  const params = new URLSearchParams()
+
+  if (filters?.name) params.append('name', filters.name)
+  if (filters?.addr) params.append('addr', filters.addr)
+  if (filters?.limit) params.append('limit', filters.limit.toString())
+  if (filters?.offset) params.append('offset', filters.offset.toString())
+
+  const queryString = params.toString()
+  return apiRequest(`/projects${queryString ? `?${queryString}` : ''}`)
+}
+
+export async function getProjectById(id: string): Promise<Project> {
+  return apiRequest(`/projects/${id}`)
+}
+
+export async function getProjectByName(name: string): Promise<Project> {
+  return apiRequest(`/projects/name/${name}`)
+}
+
+export async function createProject(projectData: ProjectCreationData): Promise<Project> {
+  return apiRequest('/projects', {
+    method: 'POST',
+    body: JSON.stringify(projectData),
+  })
+}
+
+export async function updateProject(id: string, projectData: ProjectUpdateData): Promise<Project> {
+  return apiRequest(`/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(projectData),
+  })
+}
+
+export async function deleteProject(id: string): Promise<{ success: boolean }> {
+  return apiRequest(`/projects/${id}`, {
+    method: 'DELETE',
   })
 }

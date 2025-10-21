@@ -12,7 +12,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-   url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum NodeType {
@@ -28,10 +28,26 @@ enum NodeType {
   DynamicModuleFederationReference
 }
 
+model Project {
+  id        String   @id @default(cuid())
+  addr      String
+  name      String   @unique
+  entries   Json?    // Store project entries path for projects that cannot find entries by static analysis
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  // Relations
+  nodes Node[] @relation("BelongsTo")
+
+  // Indexes
+  @@index([name])
+}
+
 model Node {
   id           String   @id @default(cuid())
   branch       String
-  project      String
+  projectId    String 
+  projectName  String 
   version      String
   type         NodeType
   name         String
@@ -47,10 +63,11 @@ model Node {
   // Relations
   fromConnections Connection[] @relation("FromNode")
   toConnections   Connection[] @relation("ToNode")
+  project         Project      @relation("BelongsTo", fields: [projectId], references: [id], onDelete: Cascade)
 
   // Indexes
-  @@index([branch, project, type, name])
-  @@index([project, branch])
+  @@index([branch, projectName, type, name])
+  @@index([projectName, branch])
   @@index([type, name])
 }
 

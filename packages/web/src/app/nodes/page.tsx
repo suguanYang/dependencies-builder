@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, Suspense } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
 import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ function NodesContent() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [searchFilters, setSearchFilters] = useState({
-    project: '',
+    projectName: '',
     branch: '',
     type: '',
     name: '',
@@ -56,7 +56,7 @@ function NodesContent() {
     updatePaginationParams(1, size) // Reset to first page when changing page size
   }
   const [newNode, setNewNode] = useState({
-    project: '',
+    projectName: '',
     branch: '',
     type: NodeType.NamedExport,
     name: '',
@@ -73,7 +73,7 @@ function NodesContent() {
   const { data: nodesResponse, isLoading } = useSWR(
     ['nodes', searchFilters, currentPage, pageSize],
     () => getNodes({
-      project: searchFilters.project || undefined,
+      projectName: searchFilters.projectName || undefined,
       branch: searchFilters.branch || undefined,
       type: searchFilters.type as NodeType || undefined,
       name: searchFilters.name || undefined,
@@ -101,7 +101,7 @@ function NodesContent() {
       await createNode(newNode)
       setIsCreating(false)
       setNewNode({
-        project: '',
+        projectName: '',
         branch: '',
         type: NodeType.NamedExport,
         name: '',
@@ -124,7 +124,7 @@ function NodesContent() {
     if (!editingNode) return
     try {
       await updateNode(editingNode.id, {
-        project: editingNode.project,
+        projectName: editingNode.projectName,
         branch: editingNode.branch,
         type: editingNode.type,
         name: editingNode.name,
@@ -162,11 +162,11 @@ function NodesContent() {
               <h2 className="text-lg font-semibold mb-4">Filters</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Project</label>
+                  <label className="block text-sm font-medium mb-2">Project Name</label>
                   <Input
                     placeholder="Partial match project"
-                    value={searchFilters.project}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, project: e.target.value }))}
+                    value={searchFilters.projectName}
+                    onChange={(e) => setSearchFilters(prev => ({ ...prev, projectName: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -265,11 +265,11 @@ function NodesContent() {
                     )
                   },
                   {
-                    key: 'project',
+                    key: 'projectName',
                     header: 'Project',
                     width: '140',
                     render: (node: Node) => (
-                      <div className="truncate">{node.project}</div>
+                      <div className="truncate">{node.projectName}</div>
                     )
                   },
                   {
@@ -320,8 +320,8 @@ function NodesContent() {
               <div>
                 <label className="block text-sm font-medium mb-2">Project</label>
                 <Input
-                  value={newNode.project}
-                  onChange={(e) => setNewNode(prev => ({ ...prev, project: e.target.value }))}
+                  value={newNode.projectName}
+                  onChange={(e) => setNewNode(prev => ({ ...prev, projectName: e.target.value }))}
                   placeholder="Project name"
                 />
               </div>
@@ -387,8 +387,8 @@ function NodesContent() {
               <div>
                 <label className="block text-sm font-medium mb-2">Project</label>
                 <Input
-                  value={editingNode.project}
-                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, project: e.target.value }) : null)}
+                  value={editingNode.projectName}
+                  onChange={(e) => setEditingNode(prev => prev ? ({ ...prev, projectName: e.target.value }) : null)}
                   placeholder="Project name"
                 />
               </div>

@@ -13,9 +13,9 @@ export async function uploadResults(results: any): Promise<UploadResult> {
   debug('Uploading results to server: %s', serverUrl)
 
   try {
-    // Prepare nodes for upload
+    // Prepare nodes for upload with projectId and projectName
     const nodesToUpload = results.nodes.map((node: any) => ({
-      project: node.project,
+      projectName: node.projectName,
       branch: node.branch,
       type: node.type,
       name: node.name,

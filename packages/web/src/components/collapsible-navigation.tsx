@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { HomeIcon, NetworkIcon, BarChart3Icon, PanelLeftOpenIcon, PanelLeftCloseIcon, Cuboid, Send } from 'lucide-react'
+import { HomeIcon, NetworkIcon, BarChart3Icon, PanelLeftOpenIcon, PanelLeftCloseIcon, Cuboid, Send, Folder } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -19,6 +19,12 @@ const navigationItems: NavigationItem[] = [
     href: '/',
     icon: HomeIcon,
     description: 'Back to dashboard'
+  },
+  {
+    name: 'Projects',
+    href: '/projects',
+    icon: Folder,
+    description: 'Manage all projects'
   },
   {
     name: 'Nodes',

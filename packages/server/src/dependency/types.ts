@@ -5,7 +5,7 @@ export interface GraphNode {
   id: string
   name: string
   type: NodeType
-  project: string
+  projectName: string
   branch: string
 }
 

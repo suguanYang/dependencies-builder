@@ -31,8 +31,8 @@ function ConnectionsContent() {
     toId: '',
     fromNodeName: '',
     toNodeName: '',
-    fromNodeProject: '',
-    toNodeProject: '',
+    fromNodeProjectName: '',
+    toNodeProjectName: '',
     fromNodeType: '',
     toNodeType: ''
   })
@@ -262,7 +262,7 @@ function ConnectionsContent() {
                   <label className="block text-sm font-medium mb-2">From Node Project</label>
                   <Input
                     placeholder="Partial match from node project"
-                    value={searchFilters.fromNodeProject || ''}
+                    value={searchFilters.fromNodeProjectName || ''}
                     onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
                   />
                 </div>
@@ -298,7 +298,7 @@ function ConnectionsContent() {
                   <label className="block text-sm font-medium mb-2">To Node Project</label>
                   <Input
                     placeholder="Partial match to node project"
-                    value={searchFilters.toNodeProject || ''}
+                    value={searchFilters.toNodeProjectName || ''}
                     onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
                   />
                 </div>
@@ -389,7 +389,7 @@ function ConnectionsContent() {
                           )}
                         </div>
                         <div className="text-xs text-gray-500 truncate">
-                          {connection.fromNode?.project} • {connection.fromNode?.type}
+                          {connection.fromNode?.projectName} • {connection.fromNode?.type}
                         </div>
                       </div>
                     )
@@ -410,7 +410,7 @@ function ConnectionsContent() {
                           )}
                         </div>
                         <div className="text-xs text-gray-500 truncate">
-                          {connection.toNode?.project} • {connection.toNode?.type}
+                          {connection.toNode?.projectName} • {connection.toNode?.type}
                         </div>
                       </div>
                     )

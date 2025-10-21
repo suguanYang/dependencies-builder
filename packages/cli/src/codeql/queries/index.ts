@@ -80,7 +80,7 @@ const processQuery = (queryResultDir: string) => {
 
 const parseExportQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    let project = ctx.getMetadata().name
+    let projectName = ctx.getMetadata().name
     const entries = getEntries()
     try {
         const entryQueryResult = JSON.parse(readFileSync(path.join(queryResultDir, 'export.json'), 'utf-8')) as ExportQuery
@@ -89,15 +89,15 @@ const parseExportQuery = (queryResultDir: string) => {
             let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)
             if (entryName === 'seeyon_ui_index') {
                 name = tuple[1]
-                project = '@seeyon/ui'
+                projectName = '@seeyon/ui'
             }
             if (entryName === 'seeyon_mui_index') {
                 name = tuple[1]
-                project = '@seeyon/mui'
+                projectName = '@seeyon/mui'
             }
             return ({
                 name,
-                project,
+                projectName,
                 branch: ctx.getBranch(),
                 type: NodeType.NamedExport,
                 ...parseLoc(tuple[2]),
@@ -115,11 +115,11 @@ const parseExportQuery = (queryResultDir: string) => {
 
 const parseES6ImportQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const importResult = JSON.parse(readFileSync(path.join(queryResultDir, 'import.json'), 'utf-8')) as ImportQuery
         return importResult['#select'].tuples.map((tuple: [string, string, string]) => ({
-            project,
+            projectName,
             branch: ctx.getBranch(),
             type: NodeType.NamedImport,
             name: `${tuple[0]}.${tuple[1]}`, // importName
@@ -135,11 +135,11 @@ const parseES6ImportQuery = (queryResultDir: string) => {
 
 const parseLibsDynamicImportQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const dynamicImportResult = JSON.parse(readFileSync(path.join(queryResultDir, 'libsDynamicImport.json'), 'utf-8')) as LibsDynamicImportQuery
         return dynamicImportResult['#select'].tuples.map((tuple: [string, string, string, string]) => ({
-            project,
+            projectName,
             branch: ctx.getBranch(),
             type: NodeType.RuntimeDynamicImport,
             name: `${tuple[0]}.${tuple[1]}.${tuple[2]}`, // namedImport
@@ -155,7 +155,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
 
 const parseGlobalVariableQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const globalVarResult = JSON.parse(readFileSync(path.join(queryResultDir, 'globalVariable.json'), 'utf-8')) as GlobalVariableQuery
         const nodes: Node[] = []
@@ -168,7 +168,7 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
             }
 
             nodes.push({
-                project,
+                projectName,
                 branch: ctx.getBranch(),
                 type: tuple[1] === "Write" ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
                 name: tuple[0], // variableName
@@ -187,11 +187,11 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
 
 const parseEventOnQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const eventOnResult = JSON.parse(readFileSync(path.join(queryResultDir, 'event.json'), 'utf-8')) as EventQuery
         return eventOnResult['#select'].tuples.map((tuple: [string, string, string]) => ({
-            project,
+            projectName,
             branch: ctx.getBranch(),
             type: tuple[1] === 'On' ? NodeType.EventOn : NodeType.EventEmit,
             name: tuple[0], // eventName
@@ -207,11 +207,11 @@ const parseEventOnQuery = (queryResultDir: string) => {
 
 const parseWebStorageQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const webStorageResult = JSON.parse(readFileSync(path.join(queryResultDir, 'webStorage.json'), 'utf-8')) as WebStorageQuery
         return webStorageResult['#select'].tuples.map((tuple: [string, "Write" | "Read", "LocalStorage" | "SessionStorage", string]) => ({
-            project,
+            projectName,
             branch: ctx.getBranch(),
             type: tuple[1] === "Write" ? NodeType.WebStorageWrite : NodeType.WebStorageRead,
             name: tuple[0], // localStorageKey
@@ -229,11 +229,11 @@ const parseWebStorageQuery = (queryResultDir: string) => {
 
 const parseRemoteLoaderQuery = (queryResultDir: string) => {
     const ctx = getContext()
-    const project = ctx.getMetadata().name
+    const projectName = ctx.getMetadata().name
     try {
         const remoteLoaderResult = JSON.parse(readFileSync(path.join(queryResultDir, 'remoteLoader.json'), 'utf-8')) as RemoteLoaderQuery
         return remoteLoaderResult['#select'].tuples.map((tuple: [string, string, string]) => ({
-            project,
+            projectName,
             branch: ctx.getBranch(),
             type: NodeType.DynamicModuleFederationReference,
             name: `${tuple[0]}.${tuple[1]}`,
@@ -261,7 +261,7 @@ const formatResults = (results: QueryResults) => {
     ]
 
     const summary = {
-        project: ctx.getMetadata().name,
+        projectName: ctx.getMetadata().name,
         branch: ctx.getBranch(),
         version: ctx.getMetadata().version,
         timestamp: new Date().toISOString(),
@@ -287,7 +287,7 @@ const formatResults = (results: QueryResults) => {
 }
 
 type Node = {
-    project: string
+    projectName: string
     branch: string
     type: NodeType
     name: string

@@ -30,7 +30,7 @@ export async function analyzeProject(): Promise<void> {
 
     // Display results summary
     console.log('\n=== Analysis Results ===')
-    console.log(`Project: ${results.summary.project}`)
+    console.log(`Project: ${results.summary.projectName}`)
     console.log(`Branch: ${results.summary.branch}`)
     console.log(`Version: ${results.summary.version}`)
     console.log(`Total Nodes Found: ${results.summary.totalNodes}`)

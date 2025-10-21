@@ -12,7 +12,7 @@ The main data structure is the dependency graph, which is a directed graph, the 
 {
   "id": "", // uuid, primary key
   "branch": "", // branch name, index
-  "project": "", // project name, index
+  "projectName": "", // project name, index
   "version": "", // version number
 
   "type": 0, // 0: NamedExport | 1: NamedImport | 2: RuntimeDynamicImport | 3: Externals | 4: GlobalState | 5: EventOn | 6: EventEmit | 7: DynamicModuleFederationReference..., index

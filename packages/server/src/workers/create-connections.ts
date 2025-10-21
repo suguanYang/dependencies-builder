@@ -24,7 +24,7 @@ export async function optimizedAutoCreateConnections(
         id: true,
         type: true,
         name: true,
-        project: true,
+        projectName: true,
         meta: true
       }
     })
@@ -64,8 +64,8 @@ export async function optimizedAutoCreateConnections(
         exportNode.name === importName &&
         // es6 imports should be from the index file, and we are not consider the sub files import
         (exportNode.meta as Record<string, string>)?.entryName === 'index' &&
-        exportNode.project === packageName &&
-        exportNode.project !== importNode.project
+        exportNode.projectName === packageName &&
+        exportNode.projectName !== importNode.projectName
       )
 
       for (const exportNode of matchingExports) {
@@ -89,8 +89,8 @@ export async function optimizedAutoCreateConnections(
       if (packageName && importName) {
         const matchingExports = namedExports.filter(exportNode =>
           exportNode.name === importName &&
-          exportNode.project === packageName &&
-          exportNode.project !== runtimeImport.project
+          exportNode.projectName === packageName &&
+          exportNode.projectName !== runtimeImport.projectName
         )
 
         for (const exportNode of matchingExports) {
@@ -114,7 +114,7 @@ export async function optimizedAutoCreateConnections(
     for (const readNode of globalVarReads) {
       const matchingWrites = globalVarWrites.filter(writeNode =>
         writeNode.name === readNode.name &&
-        writeNode.project !== readNode.project
+        writeNode.projectName !== readNode.projectName
       )
 
       for (const writeNode of matchingWrites) {
@@ -140,7 +140,7 @@ export async function optimizedAutoCreateConnections(
         const matchingWrites = storageWrites.filter(writeNode => {
           const writeMeta = writeNode.meta as Record<string, any>
           return writeMeta?.storageKey === storageKey &&
-            writeNode.project !== readNode.project
+            writeNode.projectName !== readNode.projectName
         })
 
         for (const writeNode of matchingWrites) {
@@ -167,7 +167,7 @@ export async function optimizedAutoCreateConnections(
         const matchingEmits = eventEmits.filter(emitNode => {
           const emitMeta = emitNode.meta as Record<string, any>
           return emitMeta?.eventName === eventName &&
-            emitNode.project !== onNode.project
+            emitNode.projectName !== onNode.projectName
         })
 
         for (const emitNode of matchingEmits) {
@@ -190,7 +190,7 @@ export async function optimizedAutoCreateConnections(
       const [referProject, referName] = dynamicModuleFederationReference.name.split('.')
       const matchingExports = namedExports.filter(exportNode =>
         (exportNode.meta as Record<string, string>)?.entryName === referName &&
-        exportNode.project === referProject
+        exportNode.projectName === referProject
       )
 
       for (const exportNode of matchingExports) {

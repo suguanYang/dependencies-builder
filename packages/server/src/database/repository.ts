@@ -55,7 +55,7 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
       }
     }
   }
-
+  console.log('finalWhere: ', finalWhere)
   const [data, total] = await Promise.all([
     prisma.node.findMany({
       where: finalWhere,
@@ -96,12 +96,12 @@ export async function getNodesByIds(ids: string[]) {
 }
 
 export async function createNode(
-  node: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
+  node: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
 ) {
   // Check if node already exists based on unique constraints
   const existingNode = await prisma.node.findFirst({
     where: {
-      project: node.project,
+      projectName: node.projectName,
       branch: node.branch,
       type: node.type,
       name: node.name,
@@ -144,7 +144,7 @@ export async function updateNode(
   return updatedNode
 }
 
-export async function createNodes(nodes: Omit<Prisma.NodeCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]) {
+export async function createNodes(nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]) {
   const createdNodes = await prisma.node.createMany({
     data: nodes,
   })
@@ -176,10 +176,10 @@ export async function getConnections(query: ConnectionQuery & { take?: number; s
   const andConditions: Prisma.ConnectionWhereInput[] = []
 
   // From node filters
-  if (filters.fromNodeName || filters.fromNodeProject || filters.fromNodeType) {
+  if (filters.fromNodeName || filters.fromNodeProjectName || filters.fromNodeType) {
     const fromNodeCondition: Prisma.NodeWhereInput = {}
     if (filters.fromNodeName) fromNodeCondition.name = { contains: filters.fromNodeName }
-    if (filters.fromNodeProject) fromNodeCondition.project = { contains: filters.fromNodeProject }
+    if (filters.fromNodeProjectName) fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
     if (filters.fromNodeType && isValidNodeType(filters.fromNodeType)) {
       fromNodeCondition.type = { equals: filters.fromNodeType as any }
     }
@@ -187,10 +187,10 @@ export async function getConnections(query: ConnectionQuery & { take?: number; s
   }
 
   // To node filters
-  if (filters.toNodeName || filters.toNodeProject || filters.toNodeType) {
+  if (filters.toNodeName || filters.toNodeProjectName || filters.toNodeType) {
     const toNodeCondition: Prisma.NodeWhereInput = {}
     if (filters.toNodeName) toNodeCondition.name = { contains: filters.toNodeName }
-    if (filters.toNodeProject) toNodeCondition.project = { contains: filters.toNodeProject }
+    if (filters.toNodeProjectName) toNodeCondition.projectName = { contains: filters.toNodeProjectName }
     if (filters.toNodeType && isValidNodeType(filters.toNodeType)) {
       toNodeCondition.type = { equals: filters.toNodeType as any }
     }
@@ -263,6 +263,80 @@ export async function deleteConnectionsByFrom(fromId: string) {
   try {
     await prisma.connection.deleteMany({
       where: { fromId },
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Project repository functions
+export async function getProjects(query: Prisma.ProjectFindManyArgs & { where?: any }) {
+  const { where, take, skip } = query
+
+  const [data, total] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: take ?? 100,
+      skip: skip ?? 0,
+    }),
+    prisma.project.count({ where }),
+  ])
+
+  return {
+    data,
+    total,
+  }
+}
+
+export async function getProjectById(id: string) {
+  const project = await prisma.project.findUnique({
+    where: { id },
+  })
+  return project
+}
+
+export async function getProjectByName(name: string) {
+  const project = await prisma.project.findUnique({
+    where: { name },
+  })
+  return project
+}
+
+export async function createProject(
+  project: Omit<Prisma.ProjectCreateInput, 'id' | 'createdAt' | 'updatedAt'>,
+) {
+  // Check if project already exists with the same name
+  const existingProject = await prisma.project.findUnique({
+    where: { name: project.name },
+  })
+
+  if (existingProject) {
+    throw new Error(`Project with name '${project.name}' already exists`)
+  }
+
+  const createdProject = await prisma.project.create({
+    data: project,
+  })
+  return createdProject
+}
+
+export async function updateProject(
+  id: string,
+  updates: Omit<Prisma.ProjectUpdateInput, 'id' | 'createdAt' | 'updatedAt'>,
+) {
+  const updatedProject = await prisma.project.update({
+    where: { id },
+    data: updates,
+  })
+  return updatedProject
+}
+
+export async function deleteProject(id: string) {
+  try {
+    await prisma.project.delete({
+      where: { id },
     })
     return true
   } catch {

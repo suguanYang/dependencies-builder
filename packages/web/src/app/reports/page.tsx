@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, getActions, getActionById, getConnectionsList, getNodes } from '@/lib/api'
+import { type Action, getActions, getActionById, getConnectionsList, getNodes, Node } from '@/lib/api'
 function ReportsContent() {
   const [error, setError] = useState<string>('')
   const [viewingReport, setViewingReport] = useState<{ actionId: string; result: any; connections: any[] } | null>(null)
@@ -26,10 +26,10 @@ function ReportsContent() {
       const result = await getActionById(actionId)
 
       // Query connections for affected nodes by matching node properties
-      const connectionsPromises = result.result?.report?.affectedToNodes?.map(async (node: any) => {
+      const connectionsPromises = result.result?.report?.affectedToNodes?.map(async (node: Node) => {
         // Try to find the node in the database by its properties
         const nodesResponse = await getNodes({
-          project: node.project,
+          projectName: node.projectName,
           branch: node.branch,
           type: node.type,
           name: node.name,
@@ -64,13 +64,6 @@ function ReportsContent() {
 
   return (
     <div className="pt-6 px-6">
-        <header className="mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-            <p className="text-gray-600 mt-2">View and analyze dependency impact reports</p>
-          </div>
-        </header>
-
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircleIcon className="h-4 w-4" />
@@ -111,7 +104,7 @@ function ReportsContent() {
             {reportActions.map((action: Action) => (
               <Card key={action.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-sm">{action.parameters.project}</CardTitle>
+                  <CardTitle className="text-sm">{action.parameters.projectName}</CardTitle>
                   <CardDescription>
                     Branch: {action.parameters.branch}
                     <br />

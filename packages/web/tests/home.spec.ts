@@ -44,7 +44,7 @@ test.describe('Home Page', () => {
         {
           id: '1',
           name: 'test-dependency',
-          project: 'test-project',
+          projectName: 'test-project',
           type: 0,
           branch: 'main'
         }

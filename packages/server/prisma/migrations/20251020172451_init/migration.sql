@@ -1,8 +1,19 @@
 -- CreateTable
+CREATE TABLE "Project" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "addr" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "entries" JSONB,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
 CREATE TABLE "Node" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "branch" TEXT NOT NULL,
-    "project" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "projectName" TEXT NOT NULL,
     "version" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -13,7 +24,8 @@ CREATE TABLE "Node" (
     "endColumn" INTEGER NOT NULL,
     "meta" JSONB NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Node_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -30,9 +42,8 @@ CREATE TABLE "Connection" (
 CREATE TABLE "Action" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "status" TEXT NOT NULL,
-    "project" TEXT,
-    "branch" TEXT,
     "type" TEXT NOT NULL,
+    "parameters" JSONB NOT NULL,
     "result" JSONB,
     "error" TEXT,
     "logs" JSONB,
@@ -41,10 +52,16 @@ CREATE TABLE "Action" (
 );
 
 -- CreateIndex
-CREATE INDEX "Node_branch_project_type_name_idx" ON "Node"("branch", "project", "type", "name");
+CREATE UNIQUE INDEX "Project_name_key" ON "Project"("name");
 
 -- CreateIndex
-CREATE INDEX "Node_project_branch_idx" ON "Node"("project", "branch");
+CREATE INDEX "Project_name_idx" ON "Project"("name");
+
+-- CreateIndex
+CREATE INDEX "Node_branch_projectName_type_name_idx" ON "Node"("branch", "projectName", "type", "name");
+
+-- CreateIndex
+CREATE INDEX "Node_projectName_branch_idx" ON "Node"("projectName", "branch");
 
 -- CreateIndex
 CREATE INDEX "Node_type_name_idx" ON "Node"("type", "name");
@@ -60,9 +77,6 @@ CREATE UNIQUE INDEX "Connection_fromId_toId_key" ON "Connection"("fromId", "toId
 
 -- CreateIndex
 CREATE INDEX "Action_status_idx" ON "Action"("status");
-
--- CreateIndex
-CREATE INDEX "Action_project_branch_idx" ON "Action"("project", "branch");
 
 -- CreateIndex
 CREATE INDEX "Action_type_idx" ON "Action"("type");
