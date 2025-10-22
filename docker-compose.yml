@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: packages/server/Dockerfile
       network: host
+    init: true
     container_name: dms-server
     ports:
       - "0.0.0.0:3001:3001"
