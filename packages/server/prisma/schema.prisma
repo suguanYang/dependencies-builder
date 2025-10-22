@@ -72,9 +72,9 @@ model Node {
   project         Project      @relation("BelongsTo", fields: [projectId], references: [id], onDelete: Cascade)
 
   // Indexes
-  @@index([branch, projectName, type, name])
-  @@index([projectName, branch])
-  @@index([type, name])
+  @@index([projectName])
+  @@index([type])
+  @@index([name])
 }
 
 model Connection {
@@ -120,5 +120,4 @@ model Action {
   // Indexes
   @@index([status])
   @@index([type])
-  @@index([createdAt])
 }

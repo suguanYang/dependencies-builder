@@ -1,36 +1,14 @@
-import { AppType, PrismaClient } from '../src/generated/prisma/client'
+import { PrismaClient } from '../dist/generated/prisma/client.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-
-interface UnifiedProjectData {
-  name: string
-  type: string
-  url: string
-  category?: string
-  entries?: Array<{ name: string; path: string }>
-  metadata?: { uploadOss?: boolean; appNames?: string[] }
-}
-
-interface UnifiedProjectsFile {
-  version: string
-  generatedAt: string
-  projects: UnifiedProjectData[]
-}
-
-interface ProjectData {
-  name: string
-  addr: string
-  type: AppType
-  entries?: Array<{ name: string; path: string }>
-}
 
 /**
  * Extract project data from unified projects-unified.json
  * This script creates seed data for the Project model
  */
-function extractProjectData(): ProjectData[] {
+function extractProjectData() {
   const unifiedPath = join(process.cwd(), './prisma/seed/projects.json')
-  const projects: ProjectData[] = JSON.parse(readFileSync(unifiedPath, 'utf-8'))
+  const projects = JSON.parse(readFileSync(unifiedPath, 'utf-8'))
 
   return projects
 }
@@ -54,26 +32,25 @@ async function seedProjects() {
         where: { name: project.name },
         update: {
           addr: project.addr,
-          entries: project.entries
+          entries: project.entries,
         },
-        create: project
+        create: project,
       })
     })
 
     const results = await Promise.allSettled(upsertPromises)
 
-    const successful = results.filter(result => result.status === 'fulfilled').length
-    const failed = results.filter(result => result.status === 'rejected').length
+    const successful = results.filter((result) => result.status === 'fulfilled').length
+    const failed = results.filter((result) => result.status === 'rejected').length
 
     console.log(`Project seed completed: ${successful} projects processed, ${failed} failed`)
 
     if (failed > 0) {
       const errors = results
-        .filter(result => result.status === 'rejected')
-        .map(result => (result as PromiseRejectedResult).reason)
+        .filter((result) => result.status === 'rejected')
+        .map((result) => result.reason)
       console.warn('Some projects failed to seed:', errors)
     }
-
   } catch (error) {
     console.error('Error seeding projects:', error)
     throw error

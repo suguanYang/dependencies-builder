@@ -3,6 +3,7 @@ CREATE TABLE "Project" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "addr" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
     "entries" JSONB,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -58,13 +59,13 @@ CREATE UNIQUE INDEX "Project_name_key" ON "Project"("name");
 CREATE INDEX "Project_name_idx" ON "Project"("name");
 
 -- CreateIndex
-CREATE INDEX "Node_branch_projectName_type_name_idx" ON "Node"("branch", "projectName", "type", "name");
+CREATE INDEX "Node_projectName_idx" ON "Node"("projectName");
 
 -- CreateIndex
-CREATE INDEX "Node_projectName_branch_idx" ON "Node"("projectName", "branch");
+CREATE INDEX "Node_type_idx" ON "Node"("type");
 
 -- CreateIndex
-CREATE INDEX "Node_type_name_idx" ON "Node"("type", "name");
+CREATE INDEX "Node_name_idx" ON "Node"("name");
 
 -- CreateIndex
 CREATE INDEX "Connection_fromId_idx" ON "Connection"("fromId");
@@ -80,6 +81,3 @@ CREATE INDEX "Action_status_idx" ON "Action"("status");
 
 -- CreateIndex
 CREATE INDEX "Action_type_idx" ON "Action"("type");
-
--- CreateIndex
-CREATE INDEX "Action_createdAt_idx" ON "Action"("createdAt");
