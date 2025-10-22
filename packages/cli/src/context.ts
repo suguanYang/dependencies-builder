@@ -4,12 +4,13 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper';
 import { readFileSync, readdirSync } from 'node:fs';
+import { getProjectByName } from './api';
 
 const path2name = (path: string) => {
     return path.replaceAll('/', '_')
 }
 
-type REPO_TYPE = 'app' | 'lib'
+type REPO_TYPE = 'App' | 'Lib'
 
 // type of package.json
 type METADATA = {
@@ -34,6 +35,7 @@ export interface AnalyzeOptions {
 class Context {
     private metadata?: METADATA
     private type?: REPO_TYPE
+    private entries?: { name: string; path: string }[]
     private remote: boolean = false;
     private tmpDir: string
     private options: AnalyzeOptions
@@ -72,9 +74,15 @@ class Context {
         return this.remote
     }
 
-    getType(): REPO_TYPE {
+    getType() {
         return this.type!
     }
+
+
+    getEntries() {
+        return this.entries || []
+    }
+
 
     getLocalDirectory(branch?: string): string {
         if (branch) {
@@ -167,7 +175,7 @@ class Context {
         throw new Error(`Package '${packageName}' not found in repository`)
     }
 
-    setup(): void {
+    async setup() {
         if (!this.options.repository) {
             throw new Error('Repository must be provided')
         }
@@ -181,16 +189,10 @@ class Context {
         this.localDirectory = path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(this.getBranch()))
         ensureDirectoryExistsSync(this.localDirectory)
 
-        if (this.options.type) {
-            this.type = this.options.type
-            return
-        }
+        const project = await getProjectByName(this.getMetadata().name)
 
-        if (this.options.repository.includes('apps')) {
-            this.type = 'app'
-        } else {
-            this.type = 'lib'
-        }
+        this.type = project.type
+        this.entries = project.entries
     }
 }
 
@@ -207,9 +209,9 @@ export function getContext(): Context {
 }
 
 // Run a function with context in async storage
-export function runWithContext<T>(options: AnalyzeOptions, fn: () => T): T {
+export async function runWithContext<T>(options: AnalyzeOptions, fn: () => T): T {
     const context = new Context(options)
-    context.setup()
+    await context.setup()
 
     return contextStorage.run(context, fn)
 }

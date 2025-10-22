@@ -25,10 +25,6 @@ yargs(hideBin(process.argv))
           type: 'boolean',
           default: false,
         })
-        .option('type', {
-          describe: 'Type of the project',
-          type: 'string',
-        })
         .option('name', {
           describe: 'Project name for monorepo analysis',
           type: 'string',
@@ -43,7 +39,6 @@ yargs(hideBin(process.argv))
       await runWithContext({
         branch: argv.branch,
         repository: argv.repository,
-        type: argv.type as 'app' | 'lib',
         name: argv.name,
       }, analyzeProject)
     },
@@ -68,10 +63,6 @@ yargs(hideBin(process.argv))
           type: 'string',
           demandOption: true,
         })
-        .option('type', {
-          describe: 'Type of the project',
-          type: 'string',
-        })
         .option('name', {
           describe: 'Project name for monorepo analysis',
           type: 'string',
@@ -93,7 +84,6 @@ yargs(hideBin(process.argv))
         branch: argv.branch,
         repository: argv.repository,
         targetBranch: argv.targetBranch,
-        type: argv.type as 'app' | 'lib',
         name: argv.name,
       }, () => generateReport())
     },

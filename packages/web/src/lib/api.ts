@@ -307,11 +307,22 @@ export async function stopActionExecution(actionId: string): Promise<{ success: 
 }
 
 // Projects API
+export enum AppType {
+  Lib = "Lib",
+  App = "App"
+}
+
+export interface ProjectEntry {
+  name: string
+  path: string
+}
+
 export interface Project {
   id: string
   name: string
   addr: string
-  entries?: Record<string, any>
+  type: AppType
+  entries?: ProjectEntry[]
   createdAt: string
   updatedAt: string
 }
@@ -319,6 +330,7 @@ export interface Project {
 export interface ProjectQuery {
   name?: string
   addr?: string
+  type?: AppType
   limit?: number
   offset?: number
 }
@@ -326,13 +338,15 @@ export interface ProjectQuery {
 export interface ProjectCreationData {
   name: string
   addr: string
-  entries?: Record<string, any>
+  type: AppType
+  entries?: ProjectEntry[]
 }
 
 export interface ProjectUpdateData {
   name?: string
   addr?: string
-  entries?: Record<string, any>
+  type?: AppType
+  entries?: ProjectEntry[]
 }
 
 export async function getProjects(filters?: ProjectQuery): Promise<{ data: Project[]; total: number }> {
@@ -340,6 +354,7 @@ export async function getProjects(filters?: ProjectQuery): Promise<{ data: Proje
 
   if (filters?.name) params.append('name', filters.name)
   if (filters?.addr) params.append('addr', filters.addr)
+  if (filters?.type) params.append('type', filters.type)
   if (filters?.limit) params.append('limit', filters.limit.toString())
   if (filters?.offset) params.append('offset', filters.offset.toString())
 

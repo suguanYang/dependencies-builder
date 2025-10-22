@@ -101,7 +101,7 @@ const getEntriesInConfig = (wd: string) => {
 const getEntries = () => {
     const ctx = getContext()
     const entries: { name: string, path: string }[] = []
-    if (ctx.getType() === 'lib') {
+    if (ctx.getType() === 'Lib') {
         entries.push({ name: 'index', path: 'index.ts' })
         entries.push({ name: 'index', path: 'index.tsx' })
         entries.push(...getEntriesInConfig(ctx.getWorkingDirectory()))
@@ -109,28 +109,8 @@ const getEntries = () => {
         entries.push(...getEntriesInWebpackConfig(ctx.getWorkingDirectory()))
     }
 
-    if (ctx.getMetadata().name === 'main') {
-        entries.push({ name: 'seeyon_ui_index', path: 'ui/index.tsx' })
-    }
-
-    if (ctx.getMetadata().name === 'main-mobile') {
-        entries.push({ name: 'seeyon_mui_index', path: 'mui/index.tsx' })
-    }
-
-    if (ctx.getMetadata().name === 'cdp-data') {
-        entries.push({ name: 'SearchInput', path: 'components/cdp-index/search-header/index.tsx' })
-        entries.push({ name: 'SearchCloud', path: 'components/cdp-index/search-word-cloud/index.tsx' })
-        entries.push({ name: 'SearchCloudSet', path: 'components/cdp-index/search-word-set/index.tsx' })
-        entries.push({ name: 'SearchConfig', path: 'pages/cdp-index/search-config/index.tsx' })
-        entries.push({ name: 'ReportCategory', path: 'portlet/cdp-bi/reportCategory/index.jsx' })
-        entries.push({ name: 'ReportSelect', path: 'portlet/cdp-bi/reportSelect/index.jsx' })
-        entries.push({ name: 'MyReport', path: 'portlet/cdp-bi/myReport/index.jsx' })
-        entries.push({ name: 'AnalyticStatistics', path: 'udcEntry.jsx' })
-        entries.push({ name: 'ReportComponent', path: 'portlet/index.jsx' })
-    }
-
-    if (ctx.getMetadata().name === 'oauth') {
-        entries.push({ name: 'Entry', path: 'router.tsx' })
+    for (const predefinedEntry of ctx.getEntries()) {
+        entries.push(predefinedEntry)
     }
 
     // ignore the entries that are not in the dist directory & reduplicate the entries that have the same name

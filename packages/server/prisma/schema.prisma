@@ -28,10 +28,16 @@ enum NodeType {
   DynamicModuleFederationReference
 }
 
+enum AppType {
+  Lib
+  App
+}
+
 model Project {
   id        String   @id @default(cuid())
   addr      String
   name      String   @unique
+  type      AppType
   entries   Json?    // Store project entries path for projects that cannot find entries by static analysis
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

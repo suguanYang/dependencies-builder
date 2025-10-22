@@ -99,7 +99,6 @@ function NodesContent() {
   const handleCreate = async () => {
     try {
       await createNode(newNode)
-      setIsCreating(false)
       setNewNode({
         projectName: '',
         branch: '',
@@ -117,6 +116,8 @@ function NodesContent() {
       mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create node')
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -136,11 +137,12 @@ function NodesContent() {
         version: editingNode.version,
         meta: editingNode.meta
       })
-      setEditingNode(null)
       // Refresh the nodes data
       mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update node')
+    } finally {
+      setEditingNode(null)
     }
   }
 

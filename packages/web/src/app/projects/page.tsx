@@ -2,15 +2,16 @@
 
 import React, { useState, Suspense } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, EditIcon, CodeIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Project, type ProjectQuery, getProjects, deleteProject, createProject, updateProject } from '@/lib/api'
+import { type Project, type ProjectQuery, type ProjectEntry, AppType, getProjects, deleteProject, createProject, updateProject } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 function ProjectsContent() {
   const router = useRouter()
@@ -21,7 +22,8 @@ function ProjectsContent() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [searchFilters, setSearchFilters] = useState<ProjectQuery>({
     name: '',
-    addr: ''
+    addr: '',
+    type: undefined
   })
 
   // Get pagination from URL query parameters
@@ -47,8 +49,64 @@ function ProjectsContent() {
   const [newProject, setNewProject] = useState({
     name: '',
     addr: '',
-    entries: {}
+    type: AppType.App,
+    entries: [] as ProjectEntry[]
   })
+
+  // Helper function to format entries for display
+  const formatEntriesForDisplay = (entries?: ProjectEntry[]): string => {
+    if (!entries || entries.length === 0) {
+      return 'No entries'
+    }
+    return `${entries.length} entries`
+  }
+
+  // Helper functions for managing entries array
+  const addNewEntry = () => {
+    setNewProject(prev => ({
+      ...prev,
+      entries: [...prev.entries, { name: '', path: '' }]
+    }))
+  }
+
+  const updateEntry = (index: number, field: 'name' | 'path', value: string) => {
+    setNewProject(prev => ({
+      ...prev,
+      entries: prev.entries.map((entry, i) => i === index ? { ...entry, [field]: value } : entry)
+    }))
+  }
+
+  const removeEntry = (index: number) => {
+    setNewProject(prev => ({
+      ...prev,
+      entries: prev.entries.filter((_, i) => i !== index)
+    }))
+  }
+
+  // Helper functions for editing project entries
+  const addEditingEntry = () => {
+    if (!editingProject) return
+    setEditingProject({
+      ...editingProject,
+      entries: [...(editingProject.entries || []), { name: '', path: '' }]
+    })
+  }
+
+  const updateEditingEntry = (index: number, field: 'name' | 'path', value: string) => {
+    if (!editingProject) return
+    setEditingProject({
+      ...editingProject,
+      entries: (editingProject.entries || []).map((entry, i) => i === index ? { ...entry, [field]: value } : entry)
+    })
+  }
+
+  const removeEditingEntry = (index: number) => {
+    if (!editingProject) return
+    setEditingProject({
+      ...editingProject,
+      entries: (editingProject.entries || []).filter((_, i) => i !== index)
+    })
+  }
 
   // Fetch projects with server-side filtering
   const { data: projectsResponse, isLoading } = useSWR(
@@ -56,6 +114,7 @@ function ProjectsContent() {
     () => getProjects({
       name: searchFilters.name || undefined,
       addr: searchFilters.addr || undefined,
+      type: searchFilters.type,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize
     })
@@ -75,48 +134,69 @@ function ProjectsContent() {
   }
 
   const handleCreate = async () => {
+    // Filter out entries with both empty name and path
+    const filteredEntries = newProject.entries.filter(entry =>
+      entry.name.trim() !== '' || entry.path.trim() !== ''
+    )
+
     try {
-      await createProject(newProject)
-      setIsCreating(false)
+      await createProject({
+        name: newProject.name,
+        addr: newProject.addr,
+        type: newProject.type,
+        entries: filteredEntries
+      })
       setNewProject({
         name: '',
         addr: '',
-        entries: {}
+        type: AppType.App,
+        entries: []
       })
       // Refresh the projects data
       mutate(['projects', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project')
+    } finally {
+      setIsCreating(false)
     }
   }
 
   const handleUpdate = async () => {
     if (!editingProject) return
+
+    // Filter out entries with both empty name and path
+    const filteredEntries = (editingProject.entries || []).filter(entry =>
+      entry.name.trim() !== '' || entry.path.trim() !== ''
+    )
+
     try {
       await updateProject(editingProject.id, {
         name: editingProject.name,
         addr: editingProject.addr,
-        entries: editingProject.entries
+        type: editingProject.type,
+        entries: filteredEntries
       })
-      setEditingProject(null)
       // Refresh the projects data
       mutate(['projects', searchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update project')
+    } finally {
+      setEditingProject(null)
     }
   }
 
   return (
-    <div className="pt-6 px-6">
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircleIcon className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-      )}
+    <TooltipProvider>
+      <div className="pt-6 px-6">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircleIcon className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
       <div className="flex gap-6 h-full">
         {/* Left side - Filters */}
@@ -139,6 +219,44 @@ function ProjectsContent() {
                   value={searchFilters.addr}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, addr: e.target.value }))}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Project Type</label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="type"
+                      value=""
+                      checked={!searchFilters.type}
+                      onChange={() => setSearchFilters(prev => ({ ...prev, type: undefined }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">All Types</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="type"
+                      value={AppType.Lib}
+                      checked={searchFilters.type === AppType.Lib}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value as AppType }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Library</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="type"
+                      value={AppType.App}
+                      checked={searchFilters.type === AppType.App}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, type: e.target.value as AppType }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Application</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -180,7 +298,7 @@ function ProjectsContent() {
                 {
                   key: 'name',
                   header: 'Name',
-                  width: '300',
+                  width: '200',
                   render: (project: Project) => (
                     <div className="font-medium text-blue-600 truncate">
                       {project.name}
@@ -188,9 +306,23 @@ function ProjectsContent() {
                   )
                 },
                 {
+                  key: 'type',
+                  header: 'Type',
+                  width: 100,
+                  render: (project: Project) => (
+                    <div className={`text-sm font-medium px-2 py-1 rounded-full text-center ${
+                      project.type === AppType.Lib
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {project.type}
+                    </div>
+                  )
+                },
+                {
                   key: 'addr',
                   header: 'Address',
-                  width: '400',
+                  width: '300',
                   render: (project: Project) => (
                     <div className="truncate text-sm text-gray-600">
                       {project.addr}
@@ -200,7 +332,7 @@ function ProjectsContent() {
                 {
                   key: 'createdAt',
                   header: 'Created',
-                  width: 120,
+                  width: 100,
                   render: (project: Project) => (
                     <div className="text-sm text-gray-500">
                       {new Date(project.createdAt).toLocaleDateString()}
@@ -241,33 +373,129 @@ function ProjectsContent() {
       {/* Create Project Modal */}
       {isCreating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+          <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
             <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project Name</label>
-                <Input
-                  value={newProject.name}
-                  onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Project name (must be unique)"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Project Name</label>
+                  <Input
+                    value={newProject.name}
+                    onChange={(e) => setNewProject(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Project name (must be unique)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Project Address</label>
+                  <Input
+                    value={newProject.addr}
+                    onChange={(e) => setNewProject(prev => ({ ...prev, addr: e.target.value }))}
+                    placeholder="Project address/path"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Project Address</label>
-                <Input
-                  value={newProject.addr}
-                  onChange={(e) => setNewProject(prev => ({ ...prev, addr: e.target.value }))}
-                  placeholder="Project address/path"
-                />
+                <label className="block text-sm font-medium mb-2">Project Type</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="create-type"
+                      value={AppType.Lib}
+                      checked={newProject.type === AppType.Lib}
+                      onChange={(e) => setNewProject(prev => ({ ...prev, type: e.target.value as AppType }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Library</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="create-type"
+                      value={AppType.App}
+                      checked={newProject.type === AppType.App}
+                      onChange={(e) => setNewProject(prev => ({ ...prev, type: e.target.value as AppType }))}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Application</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">
+                    Project Entries
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addNewEntry}
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Add Entry
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Store project entries path for projects that cannot find entries by static analysis
+                </p>
+
+                {newProject.entries.length === 0 ? (
+                  <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
+                    <p className="text-sm text-gray-500">No entries added yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {newProject.entries.map((entry, index) => (
+                      <div key={index} className="space-y-2 p-3 border border-gray-200 rounded-md">
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-gray-600">Entry Name</label>
+                            <Input
+                              value={entry.name}
+                              onChange={(e) => updateEntry(index, 'name', e.target.value)}
+                              placeholder="Entry name"
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-gray-600">Entry Path</label>
+                            <Input
+                              value={entry.path}
+                              onChange={(e) => updateEntry(index, 'path', e.target.value)}
+                              placeholder="/path/to/entry"
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="flex-shrink-0 self-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeEntry(index)}
+                              className="mt-6"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex space-x-4">
                 <Button onClick={handleCreate} className="flex-1">
                   Create
                 </Button>
-                <Button variant="outline" onClick={() => setIsCreating(false)} className="flex-1">
+                <Button variant="outline" onClick={() => {
+                  setIsCreating(false)
+                }} className="flex-1">
                   Cancel
                 </Button>
               </div>
@@ -279,33 +507,129 @@ function ProjectsContent() {
       {/* Edit Project Modal */}
       {editingProject && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+          <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
             <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project Name</label>
-                <Input
-                  value={editingProject.name}
-                  onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
-                  placeholder="Project name (must be unique)"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Project Name</label>
+                  <Input
+                    value={editingProject.name}
+                    onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                    placeholder="Project name (must be unique)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Project Address</label>
+                  <Input
+                    value={editingProject.addr}
+                    onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, addr: e.target.value }) : null)}
+                    placeholder="Project address/path"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Project Address</label>
-                <Input
-                  value={editingProject.addr}
-                  onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, addr: e.target.value }) : null)}
-                  placeholder="Project address/path"
-                />
+                <label className="block text-sm font-medium mb-2">Project Type</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="edit-type"
+                      value={AppType.Lib}
+                      checked={editingProject.type === AppType.Lib}
+                      onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, type: e.target.value as AppType }) : null)}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Library</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="edit-type"
+                      value={AppType.App}
+                      checked={editingProject.type === AppType.App}
+                      onChange={(e) => setEditingProject(prev => prev ? ({ ...prev, type: e.target.value as AppType }) : null)}
+                      className="text-blue-600"
+                    />
+                    <span className="text-sm">Application</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">
+                    Project Entries
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEditingEntry}
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Add Entry
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Store project entries path for projects that cannot find entries by static analysis
+                </p>
+
+                {(editingProject.entries || []).length === 0 ? (
+                  <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
+                    <p className="text-sm text-gray-500">No entries added yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {(editingProject.entries || []).map((entry, index) => (
+                      <div key={index} className="space-y-2 p-3 border border-gray-200 rounded-md">
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-gray-600">Entry Name</label>
+                            <Input
+                              value={entry.name}
+                              onChange={(e) => updateEditingEntry(index, 'name', e.target.value)}
+                              placeholder="Entry name"
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1 text-gray-600">Entry Path</label>
+                            <Input
+                              value={entry.path}
+                              onChange={(e) => updateEditingEntry(index, 'path', e.target.value)}
+                              placeholder="/path/to/entry"
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="flex-shrink-0 self-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeEditingEntry(index)}
+                              className="mt-6"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex space-x-4">
                 <Button onClick={handleUpdate} className="flex-1">
                   Update
                 </Button>
-                <Button variant="outline" onClick={() => setEditingProject(null)} className="flex-1">
+                <Button variant="outline" onClick={() => {
+                  setEditingProject(null)
+                }} className="flex-1">
                   Cancel
                 </Button>
               </div>
@@ -313,7 +637,8 @@ function ProjectsContent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
