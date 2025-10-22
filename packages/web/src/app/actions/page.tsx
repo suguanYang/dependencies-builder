@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Action, type CreateActionData, getActions, deleteAction, createAction,  stopActionExecution, getActionById } from '@/lib/api'
+import { type Action, type CreateActionData, getActions, deleteAction, createAction,  stopActionExecution, getActionById, type Project } from '@/lib/api'
+import { ProjectSelector } from '@/components/project-selector'
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
@@ -23,6 +24,7 @@ function ActionsContent() {
       result: any;
     }
   } | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project>()
   const [newAction, setNewAction] = useState<CreateActionData>({
     projectAddr: '',
     projectName: '',
@@ -38,6 +40,23 @@ function ActionsContent() {
 
   const actions = actionsResponse?.data || []
 
+  // Update newAction when project is selected
+  React.useEffect(() => {
+    if (selectedProject) {
+      setNewAction(prev => ({
+        ...prev,
+        projectName: selectedProject.name,
+        projectAddr: selectedProject.addr
+      }))
+    } else {
+      setNewAction(prev => ({
+        ...prev,
+        projectName: '',
+        projectAddr: ''
+      }))
+    }
+  }, [selectedProject])
+
   const handleDelete = async (actionId: string) => {
     try {
       await deleteAction(actionId)
@@ -51,6 +70,7 @@ function ActionsContent() {
     try {
       await createAction(newAction)
       setIsCreating(false)
+      setSelectedProject(undefined)
       setNewAction({
         projectAddr: '',
         projectName: '',
@@ -276,20 +296,11 @@ function ActionsContent() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Project Name</label>
-                <Input
-                  value={newAction.projectName}
-                  onChange={(e) => setNewAction(prev => ({ ...prev, projectName: e.target.value }))}
-                  placeholder="Project name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Project Address</label>
-                <Input
-                  value={newAction.projectAddr}
-                  onChange={(e) => setNewAction(prev => ({ ...prev, projectAddr: e.target.value }))}
-                  placeholder="Project address"
+                <label className="block text-sm font-medium mb-2">Project</label>
+                <ProjectSelector
+                  value={selectedProject}
+                  onValueChange={setSelectedProject}
+                  placeholder="Select a project..."
                 />
               </div>
 
@@ -330,7 +341,10 @@ function ActionsContent() {
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Create & Run
                 </Button>
-                <Button variant="outline" onClick={() => setIsCreating(false)} className="flex-1">
+                <Button variant="outline" onClick={() => {
+                  setIsCreating(false)
+                  setSelectedProject(undefined)
+                }} className="flex-1">
                   Cancel
                 </Button>
               </div>

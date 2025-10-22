@@ -209,7 +209,7 @@ export function getContext(): Context {
 }
 
 // Run a function with context in async storage
-export async function runWithContext<T>(options: AnalyzeOptions, fn: () => T): T {
+export async function runWithContext<T>(options: AnalyzeOptions, fn: () => T): Promise<T> {
     const context = new Context(options)
     await context.setup()
 
