@@ -6,9 +6,11 @@ ENV DATABASE_URL=file:/data/dms.db
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs git
+    apt-get install -y curl
+
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+
+RUN apt-get install -y nodejs git build-essential make
 
 RUN corepack enable
 
