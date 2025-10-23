@@ -8,9 +8,7 @@ import { authenticate, requireAdmin } from '../../auth/middleware'
 
 function actionsRoutes(fastify: FastifyInstance) {
   // GET /actions - Get actions with query parameters
-  fastify.get('/actions', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/actions', async (request, reply) => {
     try {
       const query = formatStringToNumber(request.query as repository.ActionQuery)
       const result = await repository.getActions(query)
@@ -29,9 +27,7 @@ function actionsRoutes(fastify: FastifyInstance) {
   })
 
   // GET /actions/:id - Get action by ID
-  fastify.get('/actions/:id', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/actions/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const action = await repository.getActionById(id)
@@ -52,7 +48,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
   // POST /actions - Create a new action and trigger CLI execution
   fastify.post('/actions', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const actionData = request.body as ActionData
@@ -91,7 +87,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
   // DELETE /actions/:id - Delete an action
   fastify.delete('/actions/:id', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
@@ -118,7 +114,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
   // POST /actions/:id/stop - Stop action execution
   fastify.post('/actions/:id/stop', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
@@ -156,7 +152,7 @@ function actionsRoutes(fastify: FastifyInstance) {
 
   // POST /actions/connection-auto-create - Trigger connection auto-creation
   fastify.post('/actions/connection-auto-create', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       // Check if there are too many running actions (limit: 10)

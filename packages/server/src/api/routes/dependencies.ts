@@ -5,9 +5,7 @@ import { authenticate } from '../../auth/middleware'
 
 function dependenciesRoutes(fastify: FastifyInstance) {
   // GET /dependencies/:nodeId - Get dependency graph for a node
-  fastify.get('/dependencies/:nodeId', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/dependencies/:nodeId', async (request, reply) => {
     try {
       const { nodeId } = request.params as { nodeId: string }
       // Currently returns full graph - could be enhanced to filter by nodeId
@@ -31,9 +29,7 @@ function dependenciesRoutes(fastify: FastifyInstance) {
   })
 
   // GET /dependencies/projects/:projectName/:branch - Get project-level dependency graph
-  fastify.get('/dependencies/projects/:projectName/:branch', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/dependencies/projects/:projectName/:branch', async (request, reply) => {
     try {
       const { projectName, branch } = request.params as { projectName: string; branch: string }
 

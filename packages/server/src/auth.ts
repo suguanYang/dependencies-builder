@@ -20,11 +20,11 @@ const ac = createAccessControl(statement);
 
 // Define roles with specific permissions
 export const userRole = ac.newRole({
-  project: ["read"],
-  node: ["read"],
-  connection: ["read"],
-  action: ["read"],
-  database: [], // Users don't have database permissions
+  project: ["create", "read", "update", "delete"],
+  node: ["create", "read", "update", "delete"],
+  connection: ["create", "read", "update", "delete"],
+  action: ["create", "read", "update", "delete", "stop"],
+  database: [],
 });
 
 export const adminRole = ac.newRole({

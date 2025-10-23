@@ -7,9 +7,7 @@ import { authenticate, requireAdmin } from '../../auth/middleware'
 
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
-  fastify.get('/connections', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/connections', async (request, reply) => {
     try {
       const query = formatStringToNumber(request.query as ConnectionQuery)
       const result = await repository.getConnections(query)
@@ -29,7 +27,7 @@ function connectionsRoutes(fastify: FastifyInstance) {
 
   // POST /connections - Create a new connection
   fastify.post('/connections', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { fromId, toId } = request.body as Omit<Connection, 'id' | 'createdAt'>
@@ -45,7 +43,7 @@ function connectionsRoutes(fastify: FastifyInstance) {
 
   // DELETE /connections-by-from/:fromId - Delete connections by from node
   fastify.delete('/connections-by-from/:fromId', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { fromId } = request.params as Pick<Connection, 'fromId'>
@@ -67,7 +65,7 @@ function connectionsRoutes(fastify: FastifyInstance) {
 
   // DELETE /connections/:id - Delete connections by id
   fastify.delete('/connections/:id', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as Pick<Connection, 'id'>

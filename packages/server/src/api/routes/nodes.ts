@@ -7,9 +7,7 @@ import { authenticate, requireAdmin } from '../../auth/middleware'
 
 function nodesRoutes(fastify: FastifyInstance) {
   // GET /nodes - Get nodes with query parameters
-  fastify.get('/nodes', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/nodes', async (request, reply) => {
     try {
       const { limit, offset, ...where } = formatStringToNumber(request.query as NodeQuery)
 
@@ -35,9 +33,7 @@ function nodesRoutes(fastify: FastifyInstance) {
   })
 
   // POST /nodes/batch - Get multiple nodes by IDs
-  fastify.post('/nodes/batch', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.post('/nodes/batch', async (request, reply) => {
     try {
       const { ids } = request.body as { ids: string[] }
 
@@ -57,9 +53,7 @@ function nodesRoutes(fastify: FastifyInstance) {
   })
 
   // GET /nodes/:id - Get node by ID
-  fastify.get('/nodes/:id', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  fastify.get('/nodes/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const node = await repository.getNodeById(id)
@@ -80,7 +74,7 @@ function nodesRoutes(fastify: FastifyInstance) {
 
   // POST /nodes - Create a new node
   fastify.post('/nodes', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const nodeData = request.body as NodeCreationBody
@@ -107,7 +101,7 @@ function nodesRoutes(fastify: FastifyInstance) {
 
   // POST /nodes/batch-create - Create multiple nodes(same project) in batch
   fastify.post('/nodes/batch-create', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const nodesData = request.body as NodeCreationBody[]
@@ -144,7 +138,7 @@ function nodesRoutes(fastify: FastifyInstance) {
 
   // PUT /nodes/:id - Update a node
   fastify.put('/nodes/:id', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
@@ -168,7 +162,7 @@ function nodesRoutes(fastify: FastifyInstance) {
 
   // DELETE /nodes/:id - Delete a node
   fastify.delete('/nodes/:id', {
-    preHandler: [authenticate, requireAdmin]
+    preHandler: [authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
