@@ -1,4 +1,5 @@
 const BUILTIN_GLOBVARS = new Set([
+    "webkitURL",
     "window",
     "undefined",
     "null",

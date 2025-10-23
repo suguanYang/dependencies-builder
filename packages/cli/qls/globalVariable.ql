@@ -1,20 +1,14 @@
+/**
+ * @name Find all Read/Write references to global variables
+ * @description This query finds all references to global variables and
+ * classifies them as a "Read" or "Write" access.
+ * @kind table
+ * @id js/global-var-access
+ * @tags maintainability
+ */
+
 import javascript
-import semmle.javascript.dataflow.TaintTracking
 import libs.location
-
-module GlobalVarRefTrackingConfig implements DataFlow::ConfigSig {
-  predicate isSource(DataFlow::Node source) {
-     exists(string name |
-       source = DataFlow::globalVarRef(name)
-     )
-  }
-
-  predicate isSink(DataFlow::Node sink) {
-    any()
-  }
-}
-
-module GlobalVarRefFlow = TaintTracking::Global<GlobalVarRefTrackingConfig>;
 
 private predicate isAssignToGlobalVar(DataFlow::Node source) {
   exists(AssignExpr ass |
@@ -22,13 +16,10 @@ private predicate isAssignToGlobalVar(DataFlow::Node source) {
   )
 }
 
-from DataFlow::Node source, DataFlow::Node usage, string name, string type
+from DataFlow::Node globalRef, string name, string type
 where
-  GlobalVarRefFlow::flow(source, usage)
-  and
-  source = DataFlow::globalVarRef(name)
-  and
-  if (isAssignToGlobalVar(source))
+  globalRef = DataFlow::globalVarRef(name) and
+  if (isAssignToGlobalVar(globalRef))
   then type = "Write"
   else type = "Read"
-select name, type, getLocation(usage.getAstNode())
+select name, type, getLocation(globalRef.getAstNode())
