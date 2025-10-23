@@ -3,10 +3,13 @@ import * as repository from '../../database/repository'
 import type { ConnectionQuery } from '../types'
 import type { Connection } from '../../generated/prisma/client'
 import { formatStringToNumber } from '../request_parameter'
+import { authenticate, requireAdmin } from '../../auth/middleware'
 
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
-  fastify.get('/connections', async (request, reply) => {
+  fastify.get('/connections', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
     try {
       const query = formatStringToNumber(request.query as ConnectionQuery)
       const result = await repository.getConnections(query)
@@ -25,7 +28,9 @@ function connectionsRoutes(fastify: FastifyInstance) {
   })
 
   // POST /connections - Create a new connection
-  fastify.post('/connections', async (request, reply) => {
+  fastify.post('/connections', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { fromId, toId } = request.body as Omit<Connection, 'id' | 'createdAt'>
       const connection = await repository.createConnection(fromId, toId)
@@ -39,7 +44,9 @@ function connectionsRoutes(fastify: FastifyInstance) {
   })
 
   // DELETE /connections-by-from/:fromId - Delete connections by from node
-  fastify.delete('/connections-by-from/:fromId', async (request, reply) => {
+  fastify.delete('/connections-by-from/:fromId', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { fromId } = request.params as Pick<Connection, 'fromId'>
       const success = await repository.deleteConnectionsByFrom(fromId)
@@ -59,7 +66,9 @@ function connectionsRoutes(fastify: FastifyInstance) {
   })
 
   // DELETE /connections/:id - Delete connections by id
-  fastify.delete('/connections/:id', async (request, reply) => {
+  fastify.delete('/connections/:id', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { id } = request.params as Pick<Connection, 'id'>
       const success = await repository.deleteConnection(id)

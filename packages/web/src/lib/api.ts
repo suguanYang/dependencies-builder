@@ -45,7 +45,7 @@ export interface SearchFilters {
   offset?: number
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://172.20.169.243:3001'
+const API_BASE = '/api'
 
 export async function searchNodes(filters: SearchFilters): Promise<Node[]> {
   const params = new URLSearchParams()
@@ -80,19 +80,26 @@ export async function getConnections(nodeId: string): Promise<Connection[]> {
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`
 
+  const headers: Record<string, string> = {
+    ...(!!options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.headers as Record<string, string>),
+  }
+
   const response = await fetch(url, {
-    headers: {
-      ...options.headers,
-      ...(!!options.body
-        ? {
-            'Content-Type': 'application/json',
-          }
-        : {}),
-    },
+    headers,
     ...options,
   })
 
   if (!response.ok) {
+    // Handle 401 Unauthorized by redirecting to login
+    if (response.status === 401) {
+      // Redirect to login page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
+      throw new Error('Authentication required')
+    }
+
     const errorData = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,

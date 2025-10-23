@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../../database/prisma'
+import { authenticate, requireAdmin } from '../../auth/middleware'
 
 interface DatabaseQueryRequest {
   query: string
@@ -40,7 +41,9 @@ function convertBigIntToNumber(obj: any): any {
 
 function databaseAdminRoutes(fastify: FastifyInstance) {
   // POST /database-admin/query - Execute raw SQL query
-  fastify.post('/database-admin/query', async (request, reply) => {
+  fastify.post('/database-admin/query', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { query } = request.body as DatabaseQueryRequest
 
@@ -53,7 +56,6 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
 
       // Basic safety check - prevent destructive operations
       const trimmedQuery = query.trim().toLowerCase()
-      const destructiveKeywords = ['drop', 'delete', 'truncate', 'alter', 'create', 'insert', 'update']
 
       // Allow SELECT queries and basic introspection
       const isSafeQuery =
@@ -108,7 +110,9 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
   })
 
   // GET /database-admin/schema - Get database schema information
-  fastify.get('/database-admin/schema', async (request, reply) => {
+  fastify.get('/database-admin/schema', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (_request, reply) => {
     try {
       // Get table information
       const tables = await prisma.$queryRaw`
@@ -151,7 +155,9 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
   })
 
   // GET /database-admin/tables/:tableName - Get table structure
-  fastify.get('/database-admin/tables/:tableName', async (request, reply) => {
+  fastify.get('/database-admin/tables/:tableName', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { tableName } = request.params as { tableName: string }
 

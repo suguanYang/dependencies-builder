@@ -4,10 +4,13 @@ import { queryContains } from '../../utils'
 import * as repository from '../../database/repository'
 import type { ProjectQuery, ProjectCreationBody, ProjectUpdateBody } from '../types'
 import { formatStringToNumber } from '../request_parameter'
+import { authenticate, requireAdmin } from '../../auth/middleware'
 
 function projectsRoutes(fastify: FastifyInstance) {
   // GET /projects - Get projects with query parameters
-  fastify.get('/projects', async (request, reply) => {
+  fastify.get('/projects', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
     try {
       const { limit, offset, ...where } = formatStringToNumber(request.query as ProjectQuery)
       queryContains(where, ['name', 'addr'])
@@ -31,7 +34,9 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // GET /projects/:id - Get project by ID
-  fastify.get('/projects/:id', async (request, reply) => {
+  fastify.get('/projects/:id', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const project = await repository.getProjectById(id)
@@ -51,7 +56,9 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // GET /projects/name/:name - Get project by name
-  fastify.get('/projects/name/:name', async (request, reply) => {
+  fastify.get('/projects/name/:name', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
     try {
       const { name } = request.params as { name: string }
       const project = await repository.getProjectByName(name)
@@ -71,7 +78,9 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // POST /projects - Create a new project
-  fastify.post('/projects', async (request, reply) => {
+  fastify.post('/projects', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const projectData = request.body as ProjectCreationBody
       const project = await repository.createProject(projectData)
@@ -89,7 +98,9 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // PUT /projects/:id - Update a project
-  fastify.put('/projects/:id', async (request, reply) => {
+  fastify.put('/projects/:id', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const updates = request.body as ProjectUpdateBody
@@ -115,7 +126,9 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // DELETE /projects/:id - Delete a project
-  fastify.delete('/projects/:id', async (request, reply) => {
+  fastify.delete('/projects/:id', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string }
       const success = await repository.deleteProject(id)

@@ -121,3 +121,85 @@ model Action {
   @@index([status])
   @@index([type])
 }
+
+// Better Auth Models
+model User {
+  id           String    @id @default(cuid())
+  name         String?
+  email        String    @unique
+  emailVerified Boolean  @default(false)
+  image        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  // Admin plugin fields
+  role         String?   @default("user")
+  banned       Boolean   @default(false)
+  banReason    String?
+  banExpires   DateTime?
+
+  // Relations
+  accounts     Account[]
+  sessions     Session[]
+
+  // Indexes
+  @@index([email])
+  @@index([role])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  expiresAt    DateTime
+  token        String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  ipAddress    String?
+  userAgent    String?
+
+  // Admin plugin field
+  impersonatedBy String?
+
+  // Relations
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  accountId         String
+  providerId        String
+  userId            String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  accessTokenExpiresAt DateTime?
+  scope             String?
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  // Relations
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id           String   @id @default(cuid())
+  identifier   String
+  value        String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  // Indexes
+  @@unique([identifier, value])
+  @@index([expiresAt])
+}

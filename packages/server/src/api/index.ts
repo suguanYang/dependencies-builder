@@ -5,10 +5,12 @@ import dependenciesRoutes from './routes/dependencies'
 import actionsRoutes from './routes/actions'
 import projectsRoutes from './routes/projects'
 import databaseAdminRoutes from './routes/database-admin'
+import authRoutes from './routes/auth'
 import { prisma } from '../database/prisma'
 
 export async function setupAPI(fastify: FastifyInstance) {
   // Register routes
+  fastify.register(authRoutes)
   fastify.register(nodesRoutes)
   fastify.register(connectionsRoutes)
   fastify.register(dependenciesRoutes)

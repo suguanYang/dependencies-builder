@@ -1,5 +1,6 @@
 import './globals.css'
 import { SidebarProvider } from '@/contexts/sidebar-context'
+import { AuthProvider } from '@/contexts/auth-context'
 import { CollapsibleNavigation } from '@/components/collapsible-navigation'
 
 export default function RootLayout({
@@ -10,15 +11,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SidebarProvider>
-          <div className="min-h-screen bg-gray-50 flex">
-            {/* Collapsible Navigation */}
-            <CollapsibleNavigation />
+        <AuthProvider>
+          <SidebarProvider>
+            <div className="min-h-screen bg-gray-50 flex">
+              {/* Collapsible Navigation */}
+              <CollapsibleNavigation />
 
-            {/* Main Content */}
-            <main className="flex-1">{children}</main>
-          </div>
-        </SidebarProvider>
+              {/* Main Content */}
+              <main className="flex-1">{children}</main>
+            </div>
+          </SidebarProvider>
+        </AuthProvider>
       </body>
     </html>
   )
