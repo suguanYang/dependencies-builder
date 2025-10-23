@@ -247,7 +247,7 @@ function ConnectionsContent() {
         </div>
       )}
 
-      <div className={`flex-1 pt-6 px-6 transition-all duration-300 'ml-60'`}>
+      <div className={`flex-1 pt-6 px-6 transition-all duration-300`}>
         <div className="flex gap-6 h-full">
           {/* Left side - Filters */}
           <div className="w-64 flex-shrink-0">
