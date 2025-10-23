@@ -22,14 +22,13 @@ type METADATA = {
 }
 
 export interface AnalyzeOptions {
-    branch?: string
+    branch: string
     targetBranch?: string
     /**
      * The repository to analyze, it can be a local directory or a remote git repository
      */
     repository: string
-    type?: REPO_TYPE
-    name?: string
+    name: string
 }
 
 class Context {
@@ -87,10 +86,10 @@ class Context {
     getLocalDirectory(branch?: string): string {
         if (branch) {
             if (process.env.DMS_LOCAL_DIR) {
-                return path.join(process.env.DMS_LOCAL_DIR, path2name(this.getRepository()), path2name(branch))
+                return path.join(process.env.DMS_LOCAL_DIR, path2name(this.getRepository()), path2name(branch), path2name(this.options.name))
             }
 
-            return path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(branch))
+            return path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(branch), path2name(this.options.name))
         }
 
         return this.localDirectory!
@@ -120,10 +119,6 @@ class Context {
     findPackageDirectory() {
         const packageName = this.options.name
         const baseDir = this.remote ? this.tmpDir : this.options.repository
-
-        if (!packageName) {
-            return
-        }
 
         // Search for package.json files recursively
         const searchDirectories = [baseDir]
@@ -189,7 +184,7 @@ class Context {
         this.localDirectory = path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(this.getBranch()))
         ensureDirectoryExistsSync(this.localDirectory)
 
-        const project = await getProjectByName(this.getMetadata().name)
+        const project = await getProjectByName(this.options.name)
 
         this.type = project.type
         this.entries = project.entries

@@ -2,7 +2,7 @@ const serverUrl = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
 export const getProjectByName = async (name: string) => {
 
     try {
-        const response = await fetch(`${serverUrl}//projects/name/${name}`, {
+        const response = await fetch(`${serverUrl}/projects/name/${encodeURIComponent(name)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

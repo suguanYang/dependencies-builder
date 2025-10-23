@@ -1,12 +1,14 @@
 import path from 'path'
-import { cpSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { cpSync, rmSync, writeFileSync } from 'fs'
 import { replaceTscAliasPaths } from 'tsc-alias'
 import { getTsconfig } from 'get-tsconfig'
+
 import { CodeQL } from './codeql-runner'
-import { buildCallGraphQuery, buildQueries, processQuery } from './queries'
+import { buildQueries, processQuery } from './queries'
 import { getContext } from '../context'
 import debug, { error } from '../utils/debug'
 import { existsSync } from '../utils/fs-helper'
+import { PACKAGE_ROOT } from '../utils/constant'
 
 export const runCodeQL = async () => {
   await postRun()
@@ -71,6 +73,7 @@ const postRun = async () => {
       inputGlob: '{ts,tsx}',
       outputCheck: ['ts', 'tsx', 'js', 'jsx'],
     },
-    declarationDir: 0 as any
+    declarationDir: 0 as any,
+    replacers: [path.join(PACKAGE_ROOT, 'replacer.js')]
   })
 }

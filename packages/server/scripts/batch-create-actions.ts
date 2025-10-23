@@ -4,13 +4,12 @@
  * Batch Action Creation Script
  *
  * This script fetches all projects from the server and creates static analysis actions
- * for each project with branch parameter set to "test". It respects the server's rate
- * limit of 10 concurrent running actions by waiting for batches to complete.
+ * for each project with branch parameter set to user-specified value. It respects the
+ * server's rate limit of 10 concurrent running actions by waiting for batches to complete.
  */
 
-import { prisma } from '../src/database/prisma'
-
 // Configuration
+const SERVER_URL = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
 const BATCH_SIZE = 10 // Maximum concurrent actions allowed
 const POLL_INTERVAL = 5000 // 5 seconds between status checks
 const ACTION_TYPE = 'static_analysis' as const
@@ -25,46 +24,86 @@ interface Project {
 interface Action {
   id: string
   status: 'pending' | 'running' | 'completed' | 'failed'
+  type: string
+  parameters: {
+    projectAddr?: string
+    projectName?: string
+    branch?: string
+    targetBranch?: string
+  }
+}
+
+interface ApiResponse<T> {
+  data: T[]
+  total: number
 }
 
 /**
- * Fetch all projects from the database
+ * Make API request with error handling
  */
-async function fetchAllProjects(): Promise<Project[]> {
-  console.log('Fetching all projects from database...')
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${SERVER_URL}${endpoint}`
 
-  const projects = await prisma.project.findMany({
-    select: {
-      id: true,
-      name: true,
-      addr: true,
-      type: true,
+  const response = await fetch(url, {
+    headers: {
+      ...options.headers,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     },
-    orderBy: { name: 'asc' }
+    ...options,
   })
 
-  console.log(`Found ${projects.length} projects`)
-  return projects
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(
+      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+    )
+  }
+
+  return response.json()
+}
+
+/**
+ * Fetch all projects from the server API
+ */
+async function fetchAllProjects(): Promise<Project[]> {
+  console.log('Fetching all projects from server...')
+
+  let allProjects: Project[] = []
+  let offset = 0
+  const limit = 100 // Fetch in pages of 100
+
+  while (true) {
+    const response = await apiRequest<ApiResponse<Project>>(
+      `/projects?limit=${limit}&offset=${offset}`
+    )
+
+    allProjects = [...allProjects, ...response.data]
+
+    if (response.data.length < limit) {
+      break // No more projects
+    }
+
+    offset += limit
+  }
+
+  console.log(`Found ${allProjects.length} projects`)
+  return allProjects
 }
 
 /**
  * Create a static analysis action for a project
  */
 async function createAction(project: Project, branch: string): Promise<Action> {
-  const action = await prisma.action.create({
-    data: {
-      type: ACTION_TYPE,
-      status: 'pending',
-      parameters: {
-        projectAddr: project.addr,
-        projectName: project.name,
-        branch: branch,
-      },
-    },
-    select: {
-      id: true,
-      status: true,
-    }
+  const actionData = {
+    type: ACTION_TYPE,
+    projectAddr: project.addr,
+    projectName: project.name,
+    branch: branch,
+  }
+
+  const action = await apiRequest<Action>('/actions', {
+    method: 'POST',
+    body: JSON.stringify(actionData),
   })
 
   console.log(`Created action ${action.id} for project ${project.name} (branch: ${branch})`)
@@ -75,13 +114,14 @@ async function createAction(project: Project, branch: string): Promise<Action> {
  * Count currently running actions
  */
 async function countRunningActions(): Promise<number> {
-  const count = await prisma.action.count({
-    where: {
-      status: 'running'
-    }
-  })
-
-  return count
+  try {
+    const response = await apiRequest<ApiResponse<Action>>('/actions')
+    const runningActions = response.data.filter(action => action.status === 'running')
+    return runningActions.length
+  } catch (err) {
+    console.warn('Failed to count running actions:', err)
+    return 0
+  }
 }
 
 /**
@@ -172,8 +212,6 @@ async function main(branch: string): Promise<void> {
   } catch (err) {
     console.error(`Script failed: ${err}`)
     process.exit(1)
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

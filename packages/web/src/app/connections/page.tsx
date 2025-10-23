@@ -371,7 +371,7 @@ function ConnectionsContent() {
                 height={pageSize >= 20 ? "70vh" : "640px"}
                 itemHeight={64}
                 columns={[
-                  { key: 'id', header: 'ID', width: 200 },
+                  // { key: 'id', header: 'ID', width: 200 },
                   {
                     key: 'fromNode',
                     header: 'From Node',

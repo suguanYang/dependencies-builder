@@ -1,4 +1,4 @@
-import { NodeType } from '../generated/prisma/client'
+import { AppType, NodeType } from '../generated/prisma/client'
 
 export interface NodeQuery {
   projectName?: string
@@ -42,18 +42,21 @@ export interface ProjectQuery {
   addr?: string
   limit?: number
   offset?: number
+  type?: AppType
 }
 
 export interface ProjectCreationBody {
   name: string
   addr: string
   entries?: Record<string, any>
+  type: AppType
 }
 
 export interface ProjectUpdateBody {
   name?: string
   url?: string
   entries?: Record<string, any>
+  type?: AppType
 }
 
 export interface PaginatedResponse<T> {

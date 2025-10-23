@@ -70,21 +70,8 @@ function actionsRoutes(fastify: FastifyInstance) {
       const action = await repository.createAction(actionData)
 
       if (actionData.type === 'connection_auto_create') {
-        const result = await connectionWorkerPool.executeConnectionAutoCreation(action.id)
-        if (!result.success) {
-          repository.updateAction(action.id, {
-            status: 'failed',
-            error: result.error
-          })
-
-          reply.code(500).send({
-            error: 'Failed to trigger connection auto-creation',
-            details: result.error
-          })
-          return
-        }
+        connectionWorkerPool.executeConnectionAutoCreation(action.id)
       } else if (actionData.type === 'static_analysis' || actionData.type === 'report') {
-        // Type assertion since we've checked the type
         executeCLI(action.id, actionData).catch((error) => {
           repository.updateAction(action.id, { status: 'failed' })
           error('Failed to execute action' + error)

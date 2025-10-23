@@ -5,7 +5,15 @@ predicate isBuiltinGlobalVar(string name) {
   name = "Option" or
   name = "Proxy" or
   name = "Node" or
+  name = "pathname" or
+  name = "Image" or
+  name = "unescape" or
+  name = "Headers" or
+  name = "XMLHttpRequest" or
+  name = "XMLSerializer" or
   name = "BroadcastChannel" or
+  name = "ResizeObserver" or
+  name = "ShadowRoot" or
   name = "parseFloat" or
   name = "parseInt" or
   name ="IntersectionObserver" or

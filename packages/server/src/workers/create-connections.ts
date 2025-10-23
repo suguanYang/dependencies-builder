@@ -63,7 +63,11 @@ export async function optimizedAutoCreateConnections(
       const matchingExports = namedExports.filter(exportNode =>
         exportNode.name === importName &&
         // es6 imports should be from the index file, and we are not consider the sub files import
-        (exportNode.meta as Record<string, string>)?.entryName === 'index' &&
+        (
+          (exportNode.meta as Record<string, string>)?.entryName === 'index' ||
+          (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_ui_index' ||
+          (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_mui_index'
+        ) &&
         exportNode.projectName === packageName &&
         exportNode.projectName !== importNode.projectName
       )

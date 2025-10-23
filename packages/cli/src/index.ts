@@ -28,6 +28,7 @@ yargs(hideBin(process.argv))
         .option('name', {
           describe: 'Project name for monorepo analysis',
           type: 'string',
+          demandOption: true,
         })
     },
     async (argv) => {
@@ -66,6 +67,7 @@ yargs(hideBin(process.argv))
         .option('name', {
           describe: 'Project name for monorepo analysis',
           type: 'string',
+          demandOption: true,
         })
         .option('verbose', {
           alias: 'v',
