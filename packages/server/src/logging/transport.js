@@ -1,10 +1,10 @@
-import pretty from "pino-pretty";
+import pretty from 'pino-pretty'
 
 export default async (options) => {
   return pretty({
     colorize: false,
     destination: options.destination,
-    append: false,
+    append: true,
     minimumLevel: options.level,
-  });
-};
+  })
+}

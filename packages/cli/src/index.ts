@@ -37,11 +37,14 @@ yargs(hideBin(process.argv))
         enable()
       }
 
-      await runWithContext({
-        branch: argv.branch,
-        repository: argv.repository,
-        name: argv.name,
-      }, analyzeProject)
+      await runWithContext(
+        {
+          branch: argv.branch,
+          repository: argv.repository,
+          name: argv.name,
+        },
+        analyzeProject,
+      )
     },
   )
   .command(
@@ -82,12 +85,15 @@ yargs(hideBin(process.argv))
         enable()
       }
 
-      await runWithContext({
-        branch: argv.branch,
-        repository: argv.repository,
-        targetBranch: argv.targetBranch,
-        name: argv.name,
-      }, () => generateReport())
+      await runWithContext(
+        {
+          branch: argv.branch,
+          repository: argv.repository,
+          targetBranch: argv.targetBranch,
+          name: argv.name,
+        },
+        () => generateReport(),
+      )
     },
   )
   .demandCommand(1, 'You need to specify a command')

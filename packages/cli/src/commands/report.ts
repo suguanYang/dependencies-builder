@@ -34,7 +34,11 @@ export async function generateReport(): Promise<void> {
     debug('Changed lines: %d', changedLines.length)
 
     debug('Finding affected "to nodes"')
-    const affectedToNodes = await findAffectedToNodes(results.nodes, results.callGraph, changedLines)
+    const affectedToNodes = await findAffectedToNodes(
+      results.nodes,
+      results.callGraph,
+      changedLines,
+    )
     debug('Affected to nodes: %d', affectedToNodes.length)
 
     const reportResult: ReportResult = {
@@ -69,13 +73,17 @@ interface ChangedLine {
   lines: number[]
 }
 
-async function getDiffChangedLines(workingDir: string, targetBranch: string): Promise<ChangedLine[]> {
+async function getDiffChangedLines(
+  workingDir: string,
+  targetBranch: string,
+): Promise<ChangedLine[]> {
   try {
-    const diffOutput = await run('git', [
-      'diff',
-      `${targetBranch}...HEAD`,
-      '--unified=0'
-    ], { cwd: workingDir }, true)
+    const diffOutput = await run(
+      'git',
+      ['diff', `${targetBranch}...HEAD`, '--unified=0'],
+      { cwd: workingDir },
+      true,
+    )
 
     const changedLines: ChangedLine[] = []
     let currentFile = ''
@@ -91,7 +99,12 @@ async function getDiffChangedLines(workingDir: string, targetBranch: string): Pr
       }
 
       // only check on js/jsx/ts/tsx files
-      if (!currentFile.endsWith('.js') && !currentFile.endsWith('.jsx') && !currentFile.endsWith('.ts') && !currentFile.endsWith('.tsx')) {
+      if (
+        !currentFile.endsWith('.js') &&
+        !currentFile.endsWith('.jsx') &&
+        !currentFile.endsWith('.ts') &&
+        !currentFile.endsWith('.tsx')
+      ) {
         continue
       }
 
@@ -106,7 +119,7 @@ async function getDiffChangedLines(workingDir: string, targetBranch: string): Pr
           const startLine = parseInt(match[1])
           const count = match[2] ? parseInt(match[2]) : 1
 
-          const existingEntry = changedLines.find(entry => entry.file === currentFile)
+          const existingEntry = changedLines.find((entry) => entry.file === currentFile)
           const lineNumbers = Array.from({ length: count }, (_, i) => startLine + i)
 
           if (existingEntry) {
@@ -114,7 +127,7 @@ async function getDiffChangedLines(workingDir: string, targetBranch: string): Pr
           } else {
             changedLines.push({
               file: currentFile.replace('src/', ''),
-              lines: lineNumbers
+              lines: lineNumbers,
             })
           }
         }
@@ -128,20 +141,29 @@ async function getDiffChangedLines(workingDir: string, targetBranch: string): Pr
   }
 }
 
-async function findAffectedToNodes(nodes: Results['nodes'], callGraph: string[], changedLines: ChangedLine[]): Promise<any[]> {
+async function findAffectedToNodes(
+  nodes: Results['nodes'],
+  callGraph: string[],
+  changedLines: ChangedLine[],
+): Promise<any[]> {
   const affectedNodes = new Set<any>()
 
-  const toNodes = nodes.filter(node =>
-    node.type === 'NamedExport' ||
-    node.type === 'GlobalVarWrite' ||
-    node.type === 'WebStorageWrite' ||
-    node.type === 'EventEmit'
+  const toNodes = nodes.filter(
+    (node) =>
+      node.type === 'NamedExport' ||
+      node.type === 'GlobalVarWrite' ||
+      node.type === 'WebStorageWrite' ||
+      node.type === 'EventEmit',
   )
 
   for (const callGraphNode of callGraph) {
     const path = callGraphNode[0]
     const locations = path.split('->')
-    const toNode = toNodes.find(node => `${node.relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}` === locations[0])
+    const toNode = toNodes.find(
+      (node) =>
+        `${node.relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}` ===
+        locations[0],
+    )
 
     if (!toNode) {
       continue
@@ -156,7 +178,11 @@ async function findAffectedToNodes(nodes: Results['nodes'], callGraph: string[],
       const [relativePath, startLine, _startColumn, endLine, _endColumn] = location.split(':')
       for (const changedLine of changedLines) {
         if (changedLine.file === relativePath) {
-          if (changedLine.lines.some(line => line >= parseInt(startLine) && line <= parseInt(endLine))) {
+          if (
+            changedLine.lines.some(
+              (line) => line >= parseInt(startLine) && line <= parseInt(endLine),
+            )
+          ) {
             affectedNodes.add(toNode)
             isAffected = true
             break
@@ -171,4 +197,3 @@ async function findAffectedToNodes(nodes: Results['nodes'], callGraph: string[],
 
   return Array.from(affectedNodes)
 }
-

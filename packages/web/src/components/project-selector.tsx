@@ -15,11 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Project, getProjects } from '@/lib/api'
 
 interface ProjectSelectorProps {
@@ -35,14 +31,17 @@ const PAGE_SIZE = 50 // Number of projects to fetch per page
 export function ProjectSelector({
   value,
   onValueChange,
-  placeholder = "Select project...",
-  className
+  placeholder = 'Select project...',
+  className,
 }: ProjectSelectorProps) {
   const [open, setOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
 
   // SWR infinite loading for projects
-  const getKey = (pageIndex: number, previousPageData: { data: Project[]; total: number } | null) => {
+  const getKey = (
+    pageIndex: number,
+    previousPageData: { data: Project[]; total: number } | null,
+  ) => {
     // Reached the end
     if (previousPageData && previousPageData.data.length < PAGE_SIZE) return null
 
@@ -56,27 +55,27 @@ export function ProjectSelector({
     size,
     setSize,
     isLoading,
-    isValidating
+    isValidating,
   } = useSWRInfinite(
     getKey,
     async ([, query, pageIndex]) => {
       const response = await getProjects({
         name: query || undefined,
         limit: PAGE_SIZE,
-        offset: pageIndex * PAGE_SIZE
+        offset: pageIndex * PAGE_SIZE,
       })
       return response
     },
     {
       revalidateFirstPage: false,
       revalidateOnFocus: false,
-      revalidateOnReconnect: false
-    }
+      revalidateOnReconnect: false,
+    },
   )
 
   // Flatten all projects from pages
   const projects = React.useMemo(() => {
-    return pages ? pages.flatMap(page => page.data) : []
+    return pages ? pages.flatMap((page) => page.data) : []
   }, [pages])
 
   const isLoadingMore = isLoading || (size > 0 && pages && typeof pages[size - 1] === 'undefined')
@@ -94,7 +93,13 @@ export function ProjectSelector({
   }
 
   // Virtual list item component
-  const ProjectItem = ({ index, style }: { index: number; style: React.CSSProperties }): React.ReactNode => {
+  const ProjectItem = ({
+    index,
+    style,
+  }: {
+    index: number
+    style: React.CSSProperties
+  }): React.ReactNode => {
     const project = projects[index]
 
     if (!project) {
@@ -120,10 +125,7 @@ export function ProjectSelector({
           <span className="text-xs text-muted-foreground">{project.addr}</span>
         </div>
         <Check
-          className={cn(
-            "ml-auto h-4 w-4",
-            value?.id === project.id ? "opacity-100" : "opacity-0"
-          )}
+          className={cn('ml-auto h-4 w-4', value?.id === project.id ? 'opacity-100' : 'opacity-0')}
         />
       </CommandItem>
     )
@@ -134,7 +136,11 @@ export function ProjectSelector({
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget
     const scrollThreshold = 200 // pixels from bottom
 
-    if (scrollHeight - scrollTop - clientHeight < scrollThreshold && !isReachingEnd && !isLoadingMore) {
+    if (
+      scrollHeight - scrollTop - clientHeight < scrollThreshold &&
+      !isReachingEnd &&
+      !isLoadingMore
+    ) {
       loadMore()
     }
   }
@@ -146,7 +152,7 @@ export function ProjectSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn('w-full justify-between', className)}
         >
           {value ? (
             <div className="flex flex-col items-start">
@@ -159,7 +165,11 @@ export function ProjectSelector({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+      <PopoverContent
+        className="w-full p-0"
+        align="start"
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search projects..."
@@ -185,7 +195,12 @@ export function ProjectSelector({
               <CommandGroup>
                 <List<{}>
                   onScroll={handleScroll}
-                  style={{ height: Math.min(400, projects.length * ITEM_HEIGHT + (!isReachingEnd ? ITEM_HEIGHT : 0)) }}
+                  style={{
+                    height: Math.min(
+                      400,
+                      projects.length * ITEM_HEIGHT + (!isReachingEnd ? ITEM_HEIGHT : 0),
+                    ),
+                  }}
                   rowCount={projects.length + (!isReachingEnd ? 1 : 0)}
                   rowHeight={ITEM_HEIGHT}
                   rowComponent={ProjectItem}

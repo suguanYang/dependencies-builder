@@ -4,9 +4,7 @@ import { PrismaClient } from '../generated/prisma/client'
  * Optimized connection auto-creation algorithm using batch operations
  * This should be run in a worker thread to avoid blocking the main thread
  */
-export async function optimizedAutoCreateConnections(
-  prisma: PrismaClient
-): Promise<{
+export async function optimizedAutoCreateConnections(prisma: PrismaClient): Promise<{
   createdConnections: number
   skippedConnections: number
   errors: string[]
@@ -14,7 +12,7 @@ export async function optimizedAutoCreateConnections(
   const result = {
     createdConnections: 0,
     skippedConnections: 0,
-    errors: [] as string[]
+    errors: [] as string[],
   }
 
   try {
@@ -25,8 +23,8 @@ export async function optimizedAutoCreateConnections(
         type: true,
         name: true,
         projectName: true,
-        meta: true
-      }
+        meta: true,
+      },
     })
 
     // Group nodes by type for efficient lookup
@@ -43,13 +41,13 @@ export async function optimizedAutoCreateConnections(
     const existingConnections = await prisma.connection.findMany({
       select: {
         fromId: true,
-        toId: true
-      }
+        toId: true,
+      },
     })
 
     // Create a Set for fast lookup of existing connections
     const existingConnectionSet = new Set(
-      existingConnections.map(conn => `${conn.fromId}:${conn.toId}`)
+      existingConnections.map((conn) => `${conn.fromId}:${conn.toId}`),
     )
 
     // Collect all connections to create in batches
@@ -60,16 +58,15 @@ export async function optimizedAutoCreateConnections(
     const namedExports = nodesByType.get('NamedExport') || []
     for (const importNode of namedImports) {
       const [packageName, importName] = importNode.name.split('.')
-      const matchingExports = namedExports.filter(exportNode =>
-        exportNode.name === importName &&
-        // es6 imports should be from the index file, and we are not consider the sub files import
-        (
-          (exportNode.meta as Record<string, string>)?.entryName === 'index' ||
-          (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_ui_index' ||
-          (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_mui_index'
-        ) &&
-        exportNode.projectName === packageName &&
-        exportNode.projectName !== importNode.projectName
+      const matchingExports = namedExports.filter(
+        (exportNode) =>
+          exportNode.name === importName &&
+          // es6 imports should be from the index file, and we are not consider the sub files import
+          ((exportNode.meta as Record<string, string>)?.entryName === 'index' ||
+            (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_ui_index' ||
+            (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_mui_index') &&
+          exportNode.projectName === packageName &&
+          exportNode.projectName !== importNode.projectName,
       )
 
       for (const exportNode of matchingExports) {
@@ -77,7 +74,7 @@ export async function optimizedAutoCreateConnections(
         if (!existingConnectionSet.has(connectionKey)) {
           connectionsToCreate.push({
             fromId: importNode.id,
-            toId: exportNode.id
+            toId: exportNode.id,
           })
         } else {
           result.skippedConnections++
@@ -91,10 +88,11 @@ export async function optimizedAutoCreateConnections(
       const [packageName, _, importName] = runtimeImport.name.split('.')
 
       if (packageName && importName) {
-        const matchingExports = namedExports.filter(exportNode =>
-          exportNode.name === importName &&
-          exportNode.projectName === packageName &&
-          exportNode.projectName !== runtimeImport.projectName
+        const matchingExports = namedExports.filter(
+          (exportNode) =>
+            exportNode.name === importName &&
+            exportNode.projectName === packageName &&
+            exportNode.projectName !== runtimeImport.projectName,
         )
 
         for (const exportNode of matchingExports) {
@@ -102,23 +100,22 @@ export async function optimizedAutoCreateConnections(
           if (!existingConnectionSet.has(connectionKey)) {
             connectionsToCreate.push({
               fromId: runtimeImport.id,
-              toId: exportNode.id
+              toId: exportNode.id,
             })
           } else {
             result.skippedConnections++
           }
         }
       }
-
     }
 
     // Rule 3: GlobalVarRead -> GlobalVarWrite
     const globalVarReads = nodesByType.get('GlobalVarRead') || []
     const globalVarWrites = nodesByType.get('GlobalVarWrite') || []
     for (const readNode of globalVarReads) {
-      const matchingWrites = globalVarWrites.filter(writeNode =>
-        writeNode.name === readNode.name &&
-        writeNode.projectName !== readNode.projectName
+      const matchingWrites = globalVarWrites.filter(
+        (writeNode) =>
+          writeNode.name === readNode.name && writeNode.projectName !== readNode.projectName,
       )
 
       for (const writeNode of matchingWrites) {
@@ -126,7 +123,7 @@ export async function optimizedAutoCreateConnections(
         if (!existingConnectionSet.has(connectionKey)) {
           connectionsToCreate.push({
             fromId: readNode.id,
-            toId: writeNode.id
+            toId: writeNode.id,
           })
         } else {
           result.skippedConnections++
@@ -141,10 +138,11 @@ export async function optimizedAutoCreateConnections(
       const readMeta = readNode.meta as Record<string, any>
       if (readMeta?.storageKey) {
         const storageKey = readMeta.storageKey as string
-        const matchingWrites = storageWrites.filter(writeNode => {
+        const matchingWrites = storageWrites.filter((writeNode) => {
           const writeMeta = writeNode.meta as Record<string, any>
-          return writeMeta?.storageKey === storageKey &&
-            writeNode.projectName !== readNode.projectName
+          return (
+            writeMeta?.storageKey === storageKey && writeNode.projectName !== readNode.projectName
+          )
         })
 
         for (const writeNode of matchingWrites) {
@@ -152,7 +150,7 @@ export async function optimizedAutoCreateConnections(
           if (!existingConnectionSet.has(connectionKey)) {
             connectionsToCreate.push({
               fromId: readNode.id,
-              toId: writeNode.id
+              toId: writeNode.id,
             })
           } else {
             result.skippedConnections++
@@ -168,10 +166,9 @@ export async function optimizedAutoCreateConnections(
       const onMeta = onNode.meta as Record<string, any>
       if (onMeta?.eventName) {
         const eventName = onMeta.eventName as string
-        const matchingEmits = eventEmits.filter(emitNode => {
+        const matchingEmits = eventEmits.filter((emitNode) => {
           const emitMeta = emitNode.meta as Record<string, any>
-          return emitMeta?.eventName === eventName &&
-            emitNode.projectName !== onNode.projectName
+          return emitMeta?.eventName === eventName && emitNode.projectName !== onNode.projectName
         })
 
         for (const emitNode of matchingEmits) {
@@ -179,7 +176,7 @@ export async function optimizedAutoCreateConnections(
           if (!existingConnectionSet.has(connectionKey)) {
             connectionsToCreate.push({
               fromId: onNode.id,
-              toId: emitNode.id
+              toId: emitNode.id,
             })
           } else {
             result.skippedConnections++
@@ -189,12 +186,14 @@ export async function optimizedAutoCreateConnections(
     }
 
     // Rule 6: DynamicModuleFederationReference -> NamedExport
-    const dynamicModuleFederationReferences = nodesByType.get('DynamicModuleFederationReference') || []
+    const dynamicModuleFederationReferences =
+      nodesByType.get('DynamicModuleFederationReference') || []
     for (const dynamicModuleFederationReference of dynamicModuleFederationReferences) {
       const [referProject, referName] = dynamicModuleFederationReference.name.split('.')
-      const matchingExports = namedExports.filter(exportNode =>
-        (exportNode.meta as Record<string, string>)?.entryName === referName &&
-        exportNode.projectName === referProject
+      const matchingExports = namedExports.filter(
+        (exportNode) =>
+          (exportNode.meta as Record<string, string>)?.entryName === referName &&
+          exportNode.projectName === referProject,
       )
 
       for (const exportNode of matchingExports) {
@@ -202,7 +201,7 @@ export async function optimizedAutoCreateConnections(
         if (!existingConnectionSet.has(connectionKey)) {
           connectionsToCreate.push({
             fromId: dynamicModuleFederationReference.id,
-            toId: exportNode.id
+            toId: exportNode.id,
           })
         } else {
           result.skippedConnections++
@@ -210,10 +209,9 @@ export async function optimizedAutoCreateConnections(
       }
     }
 
-
     try {
       await prisma.connection.createMany({
-        data: connectionsToCreate
+        data: connectionsToCreate,
       })
       result.createdConnections = connectionsToCreate.length
     } catch (batchError) {

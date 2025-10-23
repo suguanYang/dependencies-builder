@@ -17,7 +17,7 @@ describe('cn utility function', () => {
     const result = cn({
       'px-4': true,
       'py-2': false,
-      'bg-blue-500': true
+      'bg-blue-500': true,
     })
     expect(result).toBe('px-4 bg-blue-500')
   })

@@ -19,14 +19,17 @@ export class ConnectionWorkerPool {
 
   private initializePool() {
     this.pool = new Piscina({
-      filename: path.resolve(__dirname, process.env.NODE_ENV === 'production' ? 'connection-worker.js' : 'worker-wrapper.js'),
+      filename: path.resolve(
+        __dirname,
+        process.env.NODE_ENV === 'production' ? 'connection-worker.js' : 'worker-wrapper.js',
+      ),
       maxThreads: 2, // Limit to 2 threads to avoid overwhelming the system
       minThreads: 1,
       idleTimeout: 60000, // 1 minute idle timeout
       maxQueue: 5, // Maximum queue size
       workerData: {
-        fullpath: path.resolve(__dirname, "connection-worker.ts")
-      }
+        fullpath: path.resolve(__dirname, 'connection-worker.ts'),
+      },
     })
   }
 
@@ -50,7 +53,7 @@ export class ConnectionWorkerPool {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -79,7 +82,7 @@ export class ConnectionWorkerPool {
       threadCount: this.pool.threads.length,
       queueSize: this.pool.queueSize,
       completed: this.pool.completed,
-      duration: this.pool.duration
+      duration: this.pool.duration,
     }
   }
 

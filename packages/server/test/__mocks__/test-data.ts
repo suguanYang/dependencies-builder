@@ -15,7 +15,7 @@ export const mockNodes = [
     version: '1.0.0',
     meta: {},
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'node-2',
@@ -31,7 +31,7 @@ export const mockNodes = [
     version: '1.0.0',
     meta: {},
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'node-3',
@@ -47,8 +47,8 @@ export const mockNodes = [
     version: '1.0.0',
     meta: {},
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
+    updatedAt: new Date().toISOString(),
+  },
 ]
 
 export const mockConnections = [
@@ -56,28 +56,40 @@ export const mockConnections = [
     id: 'conn-1',
     fromId: 'node-2',
     toId: 'node-1',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'conn-2',
     fromId: 'node-2',
     toId: 'node-3',
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString(),
+  },
 ]
 
 export const mockDependencyGraph = {
   vertices: [
     {
-      data: { id: 'node-1', name: 'exportedFunction', type: NodeType.NamedExport, project: 'test-project', branch: 'main' },
+      data: {
+        id: 'node-1',
+        name: 'exportedFunction',
+        type: NodeType.NamedExport,
+        project: 'test-project',
+        branch: 'main',
+      },
       firstIn: 0,
-      firstOut: -1
+      firstOut: -1,
     },
     {
-      data: { id: 'node-2', name: 'importedFunction', type: NodeType.NamedImport, project: 'test-project', branch: 'main' },
+      data: {
+        id: 'node-2',
+        name: 'importedFunction',
+        type: NodeType.NamedImport,
+        project: 'test-project',
+        branch: 'main',
+      },
       firstIn: -1,
-      firstOut: 0
-    }
+      firstOut: 0,
+    },
   ],
   edges: [
     {
@@ -85,23 +97,35 @@ export const mockDependencyGraph = {
       tailvertex: 1,
       headvertex: 0,
       headnext: -1,
-      tailnext: -1
-    }
-  ]
+      tailnext: -1,
+    },
+  ],
 }
 
 export const mockProjectGraph = {
   vertices: [
     {
-      data: { id: 'node-1', name: 'exportedFunction', type: NodeType.NamedExport, project: 'test-project', branch: 'main' },
+      data: {
+        id: 'node-1',
+        name: 'exportedFunction',
+        type: NodeType.NamedExport,
+        project: 'test-project',
+        branch: 'main',
+      },
       firstIn: 0,
-      firstOut: -1
+      firstOut: -1,
     },
     {
-      data: { id: 'node-2', name: 'importedFunction', type: NodeType.NamedImport, project: 'test-project', branch: 'main' },
+      data: {
+        id: 'node-2',
+        name: 'importedFunction',
+        type: NodeType.NamedImport,
+        project: 'test-project',
+        branch: 'main',
+      },
       firstIn: -1,
-      firstOut: 0
-    }
+      firstOut: 0,
+    },
   ],
   edges: [
     {
@@ -109,7 +133,7 @@ export const mockProjectGraph = {
       tailvertex: 1,
       headvertex: 0,
       headnext: -1,
-      tailnext: -1
-    }
-  ]
+      tailnext: -1,
+    },
+  ],
 }

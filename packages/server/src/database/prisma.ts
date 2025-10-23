@@ -9,14 +9,16 @@ const globalForPrisma = globalThis as unknown as {
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: [
-    {
-      emit: 'event',
-      level: 'query',
-    }
-  ],
-})
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: [
+      {
+        emit: 'event',
+        level: 'query',
+      },
+    ],
+  })
 
 prisma.$on('error', (e) => {
   error('prisma Error: ' + e.message)

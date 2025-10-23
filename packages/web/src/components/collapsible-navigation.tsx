@@ -1,7 +1,16 @@
 'use client'
 
 import React from 'react'
-import { HomeIcon, NetworkIcon, BarChart3Icon, PanelLeftOpenIcon, PanelLeftCloseIcon, Cuboid, Send, Folder } from 'lucide-react'
+import {
+  HomeIcon,
+  NetworkIcon,
+  BarChart3Icon,
+  PanelLeftOpenIcon,
+  PanelLeftCloseIcon,
+  Cuboid,
+  Send,
+  Folder,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -18,38 +27,38 @@ const navigationItems: NavigationItem[] = [
     name: 'Home',
     href: '/',
     icon: HomeIcon,
-    description: 'Back to dashboard'
+    description: 'Back to dashboard',
   },
   {
     name: 'Projects',
     href: '/projects',
     icon: Folder,
-    description: 'Manage all projects'
+    description: 'Manage all projects',
   },
   {
     name: 'Nodes',
     href: '/nodes',
     icon: Cuboid,
-    description: 'Manage all nodes'
+    description: 'Manage all nodes',
   },
   {
     name: 'Connections',
     href: '/connections',
     icon: NetworkIcon,
-    description: 'Manage dependency connections'
+    description: 'Manage dependency connections',
   },
   {
     name: 'Actions',
     href: '/actions',
     icon: Send,
-    description: 'Create and manage actions'
+    description: 'Create and manage actions',
   },
   {
     name: 'Reports',
     href: '/reports',
     icon: BarChart3Icon,
-    description: 'View analysis reports'
-  }
+    description: 'View analysis reports',
+  },
 ]
 
 export function CollapsibleNavigation() {
@@ -57,12 +66,16 @@ export function CollapsibleNavigation() {
   const { isCollapsed, toggleSidebar } = useSidebar()
 
   return (
-    <div className={`sticky top-0 left-0 h-screen bg-white border-r border-gray-200 flex flex-col z-40 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div
+      className={`sticky top-0 left-0 h-screen bg-white border-r border-gray-200 flex flex-col z-40 transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}
+    >
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between">
-        <div className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
+        <div
+          className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}
+        >
           <h2 className="text-lg font-semibold whitespace-nowrap">DMS</h2>
         </div>
         <button
@@ -113,9 +126,11 @@ export function CollapsibleNavigation() {
 
       {/* Footer */}
       <div className="p-4 border-t">
-        <div className={`text-xs text-gray-500 text-center transition-all duration-300 ${
-          isCollapsed ? 'opacity-0' : 'opacity-100'
-        }`}>
+        <div
+          className={`text-xs text-gray-500 text-center transition-all duration-300 ${
+            isCollapsed ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           DMS v1.0
         </div>
       </div>

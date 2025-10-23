@@ -30,7 +30,9 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     const cliCommand = getCLICommand(actionData)
 
     // Debug: Log the command being executed
-    info(`Executing CLI command: ${cliCommand.join(' ')} with action data: ${JSON.stringify(actionData)}`)
+    info(
+      `Executing CLI command: ${cliCommand.join(' ')} with action data: ${JSON.stringify(actionData)}`,
+    )
 
     // Execute CLI command
     const [cmd, ...args] = cliCommand
@@ -41,7 +43,6 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
       },
     })
-
 
     childProcess.stdout?.on('data', (data) => {
       const output = data.toString()
@@ -95,9 +96,12 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     })
 
     // Set timeout for CLI execution (10 minutes)
-    const timeout = setTimeout(() => {
-      childProcess.kill('SIGTERM')
-    }, 10 * 60 * 1000)
+    const timeout = setTimeout(
+      () => {
+        childProcess.kill('SIGTERM')
+      },
+      10 * 60 * 1000,
+    )
 
     childProcess.on('close', () => {
       clearTimeout(timeout)
@@ -117,7 +121,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
             resolve()
           })
         })
-      }
+      },
     }
 
     // Store active execution
@@ -147,9 +151,9 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.projectAddr,
         '--branch',
         actionData.branch,
-        "--name",
+        '--name',
         actionData.projectName,
-        "--verbose"
+        '--verbose',
       ]
 
       return analyzeArgs
@@ -163,9 +167,9 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.branch,
         '--target-branch',
         actionData.targetBranch!,
-        "--name",
+        '--name',
         actionData.projectName,
-        "--verbose"
+        '--verbose',
       ]
 
       return reportArgs
@@ -173,4 +177,3 @@ function getCLICommand(actionData: ActionData): string[] {
       throw new Error(`Unknown action type: ${actionData.type}`)
   }
 }
-

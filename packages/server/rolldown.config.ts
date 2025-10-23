@@ -25,13 +25,20 @@ const sharedNodeOptions = defineConfig({
       name: 'copy-transport',
       buildEnd() {
         // copy src/logging/transport.js
-        cpSync(path.resolve(__dirname, 'src/logging/transport.js'), path.resolve(__dirname, 'dist/logging/transport.js'))
+        cpSync(
+          path.resolve(__dirname, 'src/logging/transport.js'),
+          path.resolve(__dirname, 'dist/logging/transport.js'),
+        )
 
         // cp src/generated/prisma to dist/generated/prisma
-        cpSync(path.resolve(__dirname, 'src/generated/prisma'), path.resolve(__dirname, 'dist/generated/prisma'), { recursive: true })
-      }
-    }
-  ]
+        cpSync(
+          path.resolve(__dirname, 'src/generated/prisma'),
+          path.resolve(__dirname, 'dist/generated/prisma'),
+          { recursive: true },
+        )
+      },
+    },
+  ],
 })
 
 const nodeConfig = defineConfig({

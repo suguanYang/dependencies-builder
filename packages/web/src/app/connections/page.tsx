@@ -8,7 +8,16 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Connection, getConnectionsList, deleteConnection, createConnection, createAction, NodeType, getActionById, type Action } from '@/lib/api'
+import {
+  type Connection,
+  getConnectionsList,
+  deleteConnection,
+  createConnection,
+  createAction,
+  NodeType,
+  getActionById,
+  type Action,
+} from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -33,11 +42,11 @@ function ConnectionsContent() {
     fromNodeProjectName: '',
     toNodeProjectName: '',
     fromNodeType: '',
-    toNodeType: ''
+    toNodeType: '',
   })
   const [newConnection, setNewConnection] = useState({
     fromId: '',
-    toId: ''
+    toId: '',
   })
 
   // Function to update URL with pagination parameters
@@ -56,9 +65,12 @@ function ConnectionsContent() {
     updatePaginationParams(1, size) // Reset to first page when changing page size
   }
 
-  const { data: connectionsResponse, isLoading, mutate: mutateConnections } = useSWR(
-    ['connections', searchFilters, currentPage, pageSize],
-    () => getConnectionsList({
+  const {
+    data: connectionsResponse,
+    isLoading,
+    mutate: mutateConnections,
+  } = useSWR(['connections', searchFilters, currentPage, pageSize], () =>
+    getConnectionsList({
       fromId: searchFilters.fromId || undefined,
       toId: searchFilters.toId || undefined,
       fromNodeName: searchFilters.fromNodeName || undefined,
@@ -68,8 +80,8 @@ function ConnectionsContent() {
       fromNodeType: searchFilters.fromNodeType || undefined,
       toNodeType: searchFilters.toNodeType || undefined,
       limit: pageSize,
-      offset: (currentPage - 1) * pageSize
-    })
+      offset: (currentPage - 1) * pageSize,
+    }),
   )
 
   // Use SWR to poll action status when an action is running
@@ -88,7 +100,9 @@ function ConnectionsContent() {
           if (action.status === 'completed') {
             const result = action.result
             if (result) {
-              setSuccess(`Auto-creation completed: ${result.createdConnections} connections created, ${result.skippedConnections} skipped`)
+              setSuccess(
+                `Auto-creation completed: ${result.createdConnections} connections created, ${result.skippedConnections} skipped`,
+              )
             } else {
               setSuccess('Connection auto-creation completed successfully')
             }
@@ -99,8 +113,8 @@ function ConnectionsContent() {
       },
       onError: (err) => {
         console.error('Failed to poll action status:', err)
-      }
-    }
+      },
+    },
   )
 
   const connections = connectionsResponse?.data || []
@@ -134,7 +148,7 @@ function ConnectionsContent() {
 
       // Trigger async connection auto-creation
       const action = await createAction({
-        type: 'connection_auto_create'
+        type: 'connection_auto_create',
       })
       setCurrentActionId(action.id)
 
@@ -191,21 +205,28 @@ function ConnectionsContent() {
       {currentAction && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
           <div className="flex items-center">
-            <RefreshCwIcon className={`h-4 w-4 text-blue-600 mr-2 ${currentAction.status === 'running' ? 'animate-spin' : ''}`} />
+            <RefreshCwIcon
+              className={`h-4 w-4 text-blue-600 mr-2 ${currentAction.status === 'running' ? 'animate-spin' : ''}`}
+            />
             <div className="flex-1">
               <div className="text-sm font-medium text-blue-800">
-                {currentAction.status === 'running' ? 'Auto-creation in progress...' :
-                 currentAction.status === 'completed' ? 'Auto-creation completed' :
-                 'Auto-creation failed'}
+                {currentAction.status === 'running'
+                  ? 'Auto-creation in progress...'
+                  : currentAction.status === 'completed'
+                    ? 'Auto-creation completed'
+                    : 'Auto-creation failed'}
               </div>
               <div className="text-sm text-blue-700">
                 {currentAction.status === 'running' && 'Processing connections in background...'}
                 {currentAction.status === 'completed' && currentAction.result && (
                   <span>
-                    Created {currentAction.result.createdConnections} connections,
-                    skipped {currentAction.result.skippedConnections} duplicates
+                    Created {currentAction.result.createdConnections} connections, skipped{' '}
+                    {currentAction.result.skippedConnections} duplicates
                     {currentAction.result.errors && currentAction.result.errors.length > 0 && (
-                      <span className="text-yellow-600"> (with {currentAction.result.errors.length} errors)</span>
+                      <span className="text-yellow-600">
+                        {' '}
+                        (with {currentAction.result.errors.length} errors)
+                      </span>
                     )}
                   </span>
                 )}
@@ -238,7 +259,9 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match from node ID"
                     value={searchFilters.fromId}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, fromId: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, fromId: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
@@ -246,7 +269,9 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match to node ID"
                     value={searchFilters.toId}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, toId: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, toId: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
@@ -254,7 +279,9 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match from node name"
                     value={searchFilters.fromNodeName || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeName: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, fromNodeName: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
@@ -262,14 +289,18 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match from node project"
                     value={searchFilters.fromNodeProjectName || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeProject: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, fromNodeProject: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">From Node Type</label>
                   <select
                     value={searchFilters.fromNodeType || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, fromNodeType: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, fromNodeType: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="">All Types</option>
@@ -282,7 +313,9 @@ function ConnectionsContent() {
                     <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
                     <option value={NodeType.EventOn}>EventOn</option>
                     <option value={NodeType.EventEmit}>EventEmit</option>
-                    <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                    <option value={NodeType.DynamicModuleFederationReference}>
+                      DynamicModuleFederationReference
+                    </option>
                   </select>
                 </div>
                 <div>
@@ -290,7 +323,9 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match to node name"
                     value={searchFilters.toNodeName || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeName: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, toNodeName: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
@@ -298,14 +333,18 @@ function ConnectionsContent() {
                   <Input
                     placeholder="Partial match to node project"
                     value={searchFilters.toNodeProjectName || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeProject: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, toNodeProject: e.target.value }))
+                    }
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">To Node Type</label>
                   <select
                     value={searchFilters.toNodeType || ''}
-                    onChange={(e) => setSearchFilters(prev => ({ ...prev, toNodeType: e.target.value }))}
+                    onChange={(e) =>
+                      setSearchFilters((prev) => ({ ...prev, toNodeType: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="">All Types</option>
@@ -318,7 +357,9 @@ function ConnectionsContent() {
                     <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
                     <option value={NodeType.EventOn}>EventOn</option>
                     <option value={NodeType.EventEmit}>EventEmit</option>
-                    <option value={NodeType.DynamicModuleFederationReference}>DynamicModuleFederationReference</option>
+                    <option value={NodeType.DynamicModuleFederationReference}>
+                      DynamicModuleFederationReference
+                    </option>
                   </select>
                 </div>
                 <Button onClick={handleSearch} className="w-full">
@@ -337,12 +378,10 @@ function ConnectionsContent() {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex gap-2">
-                  <Button
-                    onClick={handleAutoCreate}
-                    disabled={isAutoCreating}
-                    variant="outline"
-                  >
-                    <RefreshCwIcon className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`} />
+                  <Button onClick={handleAutoCreate} disabled={isAutoCreating} variant="outline">
+                    <RefreshCwIcon
+                      className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`}
+                    />
                     {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
                   </Button>
                   <Button onClick={() => setIsCreating(true)}>
@@ -368,7 +407,7 @@ function ConnectionsContent() {
             {!isLoading && connections.length > 0 && (
               <VirtualTable
                 items={connections}
-                height={pageSize >= 20 ? "70vh" : "640px"}
+                height={pageSize >= 20 ? '70vh' : '640px'}
                 itemHeight={64}
                 columns={[
                   // { key: 'id', header: 'ID', width: 200 },
@@ -380,7 +419,10 @@ function ConnectionsContent() {
                       <div className="space-y-1 min-w-0">
                         <div className="font-medium truncate">
                           {connection.fromNode ? (
-                            <Link href={`/node-detail?id=${connection.fromNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
+                            <Link
+                              href={`/node-detail?id=${connection.fromNode.id}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                            >
                               {connection.fromNode.name}
                             </Link>
                           ) : (
@@ -391,7 +433,7 @@ function ConnectionsContent() {
                           {connection.fromNode?.projectName} • {connection.fromNode?.type}
                         </div>
                       </div>
-                    )
+                    ),
                   },
                   {
                     key: 'toNode',
@@ -401,7 +443,10 @@ function ConnectionsContent() {
                       <div className="space-y-1 min-w-0">
                         <div className="font-medium truncate">
                           {connection.toNode ? (
-                            <Link href={`/node-detail?id=${connection.toNode.id}`} className="text-blue-600 hover:text-blue-800 hover:underline truncate block">
+                            <Link
+                              href={`/node-detail?id=${connection.toNode.id}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                            >
                               {connection.toNode.name}
                             </Link>
                           ) : (
@@ -412,7 +457,7 @@ function ConnectionsContent() {
                           {connection.toNode?.projectName} • {connection.toNode?.type}
                         </div>
                       </div>
-                    )
+                    ),
                   },
                   {
                     key: 'createdAt',
@@ -420,10 +465,12 @@ function ConnectionsContent() {
                     width: 140,
                     render: (connection: Connection) => (
                       <div className="text-sm">
-                        {connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'N/A'}
+                        {connection.createdAt
+                          ? new Date(connection.createdAt).toLocaleDateString()
+                          : 'N/A'}
                       </div>
-                    )
-                  }
+                    ),
+                  },
                 ]}
                 actions={(connection: Connection) => (
                   <Button
@@ -439,7 +486,7 @@ function ConnectionsContent() {
                   currentPage,
                   totalItems: totalCount,
                   onPageChange: handlePageChange,
-                  onPageSizeChange: handlePageSizeChange
+                  onPageSizeChange: handlePageSizeChange,
                 }}
               />
             )}
@@ -457,7 +504,9 @@ function ConnectionsContent() {
                 <label className="block text-sm font-medium mb-2">From Node ID</label>
                 <Input
                   value={newConnection.fromId}
-                  onChange={(e) => setNewConnection(prev => ({ ...prev, fromId: e.target.value }))}
+                  onChange={(e) =>
+                    setNewConnection((prev) => ({ ...prev, fromId: e.target.value }))
+                  }
                   placeholder="From node ID"
                 />
               </div>
@@ -466,7 +515,7 @@ function ConnectionsContent() {
                 <label className="block text-sm font-medium mb-2">To Node ID</label>
                 <Input
                   value={newConnection.toId}
-                  onChange={(e) => setNewConnection(prev => ({ ...prev, toId: e.target.value }))}
+                  onChange={(e) => setNewConnection((prev) => ({ ...prev, toId: e.target.value }))}
                   placeholder="To node ID"
                 />
               </div>
@@ -490,7 +539,9 @@ function ConnectionsContent() {
 export default function ConnectionsPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading connections...</div>}>
+      <Suspense
+        fallback={<div className="min-h-screen bg-gray-50 p-6">Loading connections...</div>}
+      >
         <ConnectionsContent />
       </Suspense>
     </SWRConfig>

@@ -26,7 +26,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
     // Update action status to running
     await prisma.action.update({
       where: { id: actionId },
-      data: { status: 'running' }
+      data: { status: 'running' },
     })
 
     // Execute the optimized connection auto-creation
@@ -38,13 +38,13 @@ export default async function connectionWorker({ actionId }: { actionId: string 
       data: {
         status: 'completed',
         result: result,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
 
     return {
       success: true,
-      result
+      result,
     }
   } catch (error) {
     // Update action with error
@@ -55,8 +55,8 @@ export default async function connectionWorker({ actionId }: { actionId: string 
           data: {
             status: 'failed',
             error: error instanceof Error ? error.message : 'Unknown error',
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         })
       } catch (updateError) {
         // Log but don't fail if update fails
@@ -66,7 +66,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     }
   } finally {
     // Clean up Prisma client
@@ -85,7 +85,7 @@ if (parentPort) {
     } catch (error) {
       parentPort!.postMessage({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       })
     }
   })

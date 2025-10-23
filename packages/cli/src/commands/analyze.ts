@@ -2,9 +2,7 @@ import path from 'node:path'
 import { rmSync, writeFileSync } from 'node:fs'
 import debug from '../utils/debug'
 import { checkoutRepository } from '../checkout'
-import {
-  runCodeQL,
-} from '../codeql'
+import { runCodeQL } from '../codeql'
 import { getContext } from '../context'
 import { uploadResults } from '../upload'
 import { directoryExistsSync } from '../utils/fs-helper'
@@ -21,10 +19,8 @@ export async function analyzeProject(): Promise<void> {
       debug('Repository checked out')
     }
 
-
     // Handle monorepo package name search
     ctx.findPackageDirectory()
-
 
     const results = await runCodeQL()
 
@@ -54,7 +50,7 @@ export async function analyzeProject(): Promise<void> {
       console.log(`❌ ${uploadResult.message}`)
       if (uploadResult.errors) {
         console.log('Errors:')
-        uploadResult.errors.forEach(error => console.log(`  - ${error}`))
+        uploadResult.errors.forEach((error) => console.log(`  - ${error}`))
       }
     }
 

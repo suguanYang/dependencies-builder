@@ -5,7 +5,6 @@ import { mockPrisma } from './__mocks__/prisma-client'
 beforeAll(() => {
   // Mock the global prisma instance for all tests
   vi.mock('../src/database/prisma', () => ({
-    prisma: mockPrisma
+    prisma: mockPrisma,
   }))
-
 })

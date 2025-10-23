@@ -24,12 +24,10 @@ function nodesRoutes(fastify: FastifyInstance) {
         offset,
       }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch nodes',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch nodes',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -46,12 +44,10 @@ function nodesRoutes(fastify: FastifyInstance) {
       const nodes = await repository.getNodesByIds(ids)
       return { data: nodes }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch nodes',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch nodes',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -68,12 +64,10 @@ function nodesRoutes(fastify: FastifyInstance) {
 
       return node
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch node',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch node',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -89,18 +83,16 @@ function nodesRoutes(fastify: FastifyInstance) {
         return
       }
 
-      const node = await repository.createNode(({
+      const node = await repository.createNode({
         ...nodeData,
-        projectId: project.id
-      }))
+        projectId: project.id,
+      })
       reply.code(201).send(node)
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to create node',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to create node',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -114,29 +106,28 @@ function nodesRoutes(fastify: FastifyInstance) {
         return
       }
 
-      const project = await repository.getProjectByName(nodesData[0].projectName);
+      const project = await repository.getProjectByName(nodesData[0].projectName)
 
       if (!project) {
         reply.code(400).send({ error: 'Project not found' })
         return
       }
 
-
-      const createdNodes = await repository.createNodes(nodesData.map((node, idx) => ({
-        ...node,
-        projectId: project.id
-      })))
+      const createdNodes = await repository.createNodes(
+        nodesData.map((node, idx) => ({
+          ...node,
+          projectId: project.id,
+        })),
+      )
 
       reply.code(201).send({
         message: `Successfully created ${createdNodes.count} nodes`,
       })
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to create nodes in batch',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to create nodes in batch',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -155,12 +146,10 @@ function nodesRoutes(fastify: FastifyInstance) {
 
       return updatedNode
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to update node',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to update node',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -177,12 +166,10 @@ function nodesRoutes(fastify: FastifyInstance) {
 
       return { success: true, message: 'Node deleted successfully' }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to delete node',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to delete node',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 }

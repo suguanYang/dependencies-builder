@@ -17,7 +17,10 @@ interface OrthogonalGraph {
   }[]
 }
 
-const buildOrthogonalGraph = (nodes: GraphNode[], connections: GraphConnection[]): OrthogonalGraph => {
+const buildOrthogonalGraph = (
+  nodes: GraphNode[],
+  connections: GraphConnection[],
+): OrthogonalGraph => {
   const vertices: OrthogonalGraph['vertices'] = []
   const edges: OrthogonalGraph['edges'] = []
   const nodeIndexMap = new Map<string, number>()
@@ -28,15 +31,15 @@ const buildOrthogonalGraph = (nodes: GraphNode[], connections: GraphConnection[]
     vertices.push({
       data: node,
       firstIn: -1,
-      firstOut: -1
+      firstOut: -1,
     })
   })
 
   // Create edges and build orthogonal list
-  connections.forEach(connection => {
+  connections.forEach((connection) => {
     const fromIndex = nodeIndexMap.get(connection.fromId)
     const toIndex = nodeIndexMap.get(connection.toId)
-    
+
     if (fromIndex === undefined || toIndex === undefined) return
 
     const edgeIndex = edges.length
@@ -45,7 +48,7 @@ const buildOrthogonalGraph = (nodes: GraphNode[], connections: GraphConnection[]
       tailvertex: fromIndex,
       headvertex: toIndex,
       headnext: -1,
-      tailnext: -1
+      tailnext: -1,
     }
 
     // Link to head vertex's incoming edges
@@ -77,10 +80,10 @@ const buildOrthogonalGraph = (nodes: GraphNode[], connections: GraphConnection[]
 }
 
 const dfsOrthogonal = (
-  graph: OrthogonalGraph, 
-  startVertexIndex: number, 
+  graph: OrthogonalGraph,
+  startVertexIndex: number,
   callback: (node: GraphNode) => void,
-  visited = new Set<number>()
+  visited = new Set<number>(),
 ): void => {
   if (visited.has(startVertexIndex)) return
 
@@ -102,9 +105,9 @@ const dfsOrthogonal = (
 }
 
 const bfsOrthogonal = (
-  graph: OrthogonalGraph, 
-  startVertexIndex: number, 
-  callback: (node: GraphNode) => void
+  graph: OrthogonalGraph,
+  startVertexIndex: number,
+  callback: (node: GraphNode) => void,
 ): void => {
   const visited = new Set<number>()
   const queue: number[] = [startVertexIndex]
@@ -113,7 +116,7 @@ const bfsOrthogonal = (
   while (queue.length > 0) {
     const currentVertexIndex = queue.shift()!
     const vertex = graph.vertices[currentVertexIndex]
-    
+
     if (vertex) {
       callback(vertex.data)
     }
@@ -134,7 +137,7 @@ const bfsOrthogonal = (
 const getIncomingEdges = (graph: OrthogonalGraph, vertexIndex: number): GraphConnection[] => {
   const edges: GraphConnection[] = []
   let edgeIndex = graph.vertices[vertexIndex]?.firstIn
-  
+
   while (edgeIndex !== -1) {
     const edge = graph.edges[edgeIndex]
     if (edge) {
@@ -142,14 +145,14 @@ const getIncomingEdges = (graph: OrthogonalGraph, vertexIndex: number): GraphCon
       edgeIndex = edge.headnext
     }
   }
-  
+
   return edges
 }
 
 const getOutgoingEdges = (graph: OrthogonalGraph, vertexIndex: number): GraphConnection[] => {
   const edges: GraphConnection[] = []
   let edgeIndex = graph.vertices[vertexIndex]?.firstOut
-  
+
   while (edgeIndex !== -1) {
     const edge = graph.edges[edgeIndex]
     if (edge) {
@@ -157,16 +160,19 @@ const getOutgoingEdges = (graph: OrthogonalGraph, vertexIndex: number): GraphCon
       edgeIndex = edge.tailnext
     }
   }
-  
+
   return edges
 }
 
-export const buildDependencyGraph = (nodes: GraphNode[], connections: GraphConnection[]): DependencyGraph => {
+export const buildDependencyGraph = (
+  nodes: GraphNode[],
+  connections: GraphConnection[],
+): DependencyGraph => {
   const orthogonalGraph = buildOrthogonalGraph(nodes, connections)
-  
+
   return {
     vertices: orthogonalGraph.vertices,
-    edges: orthogonalGraph.edges
+    edges: orthogonalGraph.edges,
   }
 }
 

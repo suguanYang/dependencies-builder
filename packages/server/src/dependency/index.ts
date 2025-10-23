@@ -15,7 +15,7 @@ export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): bo
     NamedImport: ['NamedExport'],
     RuntimeDynamicImport: ['NamedExport'],
     EventOn: ['EventEmit'],
-    DynamicModuleFederationReference: ['NamedExport']
+    DynamicModuleFederationReference: ['NamedExport'],
   }
 
   const allowedTargets = validTypePairs[fromNode.type]
@@ -26,16 +26,16 @@ export const getProjectDependencyGraph = (
   projectName: string,
   branch: string,
   nodes: GraphNode[],
-  connections: GraphConnection[]
+  connections: GraphConnection[],
 ): DependencyGraph => {
   // Filter nodes for the specific project and branch
-  const projectNodes = nodes.filter(node =>
-    node.projectName === projectName && node.branch === branch
+  const projectNodes = nodes.filter(
+    (node) => node.projectName === projectName && node.branch === branch,
   )
 
   // Get all connections involving these nodes
-  const projectConnections = connections.filter(conn =>
-    projectNodes.some(node => node.id === conn.fromId || node.id === conn.toId)
+  const projectConnections = connections.filter((conn) =>
+    projectNodes.some((node) => node.id === conn.fromId || node.id === conn.toId),
   )
 
   return buildDependencyGraph(projectNodes, projectConnections)

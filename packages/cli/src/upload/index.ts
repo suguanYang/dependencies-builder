@@ -25,7 +25,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       endLine: node.endLine,
       endColumn: node.endColumn,
       version: node.version,
-      meta: node.meta
+      meta: node.meta,
     }))
 
     debug('Uploading %d nodes to server', nodesToUpload.length)
@@ -59,7 +59,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
           continue
         }
 
-        const result = await response.json() as { message: string }
+        const result = (await response.json()) as { message: string }
         totalUploaded += batch.length
         debug('Batch %d uploaded successfully: %s', i + 1, result.message)
       } catch (error) {
@@ -72,14 +72,14 @@ export async function uploadResults(results: any): Promise<UploadResult> {
         success: false,
         message: `Upload completed with ${errors.length} errors`,
         uploadedNodes: totalUploaded,
-        errors
+        errors,
       }
     }
 
     return {
       success: true,
       message: `Successfully uploaded ${totalUploaded} nodes to server`,
-      uploadedNodes: totalUploaded
+      uploadedNodes: totalUploaded,
     }
   } catch (error) {
     debug('Upload failed: %o', error)
@@ -88,7 +88,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       success: false,
       message: 'Upload failed',
       uploadedNodes: 0,
-      errors: [errorMessage]
+      errors: [errorMessage],
     }
   }
 }

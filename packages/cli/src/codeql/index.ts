@@ -29,7 +29,7 @@ export const runCodeQL = async () => {
 
   return {
     ...results,
-    callGraph: callGraphResults
+    callGraph: callGraphResults,
   }
 }
 
@@ -42,13 +42,17 @@ const postRun = async () => {
   }
 
   debug('Copying src/**/*.{ts,tsx} to dist/')
-  cpSync(path.join(ctx.getWorkingDirectory(), 'src'), path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
+  cpSync(
+    path.join(ctx.getWorkingDirectory(), 'src'),
+    path.join(ctx.getWorkingDirectory(), 'dist'),
+    { recursive: true },
+  )
 
   // ignore extends in tsconfig.json
   const tsconfigResult = parse(readFileSync(tsconfig, 'utf8'))
 
   if (!tsconfigResult) {
-    return;
+    return
   }
 
   if (tsconfigResult) {
@@ -62,9 +66,9 @@ const postRun = async () => {
     resolveFullPaths: false,
     output: {
       verbose: true,
-      debug: () => { },
-      clear: () => { },
-      assert: () => { },
+      debug: () => {},
+      clear: () => {},
+      assert: () => {},
       info: debug,
       error: error,
     },
@@ -73,6 +77,6 @@ const postRun = async () => {
       outputCheck: ['ts', 'tsx', 'js', 'jsx'],
     },
     declarationDir: 0 as any,
-    replacers: [path.join(PACKAGE_ROOT, 'replacer.js')]
+    replacers: [path.join(PACKAGE_ROOT, 'replacer.js')],
   })
 }

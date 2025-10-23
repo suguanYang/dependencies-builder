@@ -17,12 +17,10 @@ function connectionsRoutes(fastify: FastifyInstance) {
         offset: query.offset,
       }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch connections',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch connections',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -33,12 +31,10 @@ function connectionsRoutes(fastify: FastifyInstance) {
       const connection = await repository.createConnection(fromId, toId)
       reply.code(201).send(connection)
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to create connection',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to create connection',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -55,12 +51,10 @@ function connectionsRoutes(fastify: FastifyInstance) {
 
       return { success: true, message: 'Connections deleted successfully' }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to delete connections',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to delete connections',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -77,12 +71,10 @@ function connectionsRoutes(fastify: FastifyInstance) {
 
       return { success: true, message: 'Connection deleted successfully' }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to delete connection',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to delete connection',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 }

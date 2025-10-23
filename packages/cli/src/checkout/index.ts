@@ -22,10 +22,16 @@ export async function checkoutRepository() {
     await gitCommander.init()
     await gitCommander.remoteAdd('origin', url)
     await gitCommander.tryDisableAutomaticGarbageCollection()
-    await gitCommander.fetch([`${branch}:${branch}`], { fetchDepth: ctx.getTargetBranch() ? 0 : 1, showProgress: true })
+    await gitCommander.fetch([`${branch}:${branch}`], {
+      fetchDepth: ctx.getTargetBranch() ? 0 : 1,
+      showProgress: true,
+    })
 
     if (ctx.getTargetBranch()) {
-      await gitCommander.fetch([`${ctx.getTargetBranch()}:${ctx.getTargetBranch()}`], { fetchDepth: 0, showProgress: true })
+      await gitCommander.fetch([`${ctx.getTargetBranch()}:${ctx.getTargetBranch()}`], {
+        fetchDepth: 0,
+        showProgress: true,
+      })
     }
 
     await gitCommander.checkout(branch)

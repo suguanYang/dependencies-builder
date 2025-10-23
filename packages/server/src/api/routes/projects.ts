@@ -23,12 +23,10 @@ function projectsRoutes(fastify: FastifyInstance) {
         offset,
       }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch projects',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch projects',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -45,12 +43,10 @@ function projectsRoutes(fastify: FastifyInstance) {
 
       return project
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch project',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch project',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -67,12 +63,10 @@ function projectsRoutes(fastify: FastifyInstance) {
 
       return project
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch project',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch project',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -86,12 +80,10 @@ function projectsRoutes(fastify: FastifyInstance) {
       if (error instanceof Error && error.message.includes('already exists')) {
         reply.code(409).send({ error: error.message })
       } else {
-        reply
-          .code(500)
-          .send({
-            error: 'Failed to create project',
-            details: error instanceof Error ? error.message : 'Unknown error',
-          })
+        reply.code(500).send({
+          error: 'Failed to create project',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
       }
     }
   })
@@ -114,12 +106,10 @@ function projectsRoutes(fastify: FastifyInstance) {
       if (error instanceof Error && error.message.includes('already exists')) {
         reply.code(409).send({ error: error.message })
       } else {
-        reply
-          .code(500)
-          .send({
-            error: 'Failed to update project',
-            details: error instanceof Error ? error.message : 'Unknown error',
-          })
+        reply.code(500).send({
+          error: 'Failed to update project',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
       }
     }
   })
@@ -137,12 +127,10 @@ function projectsRoutes(fastify: FastifyInstance) {
 
       return { success: true, message: 'Project deleted successfully' }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to delete project',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to delete project',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 }

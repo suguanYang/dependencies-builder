@@ -1,194 +1,212 @@
-import os, { homedir } from 'node:os';
-import path, { join } from 'node:path';
+import os, { homedir } from 'node:os'
+import path, { join } from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
 
-import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper';
-import { readFileSync, readdirSync } from 'node:fs';
-import { getProjectByName } from './api';
+import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper'
+import { readFileSync, readdirSync } from 'node:fs'
+import { getProjectByName } from './api'
 
 const path2name = (path: string) => {
-    return path.replaceAll('/', '_')
+  return path.replaceAll('/', '_')
 }
 
 type REPO_TYPE = 'App' | 'Lib'
 
 // type of package.json
 type METADATA = {
-    name: string
-    version: string
-    dependencies: Record<string, string>
-    peerDependencies: Record<string, string>
-    devDependencies: Record<string, string>
+  name: string
+  version: string
+  dependencies: Record<string, string>
+  peerDependencies: Record<string, string>
+  devDependencies: Record<string, string>
 }
 
 export interface AnalyzeOptions {
-    branch: string
-    targetBranch?: string
-    /**
-     * The repository to analyze, it can be a local directory or a remote git repository
-     */
-    repository: string
-    name: string
+  branch: string
+  targetBranch?: string
+  /**
+   * The repository to analyze, it can be a local directory or a remote git repository
+   */
+  repository: string
+  name: string
 }
 
 class Context {
-    private metadata?: METADATA
-    private type?: REPO_TYPE
-    private entries?: { name: string; path: string }[]
-    private remote: boolean = false;
-    private tmpDir: string
-    private options: AnalyzeOptions
-    private localDirectory?: string
-    private workDirectory?: string
+  private metadata?: METADATA
+  private type?: REPO_TYPE
+  private entries?: { name: string; path: string }[]
+  private remote: boolean = false
+  private tmpDir: string
+  private options: AnalyzeOptions
+  private localDirectory?: string
+  private workDirectory?: string
 
-    constructor(options: AnalyzeOptions) {
-        this.options = options
-        this.tmpDir = getOutputDir()
+  constructor(options: AnalyzeOptions) {
+    this.options = options
+    this.tmpDir = getOutputDir()
+  }
+
+  getWorkingDirectory(): string {
+    if (this.workDirectory) {
+      return this.workDirectory
     }
 
-    getWorkingDirectory(): string {
-        if (this.workDirectory) {
-            return this.workDirectory
-        }
+    if (this.remote) {
+      return this.tmpDir
+    }
+    return this.options.repository
+  }
 
-        if (this.remote) {
-            return this.tmpDir
-        }
-        return this.options.repository
+  getRepository(): string {
+    return this.options.repository
+  }
+
+  getBranch(): string {
+    return this.options.branch || 'main'
+  }
+
+  getTargetBranch(): string | undefined {
+    return this.options.targetBranch
+  }
+
+  isRemote(): boolean {
+    return this.remote
+  }
+
+  getType() {
+    return this.type!
+  }
+
+  getEntries() {
+    return this.entries || []
+  }
+
+  getLocalDirectory(branch?: string): string {
+    if (branch) {
+      if (process.env.DMS_LOCAL_DIR) {
+        return path.join(
+          process.env.DMS_LOCAL_DIR,
+          path2name(this.getRepository()),
+          path2name(branch),
+          path2name(this.options.name),
+        )
+      }
+
+      return path.join(
+        homedir(),
+        '.dms',
+        path2name(this.getRepository()),
+        path2name(branch),
+        path2name(this.options.name),
+      )
     }
 
-    getRepository(): string {
-        return this.options.repository
+    return this.localDirectory!
+  }
+
+  getMetadata(): METADATA {
+    if (this.metadata) {
+      return this.metadata
     }
 
-    getBranch(): string {
-        return this.options.branch || 'main'
+    const workingDir = this.getWorkingDirectory()
+    const packageJsonPath = join(workingDir, 'package.json')
+
+    if (!existsSync(packageJsonPath)) {
+      throw new Error(`Package.json not found at ${packageJsonPath}`)
     }
 
-    getTargetBranch(): string | undefined {
-        return this.options.targetBranch
+    try {
+      this.metadata = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as METADATA
+    } catch (error) {
+      throw new Error(`Failed to parse package.json: ${error}`)
     }
 
-    isRemote(): boolean {
-        return this.remote
-    }
+    return this.metadata!
+  }
 
-    getType() {
-        return this.type!
-    }
+  findPackageDirectory() {
+    const packageName = this.options.name
+    const baseDir = this.remote ? this.tmpDir : this.options.repository
 
+    // Search for package.json files recursively
+    const searchDirectories = [baseDir]
+    const visited = new Set<string>()
 
-    getEntries() {
-        return this.entries || []
-    }
+    while (searchDirectories.length > 0 && visited.size < 200) {
+      const currentDir = searchDirectories.pop()!
 
+      if (visited.has(currentDir)) {
+        continue
+      }
+      visited.add(currentDir)
 
-    getLocalDirectory(branch?: string): string {
-        if (branch) {
-            if (process.env.DMS_LOCAL_DIR) {
-                return path.join(process.env.DMS_LOCAL_DIR, path2name(this.getRepository()), path2name(branch), path2name(this.options.name))
+      try {
+        const entries = readdirSync(currentDir, { withFileTypes: true })
+
+        for (const entry of entries) {
+          const fullPath = join(currentDir, entry.name)
+
+          if (entry.isDirectory()) {
+            // Skip node_modules and other common directories
+            if (
+              entry.name === 'node_modules' ||
+              entry.name === '.git' ||
+              entry.name.startsWith('.')
+            ) {
+              continue
             }
-
-            return path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(branch), path2name(this.options.name))
-        }
-
-        return this.localDirectory!
-    }
-
-    getMetadata(): METADATA {
-        if (this.metadata) {
-            return this.metadata
-        }
-
-        const workingDir = this.getWorkingDirectory()
-        const packageJsonPath = join(workingDir, 'package.json')
-
-        if (!existsSync(packageJsonPath)) {
-            throw new Error(`Package.json not found at ${packageJsonPath}`)
-        }
-
-        try {
-            this.metadata = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as METADATA
-        } catch (error) {
-            throw new Error(`Failed to parse package.json: ${error}`)
-        }
-
-        return this.metadata!
-    }
-
-    findPackageDirectory() {
-        const packageName = this.options.name
-        const baseDir = this.remote ? this.tmpDir : this.options.repository
-
-        // Search for package.json files recursively
-        const searchDirectories = [baseDir]
-        const visited = new Set<string>()
-
-        while (searchDirectories.length > 0 && visited.size < 200) {
-            const currentDir = searchDirectories.pop()!
-
-            if (visited.has(currentDir)) {
-                continue
+            const depth = path.relative(baseDir, fullPath).split('/').length
+            if (depth > 2) {
+              continue
             }
-            visited.add(currentDir)
-
+            searchDirectories.push(fullPath)
+          } else if (entry.name === 'package.json') {
             try {
-                const entries = readdirSync(currentDir, { withFileTypes: true })
-
-                for (const entry of entries) {
-                    const fullPath = join(currentDir, entry.name)
-
-                    if (entry.isDirectory()) {
-                        // Skip node_modules and other common directories
-                        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
-                            continue
-                        }
-                        const depth = path.relative(baseDir, fullPath).split('/').length
-                        if (depth > 2) {
-                            continue
-                        }
-                        searchDirectories.push(fullPath)
-                    } else if (entry.name === 'package.json') {
-                        try {
-                            const packageJson = JSON.parse(readFileSync(fullPath, 'utf-8'))
-                            if (packageJson.name === packageName) {
-                                this.workDirectory = currentDir
-                                return
-                            }
-                        } catch (error) {
-                            // Skip invalid package.json files
-                            continue
-                        }
-                    }
-                }
+              const packageJson = JSON.parse(readFileSync(fullPath, 'utf-8'))
+              if (packageJson.name === packageName) {
+                this.workDirectory = currentDir
+                return
+              }
             } catch (error) {
-                // Skip directories that can't be read
-                continue
+              // Skip invalid package.json files
+              continue
             }
+          }
         }
-
-        throw new Error(`Package '${packageName}' not found in repository`)
+      } catch (error) {
+        // Skip directories that can't be read
+        continue
+      }
     }
 
-    async setup() {
-        if (!this.options.repository) {
-            throw new Error('Repository must be provided')
-        }
+    throw new Error(`Package '${packageName}' not found in repository`)
+  }
 
-        if (this.options.repository.startsWith('http') || this.options.repository.startsWith('git')) {
-            this.remote = true
-        } else if (!existsSync(this.options.repository)) {
-            throw new Error('Repository must be a existing local directory')
-        }
-
-        this.localDirectory = path.join(homedir(), '.dms', path2name(this.getRepository()), path2name(this.getBranch()))
-        ensureDirectoryExistsSync(this.localDirectory)
-
-        const project = await getProjectByName(this.options.name)
-
-        this.type = project.type
-        this.entries = project.entries
+  async setup() {
+    if (!this.options.repository) {
+      throw new Error('Repository must be provided')
     }
+
+    if (this.options.repository.startsWith('http') || this.options.repository.startsWith('git')) {
+      this.remote = true
+    } else if (!existsSync(this.options.repository)) {
+      throw new Error('Repository must be a existing local directory')
+    }
+
+    this.localDirectory = path.join(
+      homedir(),
+      '.dms',
+      path2name(this.getRepository()),
+      path2name(this.getBranch()),
+    )
+    ensureDirectoryExistsSync(this.localDirectory)
+
+    const project = await getProjectByName(this.options.name)
+
+    this.type = project.type
+    this.entries = project.entries
+  }
 }
 
 // AsyncLocalStorage instance for context management
@@ -196,22 +214,22 @@ const contextStorage = new AsyncLocalStorage<Context>()
 
 // Get the current context from async storage
 export function getContext(): Context {
-    const context = contextStorage.getStore()
-    if (!context) {
-        throw new Error('Context not found in async storage. Make sure to run within context.run()')
-    }
-    return context
+  const context = contextStorage.getStore()
+  if (!context) {
+    throw new Error('Context not found in async storage. Make sure to run within context.run()')
+  }
+  return context
 }
 
 // Run a function with context in async storage
 export async function runWithContext<T>(options: AnalyzeOptions, fn: () => T): Promise<T> {
-    const context = new Context(options)
-    await context.setup()
+  const context = new Context(options)
+  await context.setup()
 
-    return contextStorage.run(context, fn)
+  return contextStorage.run(context, fn)
 }
 
 // generate a random tmp dir
 function getOutputDir(): string {
-    return join(os.tmpdir(), `dependency-analyzer-${Date.now()}`)
+  return join(os.tmpdir(), `dependency-analyzer-${Date.now()}`)
 }

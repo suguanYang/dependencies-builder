@@ -18,12 +18,10 @@ function actionsRoutes(fastify: FastifyInstance) {
         offset: query.offset,
       }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch actions',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch actions',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -40,12 +38,10 @@ function actionsRoutes(fastify: FastifyInstance) {
 
       return action
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch action',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch action',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -57,12 +53,10 @@ function actionsRoutes(fastify: FastifyInstance) {
       // Check if there are too many running actions (limit: 10)
       const runningActionsCount = await repository.countRunningActions()
       if (runningActionsCount >= 10) {
-        reply
-          .code(429)
-          .send({
-            error: 'Too many running actions',
-            details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
-          })
+        reply.code(429).send({
+          error: 'Too many running actions',
+          details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
+        })
         return
       }
 
@@ -81,12 +75,10 @@ function actionsRoutes(fastify: FastifyInstance) {
       reply.code(201).send(action)
     } catch (err) {
       logError('Failed to create action' + err)
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to create action',
-          details: err instanceof Error ? err.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to create action',
+        details: err instanceof Error ? err.message : 'Unknown error',
+      })
     }
   })
 
@@ -108,12 +100,10 @@ function actionsRoutes(fastify: FastifyInstance) {
       return reply.code(200).send({ success: true, message: 'Action deleted successfully' })
     } catch (err) {
       logError(err)
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to delete action',
-          details: err instanceof Error ? err.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to delete action',
+        details: err instanceof Error ? err.message : 'Unknown error',
+      })
     }
   })
 
@@ -159,12 +149,10 @@ function actionsRoutes(fastify: FastifyInstance) {
       // Check if there are too many running actions (limit: 10)
       const runningActionsCount = await repository.countRunningActions()
       if (runningActionsCount >= 10) {
-        reply
-          .code(429)
-          .send({
-            error: 'Too many running actions',
-            details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
-          })
+        reply.code(429).send({
+          error: 'Too many running actions',
+          details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
+        })
         return
       }
 
@@ -178,12 +166,12 @@ function actionsRoutes(fastify: FastifyInstance) {
       if (!result.success) {
         repository.updateAction(action.id, {
           status: 'failed',
-          error: result.error
+          error: result.error,
         })
 
         reply.code(500).send({
           error: 'Failed to trigger connection auto-creation',
-          details: result.error
+          details: result.error,
         })
         return
       }
@@ -191,12 +179,10 @@ function actionsRoutes(fastify: FastifyInstance) {
       reply.code(201).send(action)
     } catch (error) {
       logError('Failed to trigger connection auto-creation: ' + error)
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to trigger connection auto-creation',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to trigger connection auto-creation',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 }

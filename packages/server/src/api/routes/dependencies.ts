@@ -20,12 +20,10 @@ function dependenciesRoutes(fastify: FastifyInstance) {
 
       return graph
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch dependency graph',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch dependency graph',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -42,17 +40,15 @@ function dependenciesRoutes(fastify: FastifyInstance) {
         projectName,
         branch,
         nodesResult.data,
-        connectionsResult.data
+        connectionsResult.data,
       )
 
       return graph
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to fetch project dependency graph',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to fetch project dependency graph',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 
@@ -73,12 +69,10 @@ function dependenciesRoutes(fastify: FastifyInstance) {
 
       return { valid: isValid }
     } catch (error) {
-      reply
-        .code(500)
-        .send({
-          error: 'Failed to validate dependency',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+      reply.code(500).send({
+        error: 'Failed to validate dependency',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
     }
   })
 }

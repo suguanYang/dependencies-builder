@@ -8,7 +8,7 @@ export enum NodeType {
   WebStorageWrite = 'WebStorageWrite',
   EventOn = 'EventOn',
   EventEmit = 'EventEmit',
-  DynamicModuleFederationReference = 'DynamicModuleFederationReference'
+  DynamicModuleFederationReference = 'DynamicModuleFederationReference',
 }
 
 export interface Node {
@@ -77,21 +77,17 @@ export async function getConnections(nodeId: string): Promise<Connection[]> {
 }
 
 // Base API request function with error handling
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`
 
   const response = await fetch(url, {
     headers: {
       ...options.headers,
-      ...(
-        !!options.body ? {
-          'Content-Type': 'application/json',
-        } : {
-        }
-      )
+      ...(!!options.body
+        ? {
+            'Content-Type': 'application/json',
+          }
+        : {}),
     },
     ...options,
   })
@@ -99,7 +95,7 @@ export async function apiRequest<T>(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     throw new Error(
-      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,
     )
   }
 
@@ -175,7 +171,8 @@ export async function getConnectionsList(filters?: {
   if (filters?.toId) params.append('toId', filters.toId)
   if (filters?.fromNodeName) params.append('fromNodeName', filters.fromNodeName)
   if (filters?.toNodeName) params.append('toNodeName', filters.toNodeName)
-  if (filters?.fromNodeProjectName) params.append('fromNodeProjectName', filters.fromNodeProjectName)
+  if (filters?.fromNodeProjectName)
+    params.append('fromNodeProjectName', filters.fromNodeProjectName)
   if (filters?.toNodeProjectName) params.append('toNodeProjectName', filters.toNodeProjectName)
   if (filters?.fromNodeType) params.append('fromNodeType', filters.fromNodeType)
   if (filters?.toNodeType) params.append('toNodeType', filters.toNodeType)
@@ -186,7 +183,10 @@ export async function getConnectionsList(filters?: {
   return apiRequest(`/connections${queryString ? `?${queryString}` : ''}`)
 }
 
-export async function createConnection(connectionData: { fromId: string; toId: string }): Promise<Connection> {
+export async function createConnection(connectionData: {
+  fromId: string
+  toId: string
+}): Promise<Connection> {
   return apiRequest('/connections', {
     method: 'POST',
     body: JSON.stringify(connectionData),
@@ -205,8 +205,8 @@ export interface Action {
   status: 'pending' | 'running' | 'completed' | 'failed'
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   parameters: {
-    projectAddr?: string;
-    projectName?: string;
+    projectAddr?: string
+    projectName?: string
     branch?: string
     targetBranch?: string
   }
@@ -249,7 +249,7 @@ export async function streamActionLogs(
   actionId: string,
   onEvent: (event: string) => void,
   onError?: (error: Error) => void,
-  onComplete?: () => void
+  onComplete?: () => void,
 ): Promise<void> {
   const url = `${API_BASE}/actions/${actionId}/stream`
 
@@ -279,7 +279,7 @@ export async function streamActionLogs(
           }
 
           const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n').filter(line => line.trim())
+          const lines = chunk.split('\n').filter((line) => line.trim())
 
           for (const line of lines) {
             try {
@@ -300,7 +300,9 @@ export async function streamActionLogs(
   }
 }
 
-export async function stopActionExecution(actionId: string): Promise<{ success: boolean; message: string }> {
+export async function stopActionExecution(
+  actionId: string,
+): Promise<{ success: boolean; message: string }> {
   return apiRequest(`/actions/${actionId}/stop`, {
     method: 'POST',
   })
@@ -308,8 +310,8 @@ export async function stopActionExecution(actionId: string): Promise<{ success: 
 
 // Projects API
 export enum AppType {
-  Lib = "Lib",
-  App = "App"
+  Lib = 'Lib',
+  App = 'App',
 }
 
 export interface ProjectEntry {
@@ -349,7 +351,9 @@ export interface ProjectUpdateData {
   entries?: ProjectEntry[]
 }
 
-export async function getProjects(filters?: ProjectQuery): Promise<{ data: Project[]; total: number }> {
+export async function getProjects(
+  filters?: ProjectQuery,
+): Promise<{ data: Project[]; total: number }> {
   const params = new URLSearchParams()
 
   if (filters?.name) params.append('name', filters.name)

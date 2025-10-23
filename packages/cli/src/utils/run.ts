@@ -15,7 +15,7 @@ const runNext = () => {
     WAITTING_QUEUE.shift()?.()
   }
 }
-class RunError extends Error { }
+class RunError extends Error {}
 
 const control = async <T>(task: () => Promise<T>): Promise<T> => {
   let onResolve: (value: unknown) => void
@@ -88,9 +88,7 @@ const _spawn = (
 
       debug('run end', command, code)
       reject(
-        new RunError(
-          `run "${command} ${args.join(' ')}" failed with code ${code}\n${errorLog}`,
-        ),
+        new RunError(`run "${command} ${args.join(' ')}" failed with code ${code}\n${errorLog}`),
       )
     })
   })
@@ -99,7 +97,7 @@ const _spawn = (
     reject(new RunError(`run "${command} ${args.join(' ')}" failed with error\n${err}`))
   })
 
-  return promise.then(async res => {
+  return promise.then(async (res) => {
     if (consumeStdout) {
       return await streamToString(res)
     }

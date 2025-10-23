@@ -1,3 +1,3 @@
 export const isCI = () => {
-    return process.env.CI === 'true'
+  return process.env.CI === 'true'
 }

@@ -24,58 +24,68 @@
 //     }
 //  }
 export type ExportQuery = {
-    "#select": {
-        "tuples": [entry: string, name: string, location: string][]
-    }
+  '#select': {
+    tuples: [entry: string, name: string, location: string][]
+  }
 }
 
 export type ImportQuery = {
-    "#select": {
-        "tuples": [moduleName: string, importName: string, usageLocation: string][]
-    }
+  '#select': {
+    tuples: [moduleName: string, importName: string, usageLocation: string][]
+  }
 }
 
 export type LibsDynamicImportQuery = {
-    "#select": {
-        "tuples": [packageName: string, subPackageName: string, importName: string, usageLocation: string][]
-    }
+  '#select': {
+    tuples: [
+      packageName: string,
+      subPackageName: string,
+      importName: string,
+      usageLocation: string,
+    ][]
+  }
 }
 
 export type GlobalVariableQuery = {
-    "#select": {
-        "tuples": [variableName: string, type: "Write" | "Read", location: string][]
-    }
+  '#select': {
+    tuples: [variableName: string, type: 'Write' | 'Read', location: string][]
+  }
 }
 
 export type WebStorageQuery = {
-    "#select": {
-        "tuples": [localStorageKey: string, type: "Write" | "Read", kind: "LocalStorage" | "SessionStorage", location: string][]
-    }
+  '#select': {
+    tuples: [
+      localStorageKey: string,
+      type: 'Write' | 'Read',
+      kind: 'LocalStorage' | 'SessionStorage',
+      location: string,
+    ][]
+  }
 }
 
 export type EventQuery = {
-    "#select": {
-        "tuples": [eventName: string, type: "On" | "Emit", usageLocation: string][]
-    }
+  '#select': {
+    tuples: [eventName: string, type: 'On' | 'Emit', usageLocation: string][]
+  }
 }
 
 export type RemoteLoaderQuery = {
-    "#select": {
-        "tuples": [appName: string, moduleName: string, location: string][]
-    }
+  '#select': {
+    tuples: [appName: string, moduleName: string, location: string][]
+  }
 }
 
 export const NodeType = {
-    NamedExport: 'NamedExport',
-    NamedImport: 'NamedImport',
-    RuntimeDynamicImport: 'RuntimeDynamicImport',
-    GlobalVarRead: 'GlobalVarRead',
-    GlobalVarWrite: 'GlobalVarWrite',
-    WebStorageRead: 'WebStorageRead',
-    WebStorageWrite: 'WebStorageWrite',
-    EventOn: 'EventOn',
-    EventEmit: 'EventEmit',
-    DynamicModuleFederationReference: 'DynamicModuleFederationReference'
-};
+  NamedExport: 'NamedExport',
+  NamedImport: 'NamedImport',
+  RuntimeDynamicImport: 'RuntimeDynamicImport',
+  GlobalVarRead: 'GlobalVarRead',
+  GlobalVarWrite: 'GlobalVarWrite',
+  WebStorageRead: 'WebStorageRead',
+  WebStorageWrite: 'WebStorageWrite',
+  EventOn: 'EventOn',
+  EventEmit: 'EventEmit',
+  DynamicModuleFederationReference: 'DynamicModuleFederationReference',
+}
 
 export type NodeType = (typeof NodeType)[keyof typeof NodeType]

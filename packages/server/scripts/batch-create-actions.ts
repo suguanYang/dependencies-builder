@@ -55,7 +55,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     throw new Error(
-      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,
     )
   }
 
@@ -74,7 +74,7 @@ async function fetchAllProjects(): Promise<Project[]> {
 
   while (true) {
     const response = await apiRequest<ApiResponse<Project>>(
-      `/projects?limit=${limit}&offset=${offset}`
+      `/projects?limit=${limit}&offset=${offset}`,
     )
 
     allProjects = [...allProjects, ...response.data]
@@ -116,7 +116,7 @@ async function createAction(project: Project, branch: string): Promise<Action> {
 async function countRunningActions(): Promise<number> {
   try {
     const response = await apiRequest<ApiResponse<Action>>('/actions')
-    const runningActions = response.data.filter(action => action.status === 'running')
+    const runningActions = response.data.filter((action) => action.status === 'running')
     return runningActions.length
   } catch (err) {
     console.warn('Failed to count running actions:', err)
@@ -132,7 +132,7 @@ async function waitForRunningActions(): Promise<void> {
 
   while (runningCount > 0) {
     console.log(`Waiting for ${runningCount} running actions to complete...`)
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL))
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
     runningCount = await countRunningActions()
   }
 
@@ -164,7 +164,9 @@ async function processProjectsInBatches(projects: Project[], branch: string): Pr
       try {
         await createAction(project, branch)
         processedCount++
-        console.log(`Progress: ${processedCount}/${totalProjects} (${Math.round((processedCount / totalProjects) * 100)}%)`)
+        console.log(
+          `Progress: ${processedCount}/${totalProjects} (${Math.round((processedCount / totalProjects) * 100)}%)`,
+        )
       } catch (err) {
         failedCount++
         console.error(`Failed to create action for project ${project.name}: ${err}`)
@@ -176,7 +178,7 @@ async function processProjectsInBatches(projects: Project[], branch: string): Pr
     // If this is not the last batch, wait for current batch to start processing
     if (i + BATCH_SIZE < projects.length) {
       console.log('Waiting for current batch to start processing...')
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL))
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
     }
   }
 

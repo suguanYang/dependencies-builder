@@ -3,12 +3,12 @@ import cors from '@fastify/cors'
 import { setupAPI } from './api'
 import process from 'node:process'
 import logger, { fatal, info } from './logging'
-import { prisma } from './database/prisma';
+import { prisma } from './database/prisma'
 
 async function startServer() {
   const fastify = Fastify({
     loggerInstance: logger as FastifyBaseLogger,
-  });
+  })
 
   try {
     // Setup CORS
@@ -28,7 +28,7 @@ async function startServer() {
 
     await fastify.listen({ port, host })
   } catch (error) {
-    fatal(error, "Failed to start server")
+    fatal(error, 'Failed to start server')
     process.exit(1)
   }
 
@@ -50,10 +50,10 @@ async function startServer() {
   // @ts-ignore
   if (import.meta.hot) {
     // @ts-ignore
-    import.meta.hot.on("vite:beforeFullReload", async () => {
+    import.meta.hot.on('vite:beforeFullReload', async () => {
       await prisma.$disconnect()
-      await fastify.close();
-    });
+      await fastify.close()
+    })
   }
 }
 

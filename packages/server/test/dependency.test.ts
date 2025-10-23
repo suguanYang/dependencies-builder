@@ -2,9 +2,14 @@ import { describe, it, expect } from 'vitest'
 import {
   getFullDependencyGraph,
   getProjectDependencyGraph,
-  validateEdgeCreation
+  validateEdgeCreation,
 } from '../src/dependency'
-import { mockNodes, mockConnections, mockDependencyGraph, mockProjectGraph } from './__mocks__/test-data'
+import {
+  mockNodes,
+  mockConnections,
+  mockDependencyGraph,
+  mockProjectGraph,
+} from './__mocks__/test-data'
 import { NodeType } from '../src/generated/prisma/client'
 
 describe('Dependency Module', () => {
@@ -26,7 +31,7 @@ describe('Dependency Module', () => {
     expect(graph.edges).toHaveLength(1)
 
     // Verify all nodes belong to the specified project and branch
-    graph.vertices.forEach(vertex => {
+    graph.vertices.forEach((vertex) => {
       expect(vertex.data.project).toBe('test-project')
       expect(vertex.data.branch).toBe('main')
     })
@@ -38,14 +43,14 @@ describe('Dependency Module', () => {
       name: 'importedFunc',
       type: 'NamedImport' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
     const toNode = {
       id: 'node-2',
       name: 'exportedFunc',
       type: 'NamedExport' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
 
     const isValid = validateEdgeCreation(fromNode, toNode)
@@ -58,14 +63,14 @@ describe('Dependency Module', () => {
       name: 'importedFunc',
       type: 'NamedImport' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
     const toNode = {
       id: 'node-2',
       name: 'importedFunc',
       type: 'NamedImport' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
 
     const isValid = validateEdgeCreation(fromNode, toNode)
@@ -78,14 +83,14 @@ describe('Dependency Module', () => {
       name: 'eventListener',
       type: 'EventOn' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
     const toNode = {
       id: 'node-2',
       name: 'eventEmitter',
       type: 'EventEmit' as NodeType,
       project: 'test-project',
-      branch: 'main'
+      branch: 'main',
     }
 
     const isValid = validateEdgeCreation(fromNode, toNode)

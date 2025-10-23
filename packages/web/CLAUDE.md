@@ -1,5 +1,6 @@
 This comprehensive guide outlines best practices, conventions, and standards for development with modern web technologies including ReactJS, NextJS, TypeScript, JavaScript, HTML, CSS, and UI frameworks.
 Development Philosophy
+
 - Write clean, maintainable, and scalable code
 - Follow SOLID principles
 - Prefer functional and declarative programming patterns over imperative
@@ -8,6 +9,7 @@ Development Philosophy
 
 Code Implementation Guidelines
 Planning Phase
+
 - Begin with step-by-step planning
 - Write detailed pseudocode before implementation
 - Document component architecture and data flow
@@ -15,6 +17,7 @@ Planning Phase
 
 React Best Practices
 Component Architecture
+
 - Use functional components with TypeScript interfaces
 - Define components using the function keyword
 - Extract reusable logic into custom hooks
@@ -23,6 +26,7 @@ Component Architecture
 - Implement proper cleanup in useEffect hooks
 
 React Performance Optimization
+
 - Use useCallback for memoizing callback functions
 - Implement useMemo for expensive computations
 - Avoid inline function definitions in JSX
@@ -31,30 +35,34 @@ React Performance Optimization
 
 Next.js Best Practices
 Core Concepts
+
 - Utilize App Router for routing
 - Implement proper metadata management
 - Use proper caching strategies
 - Implement proper error boundaries
 
 Components and Features
+
 - Use Next.js built-in components:
-    - Image component for optimized images
-    - Link component for client-side navigation
-    - Script component for external scripts
-    - Head component for metadata
+  - Image component for optimized images
+  - Link component for client-side navigation
+  - Script component for external scripts
+  - Head component for metadata
 - Implement proper loading states
 - Use proper data fetching methods
 
 Server Components
+
 - Default to Server Components
 - Use URL query parameters for data fetching and server state management
 - Use 'use client' directive only when necessary:
-    - Event listeners
-    - Browser APIs
-    - State management
-    - Client-side-only libraries
+  - Event listeners
+  - Browser APIs
+  - State management
+  - Client-side-only libraries
 
 TypeScript Implementation
+
 - Enable strict mode
 - Define clear interfaces for component props, state.
 - Use type guards to handle potential undefined or null values safely.
@@ -65,12 +73,14 @@ TypeScript Implementation
 
 UI and Styling
 Component Libraries
+
 - Use Shadcn UI for consistent, accessible component design.
 - Integrate Radix UI primitives for customizable, accessible UI elements.
 - Apply composition patterns to create modular, reusable components.
 - search for appropriate components by shadcn mcp tool
 
 Styling Guidelines
+
 - Use Tailwind CSS for styling
 - Use Tailwind CSS for utility-first, maintainable styling.
 - Design with mobile-first, responsive principles for flexibility across devices.
@@ -81,6 +91,7 @@ Styling Guidelines
 
 State Management
 Local State
+
 - Use useState for component-level state
 - Implement useReducer for complex state
 - Use useContext for shared state
@@ -88,29 +99,34 @@ Local State
 
 Error Handling and Validation
 Form Validation
+
 - Use Zod for schema validation
 - Implement proper error messages
 - Use proper form libraries (e.g., React Hook Form)
 
 Error Boundaries
+
 - Use error boundaries to catch and handle errors in React component trees gracefully.
 - Log caught errors to an external service (e.g., Sentry) for tracking and debugging.
 - Design user-friendly fallback UIs to display when errors occur, keeping users informed without breaking the app.
 
 Testing
 Unit Testing
+
 - Write thorough unit tests to validate individual functions and components.
 - Use Vitest and React Testing Library for reliable and efficient testing of React components.
 - Follow patterns like Arrange-Act-Assert to ensure clarity and consistency in tests.
 - Mock external dependencies and API calls to isolate unit tests.
 
 Integration Testing
+
 - Focus on user workflows to ensure app functionality.
 - Set up and tear down test environments properly to maintain test independence.
 - Use snapshot testing selectively to catch unintended UI changes without over-relying on it.
 - Leverage testing utilities (e.g., screen in RTL) for cleaner and more readable tests.
 
 Documentation
+
 - Use JSDoc for documentation
 - Document all public functions, classes, methods, and interfaces
 - Add examples when appropriate
@@ -122,6 +138,6 @@ Documentation
 - Use proper headings
 - Use proper lists
 
-
 Instructions
+
 - Do not run the build command unless I ask you to do so

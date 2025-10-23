@@ -13,7 +13,7 @@ const VALID_NODE_TYPES = [
   'WebStorageWrite',
   'EventOn',
   'EventEmit',
-  'DynamicModuleFederationReference'
+  'DynamicModuleFederationReference',
 ] as const
 
 function isValidNodeType(type: string): boolean {
@@ -39,9 +39,9 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
           ...(otherWhere.AND || []),
           {
             fromConnections: { none: {} },
-            toConnections: { none: {} }
-          }
-        ]
+            toConnections: { none: {} },
+          },
+        ],
       }
     } else if (standaloneBool === false) {
       // Find nodes that have at least one connection
@@ -50,8 +50,8 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
         OR: [
           ...(otherWhere.OR || []),
           { fromConnections: { some: {} } },
-          { toConnections: { some: {} } }
-        ]
+          { toConnections: { some: {} } },
+        ],
       }
     }
   }
@@ -60,8 +60,8 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
     prisma.node.findMany({
       where: finalWhere,
       orderBy: { createdAt: 'desc' },
-      take: all ? undefined : take ?? 100,
-      skip: all ? undefined : skip ?? 0,
+      take: all ? undefined : (take ?? 100),
+      skip: all ? undefined : (skip ?? 0),
     }),
     prisma.node.count({ where: finalWhere }),
   ])
@@ -144,7 +144,9 @@ export async function updateNode(
   return updatedNode
 }
 
-export async function createNodes(nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]) {
+export async function createNodes(
+  nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
+) {
   const createdNodes = await prisma.node.createMany({
     data: nodes,
   })
@@ -179,7 +181,8 @@ export async function getConnections(query: ConnectionQuery & { take?: number; s
   if (filters.fromNodeName || filters.fromNodeProjectName || filters.fromNodeType) {
     const fromNodeCondition: Prisma.NodeWhereInput = {}
     if (filters.fromNodeName) fromNodeCondition.name = { contains: filters.fromNodeName }
-    if (filters.fromNodeProjectName) fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
+    if (filters.fromNodeProjectName)
+      fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
     if (filters.fromNodeType && isValidNodeType(filters.fromNodeType)) {
       fromNodeCondition.type = { equals: filters.fromNodeType as any }
     }
@@ -190,7 +193,8 @@ export async function getConnections(query: ConnectionQuery & { take?: number; s
   if (filters.toNodeName || filters.toNodeProjectName || filters.toNodeType) {
     const toNodeCondition: Prisma.NodeWhereInput = {}
     if (filters.toNodeName) toNodeCondition.name = { contains: filters.toNodeName }
-    if (filters.toNodeProjectName) toNodeCondition.projectName = { contains: filters.toNodeProjectName }
+    if (filters.toNodeProjectName)
+      toNodeCondition.projectName = { contains: filters.toNodeProjectName }
     if (filters.toNodeType && isValidNodeType(filters.toNodeType)) {
       toNodeCondition.type = { equals: filters.toNodeType as any }
     }
