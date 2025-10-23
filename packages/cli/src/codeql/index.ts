@@ -1,7 +1,7 @@
 import path from 'path'
-import { cpSync, rmSync, writeFileSync } from 'fs'
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { replaceTscAliasPaths } from 'tsc-alias'
-import { getTsconfig } from 'get-tsconfig'
+import { parse } from 'jsonc-parser'
 
 import { CodeQL } from './codeql-runner'
 import { buildQueries, processQuery } from './queries'
@@ -45,16 +45,15 @@ const postRun = async () => {
   cpSync(path.join(ctx.getWorkingDirectory(), 'src'), path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
 
   // ignore extends in tsconfig.json
-  const tsconfigResult = getTsconfig(tsconfig)
+  const tsconfigResult = parse(readFileSync(tsconfig, 'utf8'))
 
   if (!tsconfigResult) {
     return;
   }
 
-  if (tsconfigResult.config) {
-    // @ts-ignore
-    tsconfigResult.config.extends = undefined
-    writeFileSync(tsconfig, JSON.stringify(tsconfigResult.config, null, 2))
+  if (tsconfigResult) {
+    tsconfigResult.extends = undefined
+    writeFileSync(tsconfig, JSON.stringify(tsconfigResult, null, 2))
   }
 
   debug('Replacing tsc-alias paths')
