@@ -10,6 +10,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
   errors: string[]
 }> {
   const result = {
+    totalNodes: 0,
     createdConnections: 0,
     skippedConnections: 0,
     errors: [] as string[],
@@ -26,6 +27,8 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
         meta: true,
       },
     })
+
+    result.totalNodes = nodes.length
 
     // Group nodes by type for efficient lookup
     const nodesByType = new Map<string, typeof nodes>()

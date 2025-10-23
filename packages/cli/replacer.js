@@ -15,5 +15,5 @@ export default (arg) => {
     return defaultReplacer.default(arg)
   }
 
-  return arg
+  return arg.orig
 }
