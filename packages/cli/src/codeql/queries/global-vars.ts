@@ -1,4 +1,5 @@
 const BUILTIN_GLOBVARS = new Set([
+    "globalThis",
     "process",
     "webkitURL",
     "window",
