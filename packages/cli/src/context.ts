@@ -157,7 +157,7 @@ class Context {
               continue
             }
             const depth = path.relative(baseDir, fullPath).split('/').length
-            if (depth > 2) {
+            if (depth > 3) {
               continue
             }
             searchDirectories.push(fullPath)

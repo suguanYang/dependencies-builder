@@ -27,6 +27,7 @@
     "tsc-alias": "^1.8.16",
     "yargs": "^18.0.0"
   },
+  "peerDependencies": {},
   "devDependencies": {
     "@types/yargs": "^17.0.33"
   }

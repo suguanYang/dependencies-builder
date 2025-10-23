@@ -2,6 +2,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'rolldown'
 
+import pkg from './package.json'
+
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 const sharedNodeOptions = defineConfig({
@@ -9,7 +11,6 @@ const sharedNodeOptions = defineConfig({
   define: {
     __PROD__: 'true',
   },
-  external: ['tsc-alias'],
   output: {
     dir: './dist',
     entryFileNames: `[name].js`,
@@ -30,6 +31,7 @@ const nodeConfig = defineConfig({
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
   },
+  external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 })
 
 export default nodeConfig
