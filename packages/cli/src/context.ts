@@ -57,6 +57,13 @@ class Context {
     return this.options.repository
   }
 
+  getRepositoryDir(): string {
+    if (this.remote) {
+      return this.tmpDir
+    }
+    return this.options.repository
+  }
+
   getRepository(): string {
     return this.options.repository
   }

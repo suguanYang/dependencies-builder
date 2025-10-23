@@ -1,14 +1,11 @@
 import javascript
 import semmle.javascript.dataflow.TaintTracking
 import libs.location
-import libs.builtInGlobalVars
-
 
 module GlobalVarRefTrackingConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node source) {
      exists(string name |
        source = DataFlow::globalVarRef(name)
-       and not isBuiltinGlobalVar(name)
      )
   }
 

@@ -59,8 +59,8 @@ export async function analyzeProject(): Promise<void> {
     debug('Analysis failed: %o', error)
     throw error
   } finally {
-    if (ctx.isRemote() && directoryExistsSync(path.join(ctx.getWorkingDirectory(), 'dist'))) {
-      rmSync(path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
+    if (ctx.isRemote() && directoryExistsSync(path.join(ctx.getRepositoryDir()))) {
+      rmSync(path.join(ctx.getRepositoryDir()), { recursive: true })
     }
   }
 }

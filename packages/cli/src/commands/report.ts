@@ -5,6 +5,7 @@ import { checkoutRepository } from '../checkout'
 import { getContext } from '../context'
 import run from '../utils/run'
 import { Results } from '../codeql/queries'
+import { directoryExistsSync } from '../utils/fs-helper'
 
 interface ReportResult {
   affectedToNodes: any[]
@@ -53,7 +54,9 @@ export async function generateReport(): Promise<void> {
     debug('Report generation failed: %o', error)
     throw error
   } finally {
-    rmSync(path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
+    if (ctx.isRemote() && directoryExistsSync(path.join(ctx.getRepositoryDir()))) {
+      rmSync(path.join(ctx.getRepositoryDir()), { recursive: true })
+    }
   }
 }
 
