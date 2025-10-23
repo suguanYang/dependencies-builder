@@ -2,6 +2,8 @@ import Piscina from 'piscina'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
+import * as repository from '../database/actions-repository'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -63,7 +65,9 @@ export class ConnectionWorkerPool {
     if (abortController) {
       abortController.abort()
       this.executionAbortControllers.delete(actionId)
-
+      repository.updateAction(actionId, {
+        status: 'failed',
+      })
       return true
     }
 

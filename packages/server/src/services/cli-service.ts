@@ -118,6 +118,9 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
               return
             }
             activeExecutions.delete(actionId)
+            repository.updateAction(actionId, {
+              status: 'failed',
+            })
             resolve()
           })
         })

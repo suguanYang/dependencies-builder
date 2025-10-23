@@ -4,6 +4,7 @@ import connectionsRoutes from './routes/connections'
 import dependenciesRoutes from './routes/dependencies'
 import actionsRoutes from './routes/actions'
 import projectsRoutes from './routes/projects'
+import databaseAdminRoutes from './routes/database-admin'
 import { prisma } from '../database/prisma'
 
 export async function setupAPI(fastify: FastifyInstance) {
@@ -13,6 +14,7 @@ export async function setupAPI(fastify: FastifyInstance) {
   fastify.register(dependenciesRoutes)
   fastify.register(actionsRoutes)
   fastify.register(projectsRoutes)
+  fastify.register(databaseAdminRoutes)
 
   // Health check endpoint
   fastify.get('/health', async () => {
@@ -53,6 +55,9 @@ export async function setupAPI(fastify: FastifyInstance) {
         '/projects',
         '/projects/:id',
         '/projects/name/:name',
+        '/database-admin/query',
+        '/database-admin/schema',
+        '/database-admin/tables/:tableName',
         '/health',
       ],
     }

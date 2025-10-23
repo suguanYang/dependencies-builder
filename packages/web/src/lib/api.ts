@@ -393,3 +393,47 @@ export async function deleteProject(id: string): Promise<{ success: boolean }> {
     method: 'DELETE',
   })
 }
+
+// Database Admin API
+export interface DatabaseQueryRequest {
+  query: string
+}
+
+export interface DatabaseQueryResult {
+  success: boolean
+  data?: any[]
+  error?: string
+  executionTime?: number
+  rowCount?: number
+}
+
+export interface DatabaseTable {
+  tableName: string
+  sql: string
+  rowCount: number
+}
+
+export interface DatabaseSchema {
+  tables: DatabaseTable[]
+}
+
+export interface TableInfo {
+  tableName: string
+  schema: any[]
+  sampleData: any[]
+}
+
+export async function executeDatabaseQuery(query: string): Promise<DatabaseQueryResult> {
+  return apiRequest('/database-admin/query', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  })
+}
+
+export async function getDatabaseSchema(): Promise<DatabaseSchema> {
+  return apiRequest('/database-admin/schema')
+}
+
+export async function getTableInfo(tableName: string): Promise<TableInfo> {
+  return apiRequest(`/database-admin/tables/${tableName}`)
+}

@@ -1,4 +1,4 @@
-export const queryContains = (query: Record<string, string>, fields: string[]) => {
+export const queryContains = (query: Record<string, any>, fields: string[]) => {
   for (const field of fields) {
     if (query[field]) {
       query[field] = {
