@@ -26,5 +26,11 @@
     "tsx": "4.20.5",
     "vite-node": "^3.2.4",
     "vitest": "^3.2.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.2",
+      "@types/react-dom": "19.2.2"
+    }
   }
 }
