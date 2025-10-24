@@ -1,0 +1,24 @@
+server {
+        listen *:80;
+        server_name x.x.x.x;
+
+        location / {
+            root   /data/apps/dms;
+            index  index.html index.htm;
+            try_files $uri.html $uri/ $uri =404;
+        }
+
+        # This new block proxies /api/ requests
+        location /api/ {
+            # The trailing slash here is important.
+            # It tells Nginx to strip the /api/ prefix from the request.
+            proxy_pass http://x.x.x.x/;
+
+            # These headers pass along original request info to the proxy server
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_intercept_errors off;
+        }
+}
