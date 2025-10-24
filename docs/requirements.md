@@ -37,11 +37,9 @@ some packages may has side effects, like console.log
 
 ### 1. /xxx/remoteEntry.js 404
 
-### 2. 组件库x.x中找不到xxx组件
+### 2. Module './xxx' does not exist in the container
 
-### 3. Module './xxx' does not exist in the container
-
-### 4. xxx is not a function
+### 3. xxx is not a function
 
 ## Hatch
 
