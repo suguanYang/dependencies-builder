@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
   HomeIcon,
   NetworkIcon,
@@ -67,7 +67,7 @@ const navigationItems: NavigationItem[] = [
 
 const adminNavigationItems: NavigationItem[] = [
   {
-    name: 'Database Admin',
+    name: 'Admin',
     href: '/database-admin',
     icon: Database,
     description: 'Database administration tools',
@@ -75,12 +75,32 @@ const adminNavigationItems: NavigationItem[] = [
 ]
 
 export function CollapsibleNavigation() {
+  const ref = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
-  const { isCollapsed, toggleSidebar } = useSidebar()
+  const { isCollapsed, toggleSidebar, collapseSidebar } = useSidebar()
   const { user, isAuthenticated, isAdmin, logout, isLoading } = useAuth()
+
+  useEffect(() => {
+    const unl = window.addEventListener(
+      'click',
+      (e) => {
+        if (ref.current?.contains(e.target as any)) {
+          return
+        }
+
+        collapseSidebar()
+      },
+      {
+        capture: true,
+      },
+    )
+
+    return unl
+  }, [])
 
   return (
     <div
+      ref={ref}
       className={`sticky top-0 left-0 h-screen bg-white border-r border-gray-200 flex flex-col z-40 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
@@ -177,7 +197,9 @@ export function CollapsibleNavigation() {
       <div className="p-4 border-t space-y-4">
         {/* User Info */}
         {isAuthenticated && user && (
-          <div className={`transition-all duration-300 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>
+          <div
+            className={`transition-all duration-300 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}
+          >
             <div className="flex items-center gap-2 mb-2">
               <User className="h-4 w-4 text-gray-500" />
               <div className="text-sm">
