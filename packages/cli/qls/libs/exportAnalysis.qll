@@ -123,7 +123,7 @@ predicate getExportOrigin(ExportDeclaration exportDecl, string name, AstNode ori
     )
     and
     // Generate location string, handling LazyComponent specially
-    if origin instanceof LazyComponent then
+    if origin instanceof LazyComponent and exists(origin.(LazyComponent).getUnderlyingNode()) then
       location = getLocation(origin.(LazyComponent).getUnderlyingNode())
     else
       location = getLocation(origin)
