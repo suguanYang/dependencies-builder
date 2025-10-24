@@ -23,6 +23,7 @@ type METADATA = {
 
 export interface AnalyzeOptions {
   branch: string
+  type?: REPO_TYPE
   targetBranch?: string
   /**
    * The repository to analyze, it can be a local directory or a remote git repository
@@ -208,6 +209,11 @@ class Context {
       path2name(this.getBranch()),
     )
     ensureDirectoryExistsSync(this.localDirectory)
+
+    if (this.options.type) {
+      this.type = this.options.type
+      return
+    }
 
     const project = await getProjectByName(this.options.name)
 

@@ -17,7 +17,7 @@ yargs(hideBin(process.argv))
         .option('branch', {
           describe: 'Branch name to analyze',
           type: 'string',
-          default: 'main',
+          demandOption: true,
         })
         .option('verbose', {
           alias: 'v',
@@ -29,6 +29,10 @@ yargs(hideBin(process.argv))
           describe: 'Project name for monorepo analysis',
           type: 'string',
           demandOption: true,
+        })
+        .option('type', {
+          describe: 'Project type',
+          type: 'string',
         })
     },
     async (argv) => {
@@ -42,6 +46,7 @@ yargs(hideBin(process.argv))
           branch: argv.branch,
           repository: argv.repository,
           name: argv.name,
+          type: argv.type as any
         },
         analyzeProject,
       )
@@ -72,6 +77,10 @@ yargs(hideBin(process.argv))
           type: 'string',
           demandOption: true,
         })
+        .option('type', {
+          describe: 'Project type',
+          type: 'string',
+        })
         .option('verbose', {
           alias: 'v',
           describe: 'Enable verbose output',
@@ -91,6 +100,7 @@ yargs(hideBin(process.argv))
           repository: argv.repository,
           targetBranch: argv.targetBranch,
           name: argv.name,
+          type: argv.type as any
         },
         () => generateReport(),
       )
