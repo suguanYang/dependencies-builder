@@ -1,4 +1,5 @@
-import debug from '../utils/debug'
+import { batchCreateNodes } from '../api'
+import debug, { error as errLog } from '../utils/debug'
 
 export interface UploadResult {
   success: boolean
@@ -8,9 +9,7 @@ export interface UploadResult {
 }
 
 export async function uploadResults(results: any): Promise<UploadResult> {
-  const serverUrl = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
-
-  debug('Uploading results to server: %s', serverUrl)
+  debug('Uploading results to server')
 
   try {
     // Prepare nodes for upload with projectId and projectName
@@ -45,21 +44,8 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       debug('Uploading batch %d/%d (%d nodes)', i + 1, batches.length, batch.length)
 
       try {
-        const response = await fetch(`${serverUrl}/nodes/batch-create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(batch),
-        })
+        const result = await batchCreateNodes(batch)
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          errors.push(`Batch ${i + 1}: ${response.status} - ${errorText}`)
-          continue
-        }
-
-        const result = (await response.json()) as { message: string }
         totalUploaded += batch.length
         debug('Batch %d uploaded successfully: %s', i + 1, result.message)
       } catch (error) {
@@ -68,12 +54,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
     }
 
     if (errors.length > 0) {
-      return {
-        success: false,
-        message: `Upload completed with ${errors.length} errors`,
-        uploadedNodes: totalUploaded,
-        errors,
-      }
+      throw new Error(errors.join('/n'))
     }
 
     return {
@@ -82,13 +63,7 @@ export async function uploadResults(results: any): Promise<UploadResult> {
       uploadedNodes: totalUploaded,
     }
   } catch (error) {
-    debug('Upload failed: %o', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return {
-      success: false,
-      message: 'Upload failed',
-      uploadedNodes: 0,
-      errors: [errorMessage],
-    }
+    errLog('Upload failed: %o', error)
+    throw error
   }
 }

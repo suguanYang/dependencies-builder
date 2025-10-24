@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process'
 import kill from 'tree-kill'
-import * as repository from '../database/repository'
+import { getAdminUserKey, revokeAdminKey } from '../auth'
 import { error, info } from '../logging'
+import * as repository from '../database/repository'
 
 export type ActionData = Required<repository.CreateActionData> & {
   targetBranch?: string
@@ -34,6 +35,9 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       `Executing CLI command: ${cliCommand.join(' ')} with action data: ${JSON.stringify(actionData)}`,
     )
 
+    const { key, id: keyId } = await getAdminUserKey(actionId)
+
+
     // Execute CLI command
     const [cmd, ...args] = cliCommand
     const childProcess = spawn(cmd, args, {
@@ -41,6 +45,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       env: {
         ...process.env,
         DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
+        DMS_SERVER_CLI_KEY: key
       },
     })
 
@@ -63,6 +68,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     })
 
     childProcess.on('close', async (code) => {
+      await revokeAdminKey(keyId)
       activeExecutions.delete(actionId)
 
       if (code === 0) {
@@ -84,6 +90,8 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     })
 
     childProcess.on('error', async (err) => {
+      await revokeAdminKey(keyId)
+
       error(`action:${actionId} Failed to execute CLI command: ` + err)
 
       activeExecutions.delete(actionId)
@@ -117,10 +125,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
               reject(err)
               return
             }
-            activeExecutions.delete(actionId)
-            repository.updateAction(actionId, {
-              status: 'failed',
-            })
+
             resolve()
           })
         })
@@ -131,10 +136,11 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     activeExecutions.set(actionId, execution)
 
     return execution
-  } catch (error) {
-    console.error(`CLI execution failed for action ${actionId}:`, error)
+  } catch (err) {
+    error(err)
     await repository.updateAction(actionId, {
       status: 'failed',
+      error: `Failed to excute cli: ${err instanceof Error ? err.message : err}`
     })
     throw error
   }

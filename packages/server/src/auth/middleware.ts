@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { auth } from '../auth'
+import { info } from '../logging'
 
 export interface AuthenticatedRequest extends FastifyRequest {
   user?: {
@@ -22,6 +23,29 @@ export interface AuthenticatedRequest extends FastifyRequest {
 export async function authenticate(request: AuthenticatedRequest, reply: FastifyReply) {
 
   try {
+    const apiKey = request.headers['cli-key']
+
+    console.log('request.headers: ', request.headers, apiKey)
+
+    if (typeof apiKey === 'string') {
+      info('Api key detected, start validating....')
+      const data = await auth.api.verifyApiKey({
+        body: {
+          key: apiKey,
+        },
+      });
+
+      if (data.valid) {
+        return
+      }
+
+      return reply.status(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid or expired apiKey'
+      })
+    }
+
+
     const session = await auth.api.getSession({
       headers: request.headers
     })

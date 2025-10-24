@@ -71,7 +71,7 @@ function actionsRoutes(fastify: FastifyInstance) {
       } else if (actionData.type === 'static_analysis' || actionData.type === 'report') {
         executeCLI(action.id, actionData).catch((error) => {
           repository.updateAction(action.id, { status: 'failed' })
-          error('Failed to execute action' + error)
+          logError('Failed to execute action' + error)
         })
       }
 

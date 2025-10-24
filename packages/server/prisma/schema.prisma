@@ -2,10 +2,10 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "esm"
-  driver = "better-sqlite3"
+  driver       = "better-sqlite3"
 
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
@@ -52,8 +52,8 @@ model Project {
 model Node {
   id           String   @id @default(cuid())
   branch       String
-  projectId    String 
-  projectName  String 
+  projectId    String
+  projectName  String
   version      String
   type         NodeType
   name         String
@@ -107,15 +107,15 @@ enum ActionStatus {
 }
 
 model Action {
-  id        String      @id @default(cuid())
-  status    ActionStatus
-  type      ActionType
+  id         String       @id @default(cuid())
+  status     ActionStatus
+  type       ActionType
   parameters Json
-  result    Json?
-  error     String?
-  logs      Json?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @default(now()) @updatedAt
+  result     Json?
+  error      String?
+  logs       Json?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
 
   // Indexes
   @@index([status])
@@ -123,45 +123,48 @@ model Action {
 }
 
 // Better Auth Models
+
 model User {
-  id           String    @id @default(cuid())
-  name         String?
-  email        String    @unique
+  id            String   @id @default(cuid())
+  name          String?
+  email         String   @unique
   emailVerified Boolean  @default(false)
-  image        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now()) @updatedAt
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
   // Admin plugin fields
-  role         String?   @default("user")
-  banned       Boolean   @default(false)
-  banReason    String?
-  banExpires   DateTime?
+  role       String?   @default("user")
+  banned     Boolean   @default(false)
+  banReason  String?
+  banExpires DateTime?
 
   // Relations
-  accounts     Account[]
-  sessions     Session[]
+  accounts Account[]
+  sessions Session[]
 
   // Indexes
+  apikeys Apikey[]
+
   @@index([email])
   @@index([role])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  expiresAt    DateTime
-  token        String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
-  ipAddress    String?
-  userAgent    String?
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  ipAddress String?
+  userAgent String?
 
   // Admin plugin field
   impersonatedBy String?
 
   // Relations
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Indexes
   @@index([token])
@@ -170,36 +173,63 @@ model Session {
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  accountId         String
-  providerId        String
-  userId            String
-  accessToken       String?
-  refreshToken      String?
-  idToken           String?
+  id                   String    @id @default(cuid())
+  accountId            String
+  providerId           String
+  userId               String
+  accessToken          String?
+  refreshToken         String?
+  idToken              String?
   accessTokenExpiresAt DateTime?
-  scope             String?
-  password          String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now()) @updatedAt
+  scope                String?
+  password             String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now()) @updatedAt
 
   // Relations
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Indexes
+  refreshTokenExpiresAt DateTime?
+
   @@unique([providerId, accountId])
   @@index([userId])
 }
 
 model Verification {
-  id           String   @id @default(cuid())
-  identifier   String
-  value        String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 
   // Indexes
   @@unique([identifier, value])
   @@index([expiresAt])
+}
+
+model Apikey {
+  id                  String    @id
+  name                String?
+  start               String?
+  prefix              String?
+  key                 String
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
+  enabled             Boolean?  @default(true)
+  rateLimitEnabled    Boolean?  @default(true)
+  rateLimitTimeWindow Int?
+  rateLimitMax        Int?
+  requestCount        Int?
+  remaining           Int?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime
+  updatedAt           DateTime
+  permissions         String?
+  metadata            String?
 }
