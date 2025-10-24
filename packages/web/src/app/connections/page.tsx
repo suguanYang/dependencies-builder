@@ -247,250 +247,248 @@ function ConnectionsContent() {
         </div>
       )}
 
-      <div className={`flex-1 pt-6 px-6 transition-all duration-300`}>
-        <div className="flex gap-6 h-full">
-          {/* Left side - Filters */}
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6 h-fit">
-              <h2 className="text-lg font-semibold mb-4">Filters</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">From Node ID</label>
-                  <Input
-                    placeholder="Partial match from node ID"
-                    value={searchFilters.fromId}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, fromId: e.target.value }))
-                    }
+      <div className="flex gap-6 h-full">
+        {/* Left side - Filters */}
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6 h-fit">
+            <h2 className="text-lg font-semibold mb-4">Filters</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node ID</label>
+                <Input
+                  placeholder="Partial match from node ID"
+                  value={searchFilters.fromId}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fromId: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node ID</label>
+                <Input
+                  placeholder="Partial match to node ID"
+                  value={searchFilters.toId}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, toId: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Name</label>
+                <Input
+                  placeholder="Partial match from node name"
+                  value={searchFilters.fromNodeName || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fromNodeName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Project</label>
+                <Input
+                  placeholder="Partial match from node project"
+                  value={searchFilters.fromNodeProjectName || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fromNodeProject: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">From Node Type</label>
+                <select
+                  value={searchFilters.fromNodeType || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fromNodeType: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>
+                    DynamicModuleFederationReference
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Name</label>
+                <Input
+                  placeholder="Partial match to node name"
+                  value={searchFilters.toNodeName || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, toNodeName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Project</label>
+                <Input
+                  placeholder="Partial match to node project"
+                  value={searchFilters.toNodeProjectName || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, toNodeProject: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">To Node Type</label>
+                <select
+                  value={searchFilters.toNodeType || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, toNodeType: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value={NodeType.NamedExport}>NamedExport</option>
+                  <option value={NodeType.NamedImport}>NamedImport</option>
+                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                  <option value={NodeType.EventOn}>EventOn</option>
+                  <option value={NodeType.EventEmit}>EventEmit</option>
+                  <option value={NodeType.DynamicModuleFederationReference}>
+                    DynamicModuleFederationReference
+                  </option>
+                </select>
+              </div>
+              <Button onClick={handleSearch} className="w-full">
+                <SearchIcon className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Table */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="mb-6 flex justify-between items-center flex-shrink-0">
+            <div>
+              <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <Button onClick={handleAutoCreate} disabled={isAutoCreating} variant="outline">
+                  <RefreshCwIcon
+                    className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">To Node ID</label>
-                  <Input
-                    placeholder="Partial match to node ID"
-                    value={searchFilters.toId}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, toId: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">From Node Name</label>
-                  <Input
-                    placeholder="Partial match from node name"
-                    value={searchFilters.fromNodeName || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, fromNodeName: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">From Node Project</label>
-                  <Input
-                    placeholder="Partial match from node project"
-                    value={searchFilters.fromNodeProjectName || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, fromNodeProject: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">From Node Type</label>
-                  <select
-                    value={searchFilters.fromNodeType || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, fromNodeType: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border rounded-md text-sm"
-                  >
-                    <option value="">All Types</option>
-                    <option value={NodeType.NamedExport}>NamedExport</option>
-                    <option value={NodeType.NamedImport}>NamedImport</option>
-                    <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                    <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                    <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                    <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                    <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                    <option value={NodeType.EventOn}>EventOn</option>
-                    <option value={NodeType.EventEmit}>EventEmit</option>
-                    <option value={NodeType.DynamicModuleFederationReference}>
-                      DynamicModuleFederationReference
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">To Node Name</label>
-                  <Input
-                    placeholder="Partial match to node name"
-                    value={searchFilters.toNodeName || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, toNodeName: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">To Node Project</label>
-                  <Input
-                    placeholder="Partial match to node project"
-                    value={searchFilters.toNodeProjectName || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, toNodeProject: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">To Node Type</label>
-                  <select
-                    value={searchFilters.toNodeType || ''}
-                    onChange={(e) =>
-                      setSearchFilters((prev) => ({ ...prev, toNodeType: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border rounded-md text-sm"
-                  >
-                    <option value="">All Types</option>
-                    <option value={NodeType.NamedExport}>NamedExport</option>
-                    <option value={NodeType.NamedImport}>NamedImport</option>
-                    <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                    <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                    <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                    <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                    <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                    <option value={NodeType.EventOn}>EventOn</option>
-                    <option value={NodeType.EventEmit}>EventEmit</option>
-                    <option value={NodeType.DynamicModuleFederationReference}>
-                      DynamicModuleFederationReference
-                    </option>
-                  </select>
-                </div>
-                <Button onClick={handleSearch} className="w-full">
-                  <SearchIcon className="h-4 w-4 mr-2" />
-                  Search
+                  {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
+                </Button>
+                <Button onClick={() => setIsCreating(true)}>
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Connection
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Right side - Table */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="mb-6 flex justify-between items-center flex-shrink-0">
-              <div>
-                <h2 className="text-xl font-semibold">Connections ({connections.length})</h2>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex gap-2">
-                  <Button onClick={handleAutoCreate} disabled={isAutoCreating} variant="outline">
-                    <RefreshCwIcon
-                      className={`h-4 w-4 mr-2 ${isAutoCreating ? 'animate-spin' : ''}`}
-                    />
-                    {isAutoCreating ? 'Auto-creating...' : 'Auto-create Connections'}
-                  </Button>
-                  <Button onClick={() => setIsCreating(true)}>
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Add Connection
-                  </Button>
-                </div>
-              </div>
+          {isLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Loading connections...</p>
             </div>
+          )}
 
-            {isLoading && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Loading connections...</p>
-              </div>
-            )}
+          {!isLoading && connections.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No connections found.</p>
+            </div>
+          )}
 
-            {!isLoading && connections.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No connections found.</p>
-              </div>
-            )}
-
-            {!isLoading && connections.length > 0 && (
-              <VirtualTable
-                items={connections}
-                height={pageSize >= 20 ? '70vh' : '640px'}
-                itemHeight={64}
-                columns={[
-                  // { key: 'id', header: 'ID', width: 200 },
-                  {
-                    key: 'fromNode',
-                    header: 'From Node',
-                    width: '400',
-                    render: (connection: Connection) => (
-                      <div className="space-y-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {connection.fromNode ? (
-                            <Link
-                              href={`/node-detail?id=${connection.fromNode.id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                            >
-                              {connection.fromNode.name}
-                            </Link>
-                          ) : (
-                            'Unknown'
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {connection.fromNode?.projectName} • {connection.fromNode?.type}
-                        </div>
+          {!isLoading && connections.length > 0 && (
+            <VirtualTable
+              items={connections}
+              height={pageSize >= 20 ? '70vh' : '640px'}
+              itemHeight={64}
+              columns={[
+                // { key: 'id', header: 'ID', width: 200 },
+                {
+                  key: 'fromNode',
+                  header: 'From Node',
+                  width: '400',
+                  render: (connection: Connection) => (
+                    <div className="space-y-1 min-w-0">
+                      <div className="font-medium truncate">
+                        {connection.fromNode ? (
+                          <Link
+                            href={`/node-detail?id=${connection.fromNode.id}`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                          >
+                            {connection.fromNode.name}
+                          </Link>
+                        ) : (
+                          'Unknown'
+                        )}
                       </div>
-                    ),
-                  },
-                  {
-                    key: 'toNode',
-                    header: 'To Node',
-                    width: '400',
-                    render: (connection: Connection) => (
-                      <div className="space-y-1 min-w-0">
-                        <div className="font-medium truncate">
-                          {connection.toNode ? (
-                            <Link
-                              href={`/node-detail?id=${connection.toNode.id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                            >
-                              {connection.toNode.name}
-                            </Link>
-                          ) : (
-                            'Unknown'
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {connection.toNode?.projectName} • {connection.toNode?.type}
-                        </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {connection.fromNode?.projectName} • {connection.fromNode?.type}
                       </div>
-                    ),
-                  },
-                  {
-                    key: 'createdAt',
-                    header: 'Created At',
-                    width: 140,
-                    render: (connection: Connection) => (
-                      <div className="text-sm">
-                        {connection.createdAt
-                          ? new Date(connection.createdAt).toLocaleDateString()
-                          : 'N/A'}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'toNode',
+                  header: 'To Node',
+                  width: '400',
+                  render: (connection: Connection) => (
+                    <div className="space-y-1 min-w-0">
+                      <div className="font-medium truncate">
+                        {connection.toNode ? (
+                          <Link
+                            href={`/node-detail?id=${connection.toNode.id}`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                          >
+                            {connection.toNode.name}
+                          </Link>
+                        ) : (
+                          'Unknown'
+                        )}
                       </div>
-                    ),
-                  },
-                ]}
-                actions={(connection: Connection) => (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(connection.id)}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </Button>
-                )}
-                pagination={{
-                  pageSize,
-                  currentPage,
-                  totalItems: totalCount,
-                  onPageChange: handlePageChange,
-                  onPageSizeChange: handlePageSizeChange,
-                }}
-              />
-            )}
-          </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {connection.toNode?.projectName} • {connection.toNode?.type}
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'createdAt',
+                  header: 'Created At',
+                  width: 140,
+                  render: (connection: Connection) => (
+                    <div className="text-sm">
+                      {connection.createdAt
+                        ? new Date(connection.createdAt).toLocaleDateString()
+                        : 'N/A'}
+                    </div>
+                  ),
+                },
+              ]}
+              actions={(connection: Connection) => (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(connection.id)}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </Button>
+              )}
+              pagination={{
+                pageSize,
+                currentPage,
+                totalItems: totalCount,
+                onPageChange: handlePageChange,
+                onPageSizeChange: handlePageSizeChange,
+              }}
+            />
+          )}
         </div>
       </div>
 
