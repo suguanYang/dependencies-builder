@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import kill from 'tree-kill'
-import * as repository from '../database/actions-repository'
+import * as repository from '../database/repository'
 import { error, info } from '../logging'
 
 export type ActionData = Required<repository.CreateActionData> & {

@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import * as repository from '../../database/actions-repository'
+import * as repository from '../../database/repository'
 import { formatStringToNumber } from '../request_parameter'
 import { ActionData, executeCLI, getActiveExecution } from '../../services/cli-service'
 import { error as logError, info } from '../../logging'
