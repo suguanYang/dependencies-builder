@@ -9,8 +9,8 @@
  */
 
 // Configuration
-const SERVER_URL = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
-const BATCH_SIZE = 10 // Maximum concurrent actions allowed
+const SERVER_URL = process.env.DMS_SERVER_URL || 'http://10.101.64.161:3001'
+const BATCH_SIZE = 4 // Maximum concurrent actions allowed
 const POLL_INTERVAL = 5000 // 5 seconds between status checks
 const ACTION_TYPE = 'static_analysis' as const
 
@@ -218,18 +218,16 @@ async function main(branch: string): Promise<void> {
 }
 
 // Run the script
-if (import.meta.url === `file://${process.argv[1]}`) {
-  // Get branch from command line arguments, default to 'test'
-  const branch = process.argv[2] || 'test'
+// Get branch from command line arguments, default to 'test'
+const branch = process.argv[2] || 'test'
 
-  if (!branch) {
-    console.error('Usage: vite-node batch-create-actions.ts [branch]')
-    console.error('  branch: The branch to use for all actions (default: test)')
-    process.exit(1)
-  }
-
-  main(branch).catch((err) => {
-    console.error(`Unhandled error: ${err}`)
-    process.exit(1)
-  })
+if (!branch) {
+  console.error('Usage: vite-node batch-create-actions.ts [branch]')
+  console.error('  branch: The branch to use for all actions (default: test)')
+  process.exit(1)
 }
+
+main(branch).catch((err) => {
+  console.error(`Unhandled error: ${err}`)
+  process.exit(1)
+})
