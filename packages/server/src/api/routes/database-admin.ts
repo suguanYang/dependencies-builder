@@ -58,17 +58,17 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
       const trimmedQuery = query.trim().toLowerCase()
 
       // Allow SELECT queries and basic introspection
-      const isSafeQuery =
-        trimmedQuery.startsWith('select') ||
-        trimmedQuery.startsWith('pragma') ||
-        trimmedQuery.startsWith('explain query plan')
+      // const isSafeQuery =
+      //   trimmedQuery.startsWith('select') ||
+      //   trimmedQuery.startsWith('pragma') ||
+      //   trimmedQuery.startsWith('explain query plan')
 
-      if (!isSafeQuery) {
-        reply.code(403).send({
-          error: 'Only SELECT, PRAGMA, and EXPLAIN QUERY PLAN queries are allowed for safety reasons',
-        })
-        return
-      }
+      // if (!isSafeQuery) {
+      //   reply.code(403).send({
+      //     error: 'Only SELECT, PRAGMA, and EXPLAIN QUERY PLAN queries are allowed for safety reasons',
+      //   })
+      //   return
+      // }
 
       const startTime = Date.now()
 

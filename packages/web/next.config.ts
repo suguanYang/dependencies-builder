@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
 
+const IS_PROD = process.env.NODE_ENV !== 'development'
+
 const nextConfig: NextConfig = {
+  output: IS_PROD ? 'export' : 'standalone',
   distDir: 'dist',
   async rewrites() {
     return [

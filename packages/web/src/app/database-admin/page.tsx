@@ -282,9 +282,9 @@ function DatabaseAdminContent() {
                 />
               </div>
               <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500">
+                {/* <div className="text-sm text-gray-500">
                   Only SELECT, PRAGMA, and EXPLAIN QUERY PLAN queries are allowed for safety
-                </div>
+                </div> */}
                 <Button
                   onClick={handleExecuteQuery}
                   disabled={isExecuting || !query.trim()}
