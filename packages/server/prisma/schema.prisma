@@ -75,6 +75,8 @@ model Node {
   @@index([projectName])
   @@index([type])
   @@index([name])
+
+  @@unique([projectId, version, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn])
 }
 
 model Connection {
