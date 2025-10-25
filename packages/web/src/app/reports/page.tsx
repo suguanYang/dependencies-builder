@@ -251,11 +251,11 @@ function ReportsContent() {
                           <div className="flex justify-between items-center">
                             <div>
                               <div className="font-medium">
-                                {connection.fromNode?.name || 'Unknown'} →{' '}
-                                {connection.toNode?.name || 'Unknown'}
+                                {connection.fromNode?.projectName} → {connection.toNode?.projectName}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {connection.fromNode?.type} → {connection.toNode?.type}
+                                {connection.fromNode?.name || 'Unknown'}({connection.fromNode?.type}) →
+                                {connection.toNode?.name || 'Unknown'}({connection.toNode?.type})
                               </div>
                             </div>
                           </div>

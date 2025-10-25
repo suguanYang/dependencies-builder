@@ -76,3 +76,13 @@ export const updateAction = async (actionId: string, update: unknown) => {
     body: JSON.stringify(update)
   })
 }
+
+export const getConnectionsByToNode = async (node: {
+  name: string
+  projectName: string
+  type: string
+}) => {
+  return apiRequest(`connections?toNodeName=${node.name}&toNodeProjectName=${node.projectName}&toNodeType=${node.type}`, {
+    method: 'GET',
+  })
+}

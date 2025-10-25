@@ -25,8 +25,6 @@ export async function authenticate(request: AuthenticatedRequest, reply: Fastify
   try {
     const apiKey = request.headers['cli-key']
 
-    console.log('request.headers: ', request.headers, apiKey)
-
     if (typeof apiKey === 'string') {
       info('Api key detected, start validating....')
       const data = await auth.api.verifyApiKey({

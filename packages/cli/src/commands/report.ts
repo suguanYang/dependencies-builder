@@ -7,11 +7,13 @@ import run from '../utils/run'
 import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
 import { uploadReport } from '../upload'
+import { getConnectionsByToNode } from '../api'
 
 interface ReportResult {
-  affectedToNodes: any[]
+  affectedToNodes: unknown[]
   version: string
   targetVersion: string
+  affecatedConnections: unknown[]
 }
 
 export async function generateReport(): Promise<void> {
@@ -46,7 +48,8 @@ export async function generateReport(): Promise<void> {
     const reportResult: ReportResult = {
       affectedToNodes,
       version: ctx.getVersion()!,
-      targetVersion: results.version
+      targetVersion: results.version,
+      affecatedConnections: (await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))).flat()
     }
 
     await uploadReport(reportResult)
