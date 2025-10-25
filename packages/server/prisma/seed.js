@@ -1,6 +1,7 @@
 import { PrismaClient } from '../dist/generated/prisma/client.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { auth } from '../dist/auth.js'
 
 /**
  * Extract project data from unified projects-unified.json
@@ -11,6 +12,63 @@ function extractProjectData() {
   const projects = JSON.parse(readFileSync(unifiedPath, 'utf-8'))
 
   return projects
+}
+
+/**
+ * Create admin user using Better Auth
+ */
+async function seedAdminUser() {
+  const prisma = new PrismaClient()
+
+  try {
+    console.log('Creating admin user...')
+
+    // Check if admin user already exists using Prisma directly
+    const existingUser = await prisma.user.findUnique({
+      where: { email: 'admin@gg.com' }
+    })
+
+    if (existingUser) {
+      console.log('Admin user already exists, updating role to admin...')
+
+      // Update existing user to admin role
+      await prisma.user.update({
+        where: { email: 'admin@gg.com' },
+        data: { role: 'admin' }
+      })
+
+      console.log('Admin user role updated successfully')
+      return
+    }
+
+    // Create new admin user using Better Auth
+    const result = await auth.api.signUpEmail({
+      body: {
+        email: 'admin@gg.com',
+        password: 'admin123',
+        name: 'Admin User',
+      },
+    })
+
+    if (result.user) {
+      console.log('Admin user created successfully')
+
+      // Set admin role for the new user
+      await prisma.user.update({
+        where: { email: 'admin@gg.com' },
+        data: { role: 'admin' }
+      })
+
+      console.log('Admin role assigned successfully')
+    } else {
+      console.error('Failed to create admin user:', result.error)
+    }
+  } catch (error) {
+    console.error('Error creating admin user:', error)
+    throw error
+  } finally {
+    await prisma.$disconnect()
+  }
 }
 
 /**
@@ -63,6 +121,7 @@ async function seedProjects() {
  * Main function following Prisma seeding pattern
  */
 async function main() {
+  await seedAdminUser()
   await seedProjects()
 }
 
