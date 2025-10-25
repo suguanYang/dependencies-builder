@@ -8,6 +8,7 @@ services:
     container_name: dms-server
     ports:
       - "0.0.0.0:3001:3001"
+      - "0.0.0.0:9229:9229"
     env_file:
       - packages/server/.env.prod
     volumes:
