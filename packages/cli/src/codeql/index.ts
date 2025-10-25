@@ -4,7 +4,7 @@ import { replaceTscAliasPaths } from 'tsc-alias'
 import { parse } from 'jsonc-parser'
 
 import { CodeQL } from './codeql-runner'
-import { buildQueries, processQuery } from './queries'
+import { buildCallGraphQuery, buildQueries, processQuery } from './queries'
 import { getContext } from '../context'
 import debug, { error } from '../utils/debug'
 import { existsSync } from '../utils/fs-helper'
@@ -21,11 +21,10 @@ export const runCodeQL = async () => {
 
   const results = processQuery(codeql.outputPath)
 
-  // const callGraphQuery = buildCallGraphQuery(results.nodes)
-  // await codeql.runSingleQuery(callGraphQuery, 'callGraph')
+  const callGraphQuery = buildCallGraphQuery(results.nodes)
+  await codeql.runSingleQuery(callGraphQuery, 'callGraph')
 
-  // const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
-  const callGraphResults: string[] = []
+  const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
 
   return {
     ...results,
