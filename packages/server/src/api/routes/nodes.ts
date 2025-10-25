@@ -79,6 +79,15 @@ function nodesRoutes(fastify: FastifyInstance) {
     try {
       const nodeData = request.body as NodeCreationBody
 
+
+      if (nodeData.projectId) {
+        const node = await repository.createNode({
+          ...nodeData,
+          projectId: nodeData.projectId
+        })
+        reply.code(201).send(node)
+      }
+
       const project = await repository.getProjectByName(nodeData.projectName)
 
       if (!project) {

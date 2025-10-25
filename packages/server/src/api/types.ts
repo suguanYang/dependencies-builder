@@ -11,6 +11,7 @@ export interface NodeQuery {
 }
 
 export interface NodeCreationBody {
+  projectId?: string
   projectName: string
   branch: string
   type: NodeType

@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
+import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode, type Project } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { ProjectSelector } from '@/components/project-selector'
 
 function NodesContent() {
   const router = useRouter()
@@ -20,6 +21,7 @@ function NodesContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project>()
   const [searchFilters, setSearchFilters] = useState({
     projectName: '',
     branch: '',
@@ -56,7 +58,6 @@ function NodesContent() {
     updatePaginationParams(1, size) // Reset to first page when changing page size
   }
   const [newNode, setNewNode] = useState({
-    projectName: '',
     branch: '',
     type: NodeType.NamedExport,
     name: '',
@@ -98,10 +99,17 @@ function NodesContent() {
   }
 
   const handleCreate = async () => {
+    if (!selectedProject) {
+      setError('Please select a project')
+      return
+    }
+
     try {
-      await createNode(newNode)
+      await createNode({
+        ...newNode,
+        projectName: selectedProject.name,
+      })
       setNewNode({
-        projectName: '',
         branch: '',
         type: NodeType.NamedExport,
         name: '',
@@ -113,6 +121,7 @@ function NodesContent() {
         version: '1.0.0',
         meta: {},
       })
+      setSelectedProject(undefined)
       // Refresh the nodes data
       mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
@@ -319,10 +328,10 @@ function NodesContent() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Project</label>
-                <Input
-                  value={newNode.projectName}
-                  onChange={(e) => setNewNode((prev) => ({ ...prev, projectName: e.target.value }))}
-                  placeholder="Project name"
+                <ProjectSelector
+                  value={selectedProject}
+                  onValueChange={setSelectedProject}
+                  placeholder="Select a project..."
                 />
               </div>
 
@@ -372,7 +381,14 @@ function NodesContent() {
                 <Button onClick={handleCreate} className="flex-1">
                   Create
                 </Button>
-                <Button variant="outline" onClick={() => setIsCreating(false)} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreating(false)
+                    setSelectedProject(undefined)
+                  }}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
               </div>

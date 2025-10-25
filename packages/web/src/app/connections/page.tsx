@@ -151,9 +151,6 @@ function ConnectionsContent() {
         type: 'connection_auto_create',
       })
       setCurrentActionId(action.id)
-
-      // Show initial success message
-      setSuccess('Connection auto-creation started in background...')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger connection auto-creation')
     } finally {
