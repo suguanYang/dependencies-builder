@@ -54,7 +54,9 @@ function ActionsContent() {
     data: actionsResponse,
     isLoading,
     mutate: mutateActions,
-  } = useSWR('actions', () => getActions())
+  } = useSWR('actions', () => getActions(), {
+    refreshInterval: 5000
+  })
 
   const actions = actionsResponse?.data || []
 
