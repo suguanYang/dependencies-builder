@@ -130,7 +130,7 @@ const parseExportQuery = (queryResultDir: string) => {
         branch: ctx.getBranch(),
         type: NodeType.NamedExport,
         ...parseLoc(tuple[2]),
-        version: ctx.getMetadata().version,
+        version: ctx.getVersion(),
         meta: {
           entry: tuple[0],
           entryName: entryName,
@@ -155,7 +155,7 @@ const parseES6ImportQuery = (queryResultDir: string) => {
       type: NodeType.NamedImport,
       name: `${tuple[0]}.${tuple[1]}`, // importName
       ...parseLoc(tuple[2]),
-      version: ctx.getMetadata().version,
+      version: ctx.getVersion(),
       meta: {},
     }))
   } catch (error) {
@@ -177,7 +177,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
       type: NodeType.RuntimeDynamicImport,
       name: `${tuple[0]}.${tuple[1]}.${tuple[2]}`, // namedImport
       ...parseLoc(tuple[3]),
-      version: ctx.getMetadata().version,
+      version: ctx.getVersion(),
       meta: {},
     }))
   } catch (error) {
@@ -206,7 +206,7 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
         type: tuple[1] === 'Write' ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
         name: tuple[0], // variableName
         ...parseLoc(tuple[2]),
-        version: ctx.getMetadata().version,
+        version: ctx.getVersion(),
         meta: {},
       })
     })
@@ -231,7 +231,7 @@ const parseEventOnQuery = (queryResultDir: string) => {
       type: NodeType.EventOn,
       name: tuple[0], // eventName
       ...parseLoc(tuple[2]),
-      version: ctx.getMetadata().version,
+      version: ctx.getVersion(),
       meta: {},
     }))
   } catch (error) {
@@ -253,7 +253,7 @@ const parseEventEmitQuery = (queryResultDir: string) => {
       type: NodeType.EventEmit,
       name: tuple[0], // eventName
       ...parseLoc(tuple[2]),
-      version: ctx.getMetadata().version,
+      version: ctx.getVersion(),
       meta: {},
     }))
   } catch (error) {
@@ -276,7 +276,7 @@ const parseWebStorageQuery = (queryResultDir: string) => {
         type: tuple[1] === 'Write' ? NodeType.WebStorageWrite : NodeType.WebStorageRead,
         name: tuple[0], // localStorageKey
         ...parseLoc(tuple[3]),
-        version: ctx.getMetadata().version,
+        version: ctx.getVersion(),
         meta: {
           kind: tuple[2],
         },
@@ -301,7 +301,7 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
       type: NodeType.DynamicModuleFederationReference,
       name: `${tuple[0]}.${tuple[1]}`,
       ...parseLoc(tuple[2]),
-      version: ctx.getMetadata().version,
+      version: ctx.getVersion(),
       meta: {},
     }))
   } catch (error) {
@@ -326,7 +326,7 @@ const formatResults = (results: QueryResults) => {
   const summary = {
     projectName: ctx.getMetadata().name,
     branch: ctx.getBranch(),
-    version: ctx.getMetadata().version,
+    version: ctx.getVersion(),
     timestamp: new Date().toISOString(),
     totalNodes: allNodes.length,
     nodesByType: {

@@ -25,10 +25,12 @@ export const runCodeQL = async () => {
   await codeql.runSingleQuery(callGraphQuery, 'callGraph')
 
   const callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
+  const ctx = getContext()
 
   return {
     ...results,
     callGraph: callGraphResults,
+    version: ctx.getVersion()
   }
 }
 

@@ -55,7 +55,7 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
       }
     }
   }
-
+  console.log('---------finalWhere: ', finalWhere)
   const [data, total] = await Promise.all([
     prisma.node.findMany({
       where: finalWhere,

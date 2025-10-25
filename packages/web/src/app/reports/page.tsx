@@ -33,11 +33,11 @@ function ReportsContent() {
 
   const handleViewReport = async (actionId: string) => {
     try {
-      const result = await getActionById(actionId)
+      const { result } = await getActionById(actionId)
 
       // Query connections for affected nodes by matching node properties
       const connectionsPromises =
-        result.result?.report?.affectedToNodes?.map(async (node: Node) => {
+        result?.affectedToNodes?.map(async (node: Node) => {
           // Try to find the node in the database by its properties
           const nodesResponse = await getNodes({
             projectName: node.projectName,
@@ -66,7 +66,7 @@ function ReportsContent() {
   }
 
   const getAffectedNodesCount = (result: any) => {
-    return result.result?.report?.affectedToNodes?.length || 0
+    return result?.affectedToNodes?.length || 0
   }
 
   const getImpactedConnectionsCount = (connections: any[]) => {
@@ -195,10 +195,10 @@ function ReportsContent() {
             {/* Affected Nodes Section */}
             <div className="mb-6">
               <h4 className="text-lg font-semibold mb-4">Affected Nodes</h4>
-              {viewingReport.result.report.affectedToNodes?.length > 0 ? (
+              {viewingReport.result.affectedToNodes?.length > 0 ? (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="space-y-3">
-                    {viewingReport.result.report.affectedToNodes
+                    {viewingReport.result.affectedToNodes
                       .slice(0, 10)
                       .map((node: any, index: number) => (
                         <div key={node.id || index} className="bg-white p-3 rounded border">
@@ -220,9 +220,9 @@ function ReportsContent() {
                           )}
                         </div>
                       ))}
-                    {viewingReport.result.report.affectedToNodes.length > 10 && (
+                    {viewingReport.result.affectedToNodes.length > 10 && (
                       <div className="text-center text-gray-500 text-sm">
-                        ... and {viewingReport.result.report.affectedToNodes.length - 10} more nodes
+                        ... and {viewingReport.result.affectedToNodes.length - 10} more nodes
                       </div>
                     )}
                   </div>

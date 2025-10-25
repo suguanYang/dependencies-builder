@@ -85,6 +85,31 @@ function actionsRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // PUT /nodes/:id - Update a node
+  fastify.put('/actions/:id', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+      const actionData = request.body as repository.UpdateActionData
+
+      const updatedAction = await repository.updateAction(id, actionData)
+
+      if (!updatedAction) {
+        reply.code(404).send({ error: 'Action not found' })
+        return
+      }
+
+      return updatedAction
+    } catch (error) {
+      reply.code(500).send({
+        error: 'Failed to update action',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  })
+
+
   // DELETE /actions/:id - Delete an action
   fastify.delete('/actions/:id', {
     preHandler: [authenticate]

@@ -25,6 +25,7 @@ export interface AnalyzeOptions {
   branch: string
   type?: REPO_TYPE
   targetBranch?: string
+  actionId?: string
   /**
    * The repository to analyze, it can be a local directory or a remote git repository
    */
@@ -41,6 +42,7 @@ class Context {
   private options: AnalyzeOptions
   private localDirectory?: string
   private workDirectory?: string
+  private version?: string
 
   constructor(options: AnalyzeOptions) {
     this.options = options
@@ -85,6 +87,14 @@ class Context {
     return this.type!
   }
 
+  setVersion(version: string) {
+    this.version = version
+  }
+
+  getVersion() {
+    return this.version!
+  }
+
   getEntries() {
     return this.entries || []
   }
@@ -122,6 +132,10 @@ class Context {
     }
 
     return this.metadata!
+  }
+
+  getActionId() {
+    return this.options.actionId
   }
 
   findPackageDirectory() {
@@ -198,6 +212,7 @@ class Context {
       '.dms',
       path2name(this.getRepository()),
       path2name(this.getBranch()),
+      path2name(this.options.name),
     )
     ensureDirectoryExistsSync(this.localDirectory)
 

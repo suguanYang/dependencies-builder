@@ -29,7 +29,7 @@ function ProjectsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
-  const [searchFilters, setSearchFilters] = useState<ProjectQuery>({
+  const [searchFilters, _setSearchFilters] = useState<ProjectQuery>({
     name: '',
     addr: '',
     type: undefined,
@@ -38,6 +38,11 @@ function ProjectsContent() {
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
+  
+  const setSearchFilters: typeof _setSearchFilters = (arg) => {
+    handlePageChange(1)
+    return _setSearchFilters(arg)
+  }
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {

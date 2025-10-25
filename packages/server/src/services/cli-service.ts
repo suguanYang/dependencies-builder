@@ -28,7 +28,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     await repository.updateAction(actionId, { status: 'running' })
 
     // Determine CLI command based on action type
-    const cliCommand = getCLICommand(actionData)
+    const cliCommand = getCLICommand(actionId, actionData)
 
     // Debug: Log the command being executed
     info(
@@ -82,8 +82,13 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         error(`action:${actionId} CLI closed with code: ` + code)
         repository.updateAction(actionId, {
           status: 'failed',
-          error: errorMessage,
         })
+
+        if (errorMessage) {
+          repository.updateAction(actionId, {
+            error: errorMessage,
+          })
+        }
 
         error(`action:${actionId} is failed`)
       }
@@ -120,12 +125,15 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       actionId,
       stop: async () => {
         return new Promise((resolve, reject) => {
-          kill(childProcess.pid!, (err) => {
+          kill(childProcess.pid!, async (err) => {
             if (err) {
               reject(err)
               return
             }
-
+            await repository.updateAction(actionId, {
+              status: 'failed',
+              error: 'stopped'
+            })
             resolve()
           })
         })
@@ -150,7 +158,7 @@ export function getActiveExecution(actionId: string): CLIExecution | undefined {
   return activeExecutions.get(actionId)
 }
 
-function getCLICommand(actionData: ActionData): string[] {
+function getCLICommand(actionId: string, actionData: ActionData): string[] {
   switch (actionData.type) {
     case 'static_analysis':
       const analyzeArgs = [
@@ -162,6 +170,8 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.branch,
         '--name',
         actionData.projectName,
+        "--action-id",
+        actionId,
         '--verbose',
       ]
 
@@ -178,6 +188,8 @@ function getCLICommand(actionData: ActionData): string[] {
         actionData.targetBranch!,
         '--name',
         actionData.projectName,
+        "--action-id",
+        actionId,
         '--verbose',
       ]
 

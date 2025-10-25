@@ -6,6 +6,7 @@ import { runCodeQL } from '../codeql'
 import { getContext } from '../context'
 import { uploadResults } from '../upload'
 import { directoryExistsSync } from '../utils/fs-helper'
+import { getAnyNodeByVersion } from '../api'
 
 export async function analyzeProject(): Promise<void> {
   debug('Starting analysis')
@@ -13,10 +14,15 @@ export async function analyzeProject(): Promise<void> {
   const ctx = getContext()
 
   try {
-    if (ctx.isRemote()) {
-      await checkoutRepository()
+    await checkoutRepository()
 
-      debug('Repository checked out')
+    debug('Repository checked out')
+
+    const node = await getAnyNodeByVersion(ctx.getVersion()!)
+
+    if (node) {
+      debug(`already existing nodes for version: ${ctx.getVersion()}`)
+      process.exit(0)
     }
 
     // Handle monorepo package name search

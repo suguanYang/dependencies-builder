@@ -1,4 +1,5 @@
-import { batchCreateNodes } from '../api'
+import { batchCreateNodes, updateAction } from '../api'
+import { getContext } from '../context'
 import debug, { error as errLog } from '../utils/debug'
 
 export interface UploadResult {
@@ -66,4 +67,17 @@ export async function uploadResults(results: any): Promise<UploadResult> {
     errLog('Upload failed: %o', error)
     throw error
   }
+}
+
+
+export async function uploadReport(report: any) {
+  const id = getContext().getActionId()
+
+  if (!id) {
+    return
+  }
+
+  return updateAction(id, {
+    result: report
+  })
 }

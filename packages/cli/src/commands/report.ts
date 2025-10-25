@@ -1,14 +1,17 @@
 import path from 'node:path'
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import debug from '../utils/debug'
 import { checkoutRepository } from '../checkout'
 import { getContext } from '../context'
 import run from '../utils/run'
 import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
+import { uploadReport } from '../upload'
 
 interface ReportResult {
   affectedToNodes: any[]
+  version: string
+  targetVersion: string
 }
 
 export async function generateReport(): Promise<void> {
@@ -18,10 +21,8 @@ export async function generateReport(): Promise<void> {
   const targetBranch = ctx.getTargetBranch()!
 
   try {
-    if (ctx.isRemote()) {
-      await checkoutRepository()
-      debug('Repository checked out')
-    }
+    await checkoutRepository()
+    debug('Repository checked out')
 
     ctx.findPackageDirectory()
 
@@ -44,11 +45,11 @@ export async function generateReport(): Promise<void> {
 
     const reportResult: ReportResult = {
       affectedToNodes,
+      version: ctx.getVersion()!,
+      targetVersion: results.version
     }
 
-    const reportPath = path.join(ctx.getLocalDirectory(), 'report.json')
-    writeFileSync(reportPath, JSON.stringify(reportResult, null, 2))
-    console.log(`\nReport saved to: ${reportPath}`)
+    await uploadReport(reportResult)
     debug('Report generation completed successfully!')
   } catch (error) {
     debug('Report generation failed: %o', error)
@@ -62,6 +63,7 @@ export async function generateReport(): Promise<void> {
 
 function getAnalysisResults(targetBranch: string): Results & {
   callGraph: string[]
+  version: string
 } {
   const ctx = getContext()
   const resFile = path.join(ctx.getLocalDirectory(targetBranch), 'analysis-results.json')

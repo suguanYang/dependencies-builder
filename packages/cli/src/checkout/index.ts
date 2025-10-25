@@ -19,22 +19,32 @@ export async function checkoutRepository() {
   debug('Cloning repository: %s#%s to %s', url, branch, ctx.getWorkingDirectory())
 
   try {
-    await gitCommander.init()
-    await gitCommander.remoteAdd('origin', url)
-    await gitCommander.tryDisableAutomaticGarbageCollection()
-    await gitCommander.fetch([`${branch}:${branch}`], {
-      fetchDepth: ctx.getTargetBranch() ? 0 : 1,
-      showProgress: true,
-    })
-
-    if (ctx.getTargetBranch()) {
-      await gitCommander.fetch([`${ctx.getTargetBranch()}:${ctx.getTargetBranch()}`], {
-        fetchDepth: 0,
+    if (ctx.isRemote()) {
+      await gitCommander.init()
+      await gitCommander.remoteAdd('origin', url)
+      await gitCommander.tryDisableAutomaticGarbageCollection()
+      await gitCommander.fetch([`${branch}:${branch}`], {
+        fetchDepth: ctx.getTargetBranch() ? 0 : 1,
         showProgress: true,
       })
+
+      if (ctx.getTargetBranch()) {
+        await gitCommander.fetch([`${ctx.getTargetBranch()}:${ctx.getTargetBranch()}`], {
+          fetchDepth: 0,
+          showProgress: true,
+        })
+      }
     }
 
     await gitCommander.checkout(branch)
+
+    const version = await gitCommander.getRevisionId()
+
+    if (!version) {
+      throw new Error('can not get repository version')
+    }
+
+    ctx.setVersion(version)
   } catch (error) {
     throw new RepositorySetupFailedException(`Failed to clone repository: ${error}`)
   }

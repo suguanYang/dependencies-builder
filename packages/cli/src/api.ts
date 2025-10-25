@@ -53,3 +53,26 @@ export const batchCreateNodes = async (nodes: any[]) => {
 
   return response
 }
+
+export const getAnyNodeByVersion = async (version: string) => {
+  const res = await apiRequest<{
+    data: {
+      nodes: unknown[]
+    }
+  }>(`nodes?version=${version}&limit=1`, {
+    method: 'GET',
+  })
+
+  if (!res.data) {
+    throw new Error('can not parse nodes data')
+  }
+
+  return res.data.nodes?.[0]
+}
+
+export const updateAction = async (actionId: string, update: unknown) => {
+  return apiRequest(`actions/${actionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(update)
+  })
+}

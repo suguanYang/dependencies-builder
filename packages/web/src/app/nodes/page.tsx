@@ -22,7 +22,7 @@ function NodesContent() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
-  const [searchFilters, setSearchFilters] = useState({
+  const [searchFilters, _setSearchFilters] = useState({
     projectName: '',
     branch: '',
     type: '',
@@ -33,14 +33,11 @@ function NodesContent() {
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
-  const standaloneParam = searchParams.get('standalone') === 'true'
 
-  // Initialize search filters with URL parameters
-  React.useEffect(() => {
-    if (standaloneParam && !searchFilters.standalone) {
-      setSearchFilters((prev) => ({ ...prev, standalone: true }))
-    }
-  }, [standaloneParam, searchFilters.standalone])
+  const setSearchFilters: typeof _setSearchFilters = (arg) => {
+    handlePageChange(1)
+    return _setSearchFilters(arg)
+  }
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {

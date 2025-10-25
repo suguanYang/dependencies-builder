@@ -18,6 +18,7 @@ interface IGitCommander {
   version(): Promise<string>
   checkout(ref: string): Promise<void>
   cleanup(): Promise<void>
+  getRevisionId(): Promise<string>
 }
 
 export async function createCommandManager(workingDirectory: string): Promise<IGitCommander> {
@@ -102,6 +103,10 @@ class GitCommander implements IGitCommander {
 
   async cleanup(): Promise<void> {
     rmSync(this.workingDirectory, { recursive: true })
+  }
+
+  async getRevisionId(branch: string = 'HEAD'): Promise<string> {
+    return run('git', ['rev-parse', branch], {}, true).then(id => id.trim())
   }
 
   static async createCommandManager(workingDirectory: string): Promise<IGitCommander> {

@@ -25,6 +25,10 @@ yargs(hideBin(process.argv))
           type: 'boolean',
           default: false,
         })
+        .option('action-id', {
+          describe: 'the server side action id',
+          type: 'string'
+        })
         .option('name', {
           describe: 'Project name for monorepo analysis',
           type: 'string',
@@ -46,7 +50,8 @@ yargs(hideBin(process.argv))
           branch: argv.branch,
           repository: argv.repository,
           name: argv.name,
-          type: argv.type as any
+          type: argv.type as any,
+          actionId: argv.actionId
         },
         analyzeProject,
       )
@@ -81,6 +86,10 @@ yargs(hideBin(process.argv))
           describe: 'Project type',
           type: 'string',
         })
+        .option('action-id', {
+          describe: 'the server side action id',
+          type: 'string'
+        })
         .option('verbose', {
           alias: 'v',
           describe: 'Enable verbose output',
@@ -100,7 +109,8 @@ yargs(hideBin(process.argv))
           repository: argv.repository,
           targetBranch: argv.targetBranch,
           name: argv.name,
-          type: argv.type as any
+          type: argv.type as any,
+          actionId: argv.actionId
         },
         () => generateReport(),
       )
