@@ -86,7 +86,7 @@ type QueryResults = {
   dynamicImports: ReturnType<typeof parseLibsDynamicImportQuery>
   globalVariables: ReturnType<typeof parseGlobalVariableQuery>
   eventOn: ReturnType<typeof parseEventOnQuery>
-  eventEmit: ReturnType<typeof parseEventOnQuery>
+  eventEmit: ReturnType<typeof parseEventEmitQuery>
   webStorage: ReturnType<typeof parseWebStorageQuery>
   remoteLoader: ReturnType<typeof parseRemoteLoaderQuery>
 }
@@ -97,7 +97,7 @@ const processQuery = (queryResultDir: string) => {
     dynamicImports: parseLibsDynamicImportQuery(queryResultDir),
     globalVariables: parseGlobalVariableQuery(queryResultDir),
     eventOn: parseEventOnQuery(queryResultDir),
-    eventEmit: parseEventOnQuery(queryResultDir),
+    eventEmit: parseEventEmitQuery(queryResultDir),
     webStorage: parseWebStorageQuery(queryResultDir),
     remoteLoader: parseRemoteLoaderQuery(queryResultDir),
   }
@@ -225,10 +225,32 @@ const parseEventOnQuery = (queryResultDir: string) => {
     const eventOnResult = JSON.parse(
       readFileSync(path.join(queryResultDir, 'event.json'), 'utf-8'),
     ) as EventQuery
-    return eventOnResult['#select'].tuples.map((tuple: [string, string, string]) => ({
+    return eventOnResult['#select'].tuples.filter((tuple: [string, string, string]) => tuple[1] === 'eventOn').map((tuple: [string, string, string]) => ({
       projectName,
       branch: ctx.getBranch(),
-      type: tuple[1] === 'On' ? NodeType.EventOn : NodeType.EventEmit,
+      type: NodeType.EventOn,
+      name: tuple[0], // eventName
+      ...parseLoc(tuple[2]),
+      version: ctx.getMetadata().version,
+      meta: {},
+    }))
+  } catch (error) {
+    console.warn('Failed to parse event on query result:', error)
+    return []
+  }
+}
+
+const parseEventEmitQuery = (queryResultDir: string) => {
+  const ctx = getContext()
+  const projectName = ctx.getMetadata().name
+  try {
+    const eventOnResult = JSON.parse(
+      readFileSync(path.join(queryResultDir, 'event.json'), 'utf-8'),
+    ) as EventQuery
+    return eventOnResult['#select'].tuples.filter((tuple: [string, string, string]) => tuple[1] === 'eventEmit').map((tuple: [string, string, string]) => ({
+      projectName,
+      branch: ctx.getBranch(),
+      type: NodeType.EventEmit,
       name: tuple[0], // eventName
       ...parseLoc(tuple[2]),
       version: ctx.getMetadata().version,
