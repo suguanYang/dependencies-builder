@@ -8,8 +8,6 @@
  * server's rate limit of 10 concurrent running actions by waiting for batches to complete.
  */
 
-import { getAdminUserKey, revokeAdminKey } from '../src/auth'
-
 // Configuration
 const SERVER_URL = process.env.DMS_SERVER_URL || 'http://10.101.64.161:3001'
 const BATCH_SIZE = 4 // Maximum concurrent actions allowed
@@ -45,13 +43,12 @@ interface ApiResponse<T> {
  */
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${SERVER_URL}${endpoint}`
-
   const response = await fetch(url, {
+    ...options,
     headers: {
       ...options.headers,
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     },
-    ...options,
   })
 
   if (!response.ok) {
@@ -95,7 +92,7 @@ async function fetchAllProjects(): Promise<Project[]> {
 /**
  * Create a static analysis action for a project
  */
-async function createAction(project: Project, branch: string, key: string): Promise<Action> {
+async function createAction(project: Project, branch: string): Promise<Action> {
   const actionData = {
     type: ACTION_TYPE,
     projectAddr: project.addr,
@@ -147,7 +144,7 @@ async function waitForRunningActions(): Promise<void> {
 /**
  * Process projects in batches respecting rate limits
  */
-async function processProjectsInBatches(projects: Project[], branch: string, key: string): Promise<void> {
+async function processProjectsInBatches(projects: Project[], branch: string): Promise<void> {
   const totalProjects = projects.length
   let processedCount = 0
   let failedCount = 0
@@ -167,7 +164,7 @@ async function processProjectsInBatches(projects: Project[], branch: string, key
     // Create actions for current batch
     const batchPromises = batch.map(async (project) => {
       try {
-        await createAction(project, branch, key)
+        await createAction(project, branch)
         processedCount++
         console.log(
           `Progress: ${processedCount}/${totalProjects} (${Math.round((processedCount / totalProjects) * 100)}%)`,
@@ -212,18 +209,10 @@ async function main(branch: string): Promise<void> {
       return
     }
 
-    const { key, id } = await getAdminUserKey('batch-actions', {
-      expiresIn: 3 * 60 * 60 * 1000
-    })
-
-    console.log('admin key: ', id, key)
-
     // Process projects in batches
-    await processProjectsInBatches(projects, branch, key)
+    await processProjectsInBatches(projects, branch)
 
     console.log('Batch action creation completed successfully')
-
-    await revokeAdminKey(id)
   } catch (err) {
     console.error(`Script failed: ${err}`)
     process.exit(1)
@@ -233,6 +222,7 @@ async function main(branch: string): Promise<void> {
 // Run the script
 // Get branch from command line arguments, default to 'test'
 const branch = process.argv[2] || 'test'
+const key = process.argv[3] || 'null'
 
 if (!branch) {
   console.error('Usage: vite-node batch-create-actions.ts [branch]')

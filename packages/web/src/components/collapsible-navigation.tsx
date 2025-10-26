@@ -10,7 +10,7 @@ import {
   Cuboid,
   Send,
   Folder,
-  Database,
+  ShieldIcon,
   LogOut,
   User,
 } from 'lucide-react'
@@ -69,7 +69,7 @@ const adminNavigationItems: NavigationItem[] = [
   {
     name: 'Admin',
     href: '/admin',
-    icon: Database,
+    icon: ShieldIcon,
     description: 'System administration tools',
   },
 ]

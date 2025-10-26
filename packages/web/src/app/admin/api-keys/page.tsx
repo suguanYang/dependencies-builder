@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
-import useSWR, { mutate } from 'swr'
+import { useState, Suspense } from 'react'
+import useSWR from 'swr'
 import { KeyIcon, PlusIcon, TrashIcon, CopyIcon, ArrowLeftIcon, ClockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ import {
 
 function ApiKeysContent() {
   const [newKeyName, setNewKeyName] = useState<string>('')
-  const [expirationMinutes, setExpirationMinutes] = useState<string>('30')
+  const [expirationDays, setExpirationDays] = useState<string>('1')
   const [generatedKey, setGeneratedKey] = useState<string | null>(null)
   const [isGeneratingKey, setIsGeneratingKey] = useState<boolean>(false)
   const [isRevokingKey, setIsRevokingKey] = useState<string | null>(null)
@@ -37,7 +37,7 @@ function ApiKeysContent() {
 
     setIsGeneratingKey(true)
     try {
-      const expiresIn = expirationMinutes === 'never' ? null : parseInt(expirationMinutes) * 60
+      const expiresIn = expirationDays === 'never' ? null : parseInt(expirationDays) * 24 * 60 * 60 // Convert days to seconds
 
       const response = await generateApiKey({
         keyName: newKeyName.trim(),
@@ -47,7 +47,7 @@ function ApiKeysContent() {
       if (response.success) {
         setGeneratedKey(response.apiKey.key)
         setNewKeyName('')
-        setExpirationMinutes('30')
+        setExpirationDays('1')
         mutateApiKeys()
       }
     } catch (error) {
@@ -69,8 +69,26 @@ function ApiKeysContent() {
     }
   }
 
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+        // Optional: You could add a toast notification here
+        console.log('API key copied to clipboard')
+      } else {
+        // Fallback for browsers that don't support Clipboard API
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        console.log('API key copied to clipboard (fallback)')
+      }
+    } catch (error) {
+      console.error('Failed to copy API key:', error)
+      // Optional: Show error message to user
+    }
   }
 
   const formatExpiration = (expiresAt: string | null): string => {
@@ -172,15 +190,15 @@ function ApiKeysContent() {
                 <label htmlFor="expiration" className="block text-sm font-medium mb-1">Expiration</label>
                 <select
                   id="expiration"
-                  value={expirationMinutes}
-                  onChange={(e) => setExpirationMinutes(e.target.value)}
+                  value={expirationDays}
+                  onChange={(e) => setExpirationDays(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-1"
                 >
-                  <option value="15">15 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="1440">24 hours</option>
-                  <option value="10080">7 days</option>
+                  <option value="1">1 day</option>
+                  <option value="7">7 days</option>
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="365">1 year</option>
                   <option value="never">Never expires</option>
                 </select>
               </div>

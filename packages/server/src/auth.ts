@@ -82,8 +82,8 @@ export const auth = betterAuth({
       // adminUserIds: ["user-id-1", "user-id-2"],
     }),
     apiKey({
-      keyExpiration: {
-        defaultExpiresIn: 30 * 60
+      rateLimit: {
+        enabled: false
       }
     })
   ],
