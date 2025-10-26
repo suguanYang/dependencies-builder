@@ -15,28 +15,37 @@ interface DatabaseQueryResult {
   rowCount?: number
 }
 
-// Helper function to convert BigInt values to Number for JSON serialization
-function convertBigIntToNumber(obj: any): any {
+// Helper function to convert database values for JSON serialization
+function convertDatabaseValues(obj: any): any {
   if (obj === null || obj === undefined) {
     return obj
   }
 
+  // Handle Date objects - convert to ISO string
+  if (obj instanceof Date) {
+    return obj.toISOString()
+  }
+
+  // Handle BigInt values - convert to Number
   if (typeof obj === 'bigint') {
     return Number(obj)
   }
 
+  // Handle arrays - recursively process each element
   if (Array.isArray(obj)) {
-    return obj.map(convertBigIntToNumber)
+    return obj.map(convertDatabaseValues)
   }
 
+  // Handle objects - recursively process each property
   if (typeof obj === 'object') {
     const result: any = {}
     for (const [key, value] of Object.entries(obj)) {
-      result[key] = convertBigIntToNumber(value)
+      result[key] = convertDatabaseValues(value)
     }
     return result
   }
 
+  // Return primitive values as-is
   return obj
 }
 
@@ -56,7 +65,7 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
       }
 
       // Basic safety check - prevent destructive operations
-      const trimmedQuery = query.trim().toLowerCase()
+      // const trimmedQuery = query.trim().toLowerCase()
 
       // Allow SELECT queries and basic introspection
       // const isSafeQuery =
@@ -81,8 +90,8 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
         // Convert result to array format for consistent response
         const rawData = Array.isArray(result) ? result : [result]
 
-        // Convert BigInt values to Number for JSON serialization
-        const data = convertBigIntToNumber(rawData)
+        // Convert database values for JSON serialization
+        const data = convertDatabaseValues(rawData)
 
         const response: DatabaseQueryResult = {
           success: true,
@@ -168,9 +177,9 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
       // Get sample data (first 10 rows)
       const rawSampleData = await prisma.$queryRawUnsafe(`SELECT * FROM ${tableName} LIMIT 10`)
 
-      // Convert BigInt values to Number for JSON serialization
-      const schema = convertBigIntToNumber(rawSchema)
-      const sampleData = convertBigIntToNumber(rawSampleData)
+      // Convert database values for JSON serialization
+      const schema = convertDatabaseValues(rawSchema)
+      const sampleData = convertDatabaseValues(rawSampleData)
 
       return {
         tableName,
