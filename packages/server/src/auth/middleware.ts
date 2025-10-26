@@ -23,7 +23,7 @@ export interface AuthenticatedRequest extends FastifyRequest {
 export async function authenticate(request: AuthenticatedRequest, reply: FastifyReply) {
 
   try {
-    const apiKey = request.headers['cli-key']
+    const apiKey = request.headers['dms-key']
 
     if (typeof apiKey === 'string') {
       info('Api key detected, start validating....')

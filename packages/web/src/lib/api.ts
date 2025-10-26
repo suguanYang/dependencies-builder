@@ -444,3 +444,57 @@ export async function getDatabaseSchema(): Promise<DatabaseSchema> {
 export async function getTableInfo(tableName: string): Promise<TableInfo> {
   return apiRequest(`/database-admin/tables/${tableName}`)
 }
+
+// API Key Management
+interface ApiKey {
+  id: string
+  name: string
+  expiresAt: string | null
+  createdAt: string
+  user: {
+    email: string
+  }
+}
+
+interface GenerateApiKeyRequest {
+  keyName: string
+  expiresIn?: number | null
+}
+
+interface GenerateApiKeyResponse {
+  success: boolean
+  apiKey: {
+    key: string
+    id: string
+    name: string
+    expiresAt: string | null
+    createdAt: string
+  }
+}
+
+interface ListApiKeysResponse {
+  success: boolean
+  apiKeys: ApiKey[]
+}
+
+interface RevokeApiKeyResponse {
+  success: boolean
+  message: string
+}
+
+export async function generateApiKey(request: GenerateApiKeyRequest): Promise<GenerateApiKeyResponse> {
+  return apiRequest('/database-admin/api-keys', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export async function listApiKeys(): Promise<ListApiKeysResponse> {
+  return apiRequest('/database-admin/api-keys')
+}
+
+export async function revokeApiKey(id: string): Promise<RevokeApiKeyResponse> {
+  return apiRequest(`/database-admin/api-keys/${id}`, {
+    method: 'DELETE',
+  })
+}

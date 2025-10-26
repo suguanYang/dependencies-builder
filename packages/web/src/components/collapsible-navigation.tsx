@@ -68,9 +68,9 @@ const navigationItems: NavigationItem[] = [
 const adminNavigationItems: NavigationItem[] = [
   {
     name: 'Admin',
-    href: '/database-admin',
+    href: '/admin',
     icon: Database,
-    description: 'Database administration tools',
+    description: 'System administration tools',
   },
 ]
 

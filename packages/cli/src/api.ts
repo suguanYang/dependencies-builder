@@ -8,7 +8,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   const headers: Record<string, string> = {
     ...(!!options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>),
-    "cli-key": CLI_KEY || 'null'
+    "dms-key": CLI_KEY || 'null'
   }
 
   const response = await fetch(url, {

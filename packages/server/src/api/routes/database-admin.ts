@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../../database/prisma'
 import { authenticate, requireAdmin } from '../../auth/middleware'
+import { getAdminUserKey, revokeAdminKey } from '../../auth'
 
 interface DatabaseQueryRequest {
   query: string
@@ -179,6 +180,99 @@ function databaseAdminRoutes(fastify: FastifyInstance) {
     } catch (error) {
       reply.code(500).send({
         error: 'Failed to fetch table information',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  })
+
+  // POST /database-admin/api-keys - Generate admin API key
+  fastify.post('/database-admin/api-keys', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const { keyName, expiresIn } = request.body as {
+        keyName: string
+        expiresIn?: number
+      }
+
+      if (!keyName || keyName.trim() === '') {
+        reply.code(400).send({
+          error: 'Key name is required',
+        })
+        return
+      }
+
+      const apiKey = await getAdminUserKey(keyName, {
+        expiresIn: expiresIn || undefined
+      })
+
+      return {
+        success: true,
+        apiKey
+      }
+    } catch (error) {
+      reply.code(500).send({
+        error: 'Failed to generate API key',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  })
+
+  // GET /database-admin/api-keys - List admin API keys
+  fastify.get('/database-admin/api-keys', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (_request, reply) => {
+    try {
+      const apiKeys = await prisma.apikey.findMany({
+        where: {
+          user: {
+            role: 'admin'
+          }
+        },
+        select: {
+          id: true,
+          name: true,
+          expiresAt: true,
+          createdAt: true,
+          user: {
+            select: {
+              email: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      return {
+        success: true,
+        apiKeys
+      }
+    } catch (error) {
+      reply.code(500).send({
+        error: 'Failed to fetch API keys',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  })
+
+  // DELETE /database-admin/api-keys/:id - Revoke admin API key
+  fastify.delete('/database-admin/api-keys/:id', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string }
+
+      await revokeAdminKey(id)
+
+      return {
+        success: true,
+        message: 'API key revoked successfully'
+      }
+    } catch (error) {
+      reply.code(500).send({
+        error: 'Failed to revoke API key',
         details: error instanceof Error ? error.message : 'Unknown error',
       })
     }

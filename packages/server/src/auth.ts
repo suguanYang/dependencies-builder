@@ -83,7 +83,7 @@ export const auth = betterAuth({
     }),
     apiKey({
       keyExpiration: {
-        defaultExpiresIn: 30 * 60 * 1000
+        defaultExpiresIn: 30 * 60
       }
     })
   ],
@@ -111,7 +111,9 @@ export const auth = betterAuth({
 export type Session = typeof auth.$Infer.Session.session;
 export type User = typeof auth.$Infer.Session.user;
 
-export const getAdminUserKey = async (keyName: string) => {
+export const getAdminUserKey = async (keyName: string, opts?: {
+  expiresIn?: number | null | undefined;
+}) => {
   const adminUser = await prisma.user.findUnique({
     where: {
       email: ADMIN_USER_EMAIL
@@ -131,7 +133,8 @@ export const getAdminUserKey = async (keyName: string) => {
       userId: adminUser.id,
       permissions: {
         node: ["create", "read", "update", "delete"]
-      }
+      },
+      expiresIn: opts?.expiresIn
     }
   });
 }

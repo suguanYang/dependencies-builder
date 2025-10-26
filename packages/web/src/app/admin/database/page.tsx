@@ -2,12 +2,15 @@
 
 import React, { useState, Suspense } from 'react'
 import useSWR, { mutate } from 'swr'
-import { DatabaseIcon, PlayIcon, TableIcon, EyeIcon, RefreshCwIcon } from 'lucide-react'
+import { DatabaseIcon, PlayIcon, TableIcon, EyeIcon, RefreshCwIcon, ArrowLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon, CheckCircleIcon } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { swrConfig } from '@/lib/swr-config'
 import { SWRConfig } from 'swr'
+import Link from 'next/link'
 import {
   executeDatabaseQuery,
   getDatabaseSchema,
@@ -202,10 +205,19 @@ function DatabaseAdminContent() {
     )
   }
 
+
   return (
     <div className="pt-6 px-6">
       <div className="flex justify-between items-center mb-6">
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                <ArrowLeftIcon className="h-4 w-4" />
+                Back to Admin
+              </Button>
+            </Link>
+          </div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <DatabaseIcon className="h-6 w-6" />
             Database Admin
@@ -303,6 +315,7 @@ function DatabaseAdminContent() {
           {/* Table info */}
           {renderTableInfo()}
         </div>
+
       </div>
     </div>
   )
