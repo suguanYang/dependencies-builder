@@ -123,7 +123,7 @@ function nodesRoutes(fastify: FastifyInstance) {
       const project = await repository.getProjectByName(nodesData[0].projectName)
 
       if (!project) {
-        reply.code(400).send({ error: 'Project not found' })
+        reply.code(400).send({ error: 'Project not found: ' + nodesData[0].projectName })
         return
       }
 

@@ -196,6 +196,16 @@ class Context {
     throw new Error(`Package '${packageName}' not found in repository`)
   }
 
+  toString() {
+    return JSON.stringify({
+      options: this.options,
+      localDirectory: this.getLocalDirectory(),
+      version: this.getVersion(),
+      entries: this.getEntries(),
+      workingDir: this.getWorkingDirectory()
+    })
+  }
+
   async setup() {
     if (!this.options.repository) {
       throw new Error('Repository must be provided')
