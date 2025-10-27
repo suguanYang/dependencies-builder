@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, Suspense, useEffect } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
 import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,8 @@ import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode, type
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProjectSelector } from '@/components/project-selector'
+import useDebounce from '@/hooks/use-debounce-value'
+
 
 function NodesContent() {
   const router = useRouter()
@@ -22,7 +24,7 @@ function NodesContent() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
-  const [searchFilters, _setSearchFilters] = useState({
+  const [searchFilters, setSearchFilters] = useState({
     projectName: '',
     branch: '',
     type: '',
@@ -34,10 +36,16 @@ function NodesContent() {
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
 
-  const setSearchFilters: typeof _setSearchFilters = (arg) => {
-    handlePageChange(1)
-    return _setSearchFilters(arg)
-  }
+  // Use debounced search filters for API calls
+  const debouncedSearchFilters = useDebounce(searchFilters, 300)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      handlePageChange(1)
+    }
+  }, [debouncedSearchFilters])
+
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -69,14 +77,14 @@ function NodesContent() {
 
   // Fetch nodes with server-side filtering
   const { data: nodesResponse, isLoading } = useSWR(
-    ['nodes', searchFilters, currentPage, pageSize],
+    ['nodes', debouncedSearchFilters, currentPage, pageSize],
     () =>
       getNodes({
-        projectName: searchFilters.projectName || undefined,
-        branch: searchFilters.branch || undefined,
-        type: (searchFilters.type as NodeType) || undefined,
-        name: searchFilters.name || undefined,
-        standalone: searchFilters.standalone || undefined,
+        projectName: debouncedSearchFilters.projectName || undefined,
+        branch: debouncedSearchFilters.branch || undefined,
+        type: (debouncedSearchFilters.type as NodeType) || undefined,
+        name: debouncedSearchFilters.name || undefined,
+        standalone: debouncedSearchFilters.standalone || undefined,
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,
       }),
@@ -272,7 +280,7 @@ function NodesContent() {
                 {
                   key: 'name',
                   header: 'Name',
-                  width: '400',
+                  width: '200',
                   render: (node: Node) => (
                     <Link
                       href={`/node-detail?id=${node.id}`}
@@ -285,7 +293,7 @@ function NodesContent() {
                 {
                   key: 'projectName',
                   header: 'Project',
-                  width: '140',
+                  width: '120',
                   render: (node: Node) => <div className="truncate">{node.projectName}</div>,
                 },
                 {
@@ -293,6 +301,30 @@ function NodesContent() {
                   header: 'Type',
                   width: 160,
                   render: (node: Node) => <div className="text-sm">{node.type}</div>,
+                },
+                {
+                  key: 'location',
+                  header: 'Location',
+                  width: '200',
+                  render: (node: Node) => (
+                    <div className="text-sm text-gray-500 truncate">
+                      {node.relativePath && node.startLine !== undefined && node.startColumn !== undefined
+                        ? `${node.relativePath}:${node.startLine}:${node.startColumn}`
+                        : 'N/A'}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'createdAt',
+                  header: 'Created',
+                  width: '160',
+                  render: (node: Node) => (
+                    <div className="text-sm text-gray-500 truncate">
+                      {node.createdAt
+                        ? new Date(node.createdAt).toLocaleString()
+                        : 'N/A'}
+                    </div>
+                  ),
                 },
               ]}
               actions={(node) => (

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, Suspense, useEffect } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { PlusIcon, TrashIcon, EditIcon, CodeIcon, XIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, EditIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -20,7 +20,9 @@ import {
 } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TooltipProvider} from '@/components/ui/tooltip'
+import useDebounce from '@/hooks/use-debounce-value'
+
 
 function ProjectsContent() {
   const router = useRouter()
@@ -29,7 +31,7 @@ function ProjectsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
-  const [searchFilters, _setSearchFilters] = useState<ProjectQuery>({
+  const [searchFilters, setSearchFilters] = useState<ProjectQuery>({
     name: '',
     addr: '',
     type: undefined,
@@ -38,11 +40,17 @@ function ProjectsContent() {
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
-  
-  const setSearchFilters: typeof _setSearchFilters = (arg) => {
-    handlePageChange(1)
-    return _setSearchFilters(arg)
-  }
+
+  // Use debounced search filters for API calls
+  const debouncedSearchFilters = useDebounce(searchFilters, 300)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      handlePageChange(1)
+    }
+  }, [debouncedSearchFilters])
+
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -321,7 +329,7 @@ function ProjectsContent() {
                   {
                     key: 'name',
                     header: 'Name',
-                    width: '200',
+                    width: '180',
                     render: (project: Project) => (
                       <div className="font-medium text-blue-600 truncate">{project.name}</div>
                     ),
@@ -353,10 +361,10 @@ function ProjectsContent() {
                   {
                     key: 'createdAt',
                     header: 'Created',
-                    width: 100,
+                    width: '160',
                     render: (project: Project) => (
-                      <div className="text-sm text-gray-500">
-                        {new Date(project.createdAt).toLocaleDateString()}
+                      <div className="text-sm text-gray-500 truncate">
+                        {new Date(project.createdAt).toLocaleString()}
                       </div>
                     ),
                   },

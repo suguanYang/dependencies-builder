@@ -1,6 +1,7 @@
 import './globals.css'
 import { SidebarProvider } from '@/contexts/sidebar-context'
 import { AuthProvider } from '@/contexts/auth-context'
+import { GlobalErrorDisplay } from '@/components/global-error-display'
 import { CollapsibleNavigation } from '@/components/collapsible-navigation'
 
 export default function RootLayout({
@@ -19,6 +20,9 @@ export default function RootLayout({
 
               {/* Main Content */}
               <main className="flex-1">{children}</main>
+
+              {/* Global Error Display */}
+              <GlobalErrorDisplay />
             </div>
           </SidebarProvider>
         </AuthProvider>

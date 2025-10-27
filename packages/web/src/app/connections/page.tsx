@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, Suspense, useEffect } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { PlusIcon, TrashIcon, SearchIcon, RefreshCwIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, RefreshCwIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
@@ -16,10 +16,10 @@ import {
   createAction,
   NodeType,
   getActionById,
-  type Action,
 } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
+import useDebounce from '@/hooks/use-debounce-value'
 
 function ConnectionsContent() {
   const router = useRouter()
@@ -34,7 +34,7 @@ function ConnectionsContent() {
   // Get pagination from URL query parameters
   const currentPage = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('pageSize') || '20')
-  const [searchFilters, _setSearchFilters] = useState({
+  const [searchFilters, setSearchFilters] = useState({
     fromId: '',
     toId: '',
     fromNodeName: '',
@@ -49,10 +49,15 @@ function ConnectionsContent() {
     toId: '',
   })
 
-  const setSearchFilters: typeof _setSearchFilters = (arg) => {
-    handlePageChange(1)
-    return _setSearchFilters(arg)
-  }
+  // Use debounced search filters for API calls
+  const debouncedSearchFilters = useDebounce(searchFilters, 300)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      handlePageChange(1)
+    }
+  }, [debouncedSearchFilters])
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -74,16 +79,16 @@ function ConnectionsContent() {
     data: connectionsResponse,
     isLoading,
     mutate: mutateConnections,
-  } = useSWR(['connections', searchFilters, currentPage, pageSize], () =>
+  } = useSWR(['connections', debouncedSearchFilters, currentPage, pageSize], () =>
     getConnectionsList({
-      fromId: searchFilters.fromId || undefined,
-      toId: searchFilters.toId || undefined,
-      fromNodeName: searchFilters.fromNodeName || undefined,
-      toNodeName: searchFilters.toNodeName || undefined,
-      fromNodeProjectName: searchFilters.fromNodeProjectName || undefined,
-      toNodeProjectName: searchFilters.toNodeProjectName || undefined,
-      fromNodeType: searchFilters.fromNodeType || undefined,
-      toNodeType: searchFilters.toNodeType || undefined,
+      fromId: debouncedSearchFilters.fromId || undefined,
+      toId: debouncedSearchFilters.toId || undefined,
+      fromNodeName: debouncedSearchFilters.fromNodeName || undefined,
+      toNodeName: debouncedSearchFilters.toNodeName || undefined,
+      fromNodeProjectName: debouncedSearchFilters.fromNodeProjectName || undefined,
+      toNodeProjectName: debouncedSearchFilters.toNodeProjectName || undefined,
+      fromNodeType: debouncedSearchFilters.fromNodeType || undefined,
+      toNodeType: debouncedSearchFilters.toNodeType || undefined,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize,
     }),
@@ -163,10 +168,6 @@ function ConnectionsContent() {
     }
   }
 
-  const handleSearch = () => {
-    // Search is handled by the SWR key change
-  }
-
   return (
     <div className="pt-6 px-6">
       {error && (
@@ -212,7 +213,7 @@ function ConnectionsContent() {
             />
             <div className="flex-1">
               <div className="text-sm font-medium text-blue-800">
-                {currentAction.status === 'running'
+                {(currentAction.status === 'running' || currentAction.status === 'pending')
                   ? 'Auto-creation in progress...'
                   : currentAction.status === 'completed'
                     ? 'Auto-creation completed'
@@ -291,7 +292,7 @@ function ConnectionsContent() {
                   placeholder="Partial match from node project"
                   value={searchFilters.fromNodeProjectName || ''}
                   onChange={(e) =>
-                    setSearchFilters((prev) => ({ ...prev, fromNodeProject: e.target.value }))
+                    setSearchFilters((prev) => ({ ...prev, fromNodeProjectName: e.target.value }))
                   }
                 />
               </div>
@@ -335,7 +336,7 @@ function ConnectionsContent() {
                   placeholder="Partial match to node project"
                   value={searchFilters.toNodeProjectName || ''}
                   onChange={(e) =>
-                    setSearchFilters((prev) => ({ ...prev, toNodeProject: e.target.value }))
+                    setSearchFilters((prev) => ({ ...prev, toNodeProjectName: e.target.value }))
                   }
                 />
               </div>
@@ -363,10 +364,6 @@ function ConnectionsContent() {
                   </option>
                 </select>
               </div>
-              <Button onClick={handleSearch} className="w-full">
-                <SearchIcon className="h-4 w-4 mr-2" />
-                Search
-              </Button>
             </div>
           </div>
         </div>
@@ -415,7 +412,7 @@ function ConnectionsContent() {
                 {
                   key: 'fromNode',
                   header: 'From Node',
-                  width: '400',
+                  width: '300',
                   render: (connection: Connection) => (
                     <div className="space-y-1 min-w-0">
                       <div className="font-medium truncate">
@@ -439,7 +436,7 @@ function ConnectionsContent() {
                 {
                   key: 'toNode',
                   header: 'To Node',
-                  width: '400',
+                  width: '300',
                   render: (connection: Connection) => (
                     <div className="space-y-1 min-w-0">
                       <div className="font-medium truncate">
@@ -462,12 +459,12 @@ function ConnectionsContent() {
                 },
                 {
                   key: 'createdAt',
-                  header: 'Created At',
-                  width: 140,
+                  header: 'Created',
+                  width: '160',
                   render: (connection: Connection) => (
-                    <div className="text-sm">
+                    <div className="text-sm truncate">
                       {connection.createdAt
-                        ? new Date(connection.createdAt).toLocaleDateString()
+                        ? new Date(connection.createdAt).toLocaleString()
                         : 'N/A'}
                     </div>
                   ),

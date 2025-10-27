@@ -58,7 +58,7 @@ export function VirtualTable<T>({
         {columns.map((column) => (
           <div
             key={column.key}
-            className="px-6 py-4 text-sm text-gray-900 flex-1 min-w-0"
+            className="px-6 py-4 text-sm text-gray-900 flex-1 min-w-0 break-words overflow-wrap-anywhere"
             style={{
               width: column.width,
               flex:
@@ -97,7 +97,7 @@ export function VirtualTable<T>({
         {columns.map((column) => (
           <div
             key={column.key}
-            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0 min-w-0"
+            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0 min-w-0 break-words overflow-wrap-anywhere"
             style={{
               width: column.width,
               flex:

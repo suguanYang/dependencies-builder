@@ -24,6 +24,7 @@ export interface Node {
   endLine?: number
   endColumn?: number
   meta?: Record<string, any>
+  createdAt: string
 }
 
 export interface Connection {
@@ -46,6 +47,8 @@ export interface SearchFilters {
 }
 
 const API_BASE = '/api'
+
+import { errorStore } from '@/lib/error-store'
 
 export async function searchNodes(filters: SearchFilters): Promise<Node[]> {
   const params = new URLSearchParams()
@@ -85,28 +88,41 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     ...(options.headers as Record<string, string>),
   }
 
-  const response = await fetch(url, {
-    headers,
-    ...options,
-  })
+  try {
+    const response = await fetch(url, {
+      headers,
+      ...options,
+    })
 
-  if (!response.ok) {
-    // Handle 401 Unauthorized by redirecting to login
-    if (response.status === 401) {
-      // Redirect to login page
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login'
+    if (!response.ok) {
+      // Handle 401 Unauthorized by redirecting to login
+      if (response.status === 401) {
+        // Redirect to login page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+        throw new Error('Authentication required')
       }
-      throw new Error('Authentication required')
+
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+
+      throw new Error(errorMessage)
     }
 
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(
-      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,
-    )
-  }
+    return response.json()
+  } catch (error) {
+    // Handle network errors (fetch failures, CORS, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      errorStore.addError('Network connection failed', 'network')
+    } else if (error instanceof Error && error.message !== 'Authentication required') {
+      // Only add non-auth errors to the store
+      errorStore.addError(error.message, 'api')
+    }
 
-  return response.json()
+    // Re-throw the error so individual components can handle it if needed
+    throw error
+  }
 }
 
 // Nodes API
