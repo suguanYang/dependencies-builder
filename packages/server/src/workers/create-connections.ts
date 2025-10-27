@@ -138,26 +138,22 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
     const storageReads = nodesByType.get('WebStorageRead') || []
     const storageWrites = nodesByType.get('WebStorageWrite') || []
     for (const readNode of storageReads) {
-      const readMeta = readNode.meta as Record<string, any>
-      if (readMeta?.storageKey) {
-        const storageKey = readMeta.storageKey as string
-        const matchingWrites = storageWrites.filter((writeNode) => {
-          const writeMeta = writeNode.meta as Record<string, any>
-          return (
-            writeMeta?.storageKey === storageKey && writeNode.projectName !== readNode.projectName
-          )
-        })
+      const storageKey = readNode.name
+      const matchingWrites = storageWrites.filter((writeNode) => {
+        return (
+          writeNode.name === storageKey && writeNode.projectName !== readNode.projectName
+        )
+      })
 
-        for (const writeNode of matchingWrites) {
-          const connectionKey = `${readNode.id}:${writeNode.id}`
-          if (!existingConnectionSet.has(connectionKey)) {
-            connectionsToCreate.push({
-              fromId: readNode.id,
-              toId: writeNode.id,
-            })
-          } else {
-            result.skippedConnections++
-          }
+      for (const writeNode of matchingWrites) {
+        const connectionKey = `${readNode.id}:${writeNode.id}`
+        if (!existingConnectionSet.has(connectionKey)) {
+          connectionsToCreate.push({
+            fromId: readNode.id,
+            toId: writeNode.id,
+          })
+        } else {
+          result.skippedConnections++
         }
       }
     }
@@ -165,25 +161,22 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
     // Rule 5: EventOn -> EventEmit
     const eventOns = nodesByType.get('EventOn') || []
     const eventEmits = nodesByType.get('EventEmit') || []
-    for (const onNode of eventOns) {
-      const onMeta = onNode.meta as Record<string, any>
-      if (onMeta?.eventName) {
-        const eventName = onMeta.eventName as string
-        const matchingEmits = eventEmits.filter((emitNode) => {
-          const emitMeta = emitNode.meta as Record<string, any>
-          return emitMeta?.eventName === eventName && emitNode.projectName !== onNode.projectName
-        })
 
-        for (const emitNode of matchingEmits) {
-          const connectionKey = `${onNode.id}:${emitNode.id}`
-          if (!existingConnectionSet.has(connectionKey)) {
-            connectionsToCreate.push({
-              fromId: onNode.id,
-              toId: emitNode.id,
-            })
-          } else {
-            result.skippedConnections++
-          }
+    for (const onNode of eventOns) {
+      const onEventName = onNode.name
+      const matchingEmits = eventEmits.filter((emitNode) => {
+        return emitNode?.name === onEventName && emitNode.projectName !== onNode.projectName
+      })
+
+      for (const emitNode of matchingEmits) {
+        const connectionKey = `${onNode.id}:${emitNode.id}`
+        if (!existingConnectionSet.has(connectionKey)) {
+          connectionsToCreate.push({
+            fromId: onNode.id,
+            toId: emitNode.id,
+          })
+        } else {
+          result.skippedConnections++
         }
       }
     }
