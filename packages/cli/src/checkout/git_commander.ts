@@ -70,8 +70,10 @@ class GitCommander implements IGitCommander {
   async remoteAdd(remoteName: string, remoteUrl: string): Promise<void> {
     if (process.env.GIT_TOKEN_NAME && process.env.GIT_TOKEN_VALUE) {
       const url = new URL(remoteUrl)
-      url.username = process.env.GIT_TOKEN_NAME
-      url.password = process.env.GIT_TOKEN_VALUE
+      if (!url.username || !url.password) {
+        url.username = process.env.GIT_TOKEN_NAME
+        url.password = process.env.GIT_TOKEN_VALUE
+      }
       remoteUrl = url.toString()
     }
     await run('git', ['remote', 'add', remoteName, remoteUrl], { cwd: this.workingDirectory })
