@@ -20,6 +20,24 @@ import {
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useDebounce from '@/hooks/use-debounce-value'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from '@/components/ui/field'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+// Zod schema for Connection validation
+const connectionSchema = z.object({
+  fromId: z.string().min(1, 'From node ID is required'),
+  toId: z.string().min(1, 'To node ID is required'),
+})
+
+type ConnectionFormData = z.infer<typeof connectionSchema>
 
 function ConnectionsContent() {
   const router = useRouter()
@@ -44,9 +62,18 @@ function ConnectionsContent() {
     fromNodeType: '',
     toNodeType: '',
   })
-  const [newConnection, setNewConnection] = useState({
-    fromId: '',
-    toId: '',
+  // React Hook Form for create connection
+  const {
+    control: createControl,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+  } = useForm<ConnectionFormData>({
+    resolver: zodResolver(connectionSchema),
+    defaultValues: {
+      fromId: '',
+      toId: '',
+    },
   })
 
   // Use debounced search filters for API calls
@@ -139,14 +166,16 @@ function ConnectionsContent() {
     }
   }
 
-  const handleCreate = async () => {
+  const handleCreate = async (data: ConnectionFormData) => {
     try {
-      await createConnection(newConnection)
-      setIsCreating(false)
-      setNewConnection({ fromId: '', toId: '' })
+      await createConnection(data)
+      resetCreateForm()
+      // Refresh the connections data
       mutateConnections()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create connection')
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -496,36 +525,62 @@ function ConnectionsContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create New Connection</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">From Node ID</label>
-                <Input
-                  value={newConnection.fromId}
-                  onChange={(e) =>
-                    setNewConnection((prev) => ({ ...prev, fromId: e.target.value }))
-                  }
-                  placeholder="From node ID"
-                />
-              </div>
+            <form onSubmit={handleCreateSubmit(handleCreate)}>
+              <FieldSet>
+                <FieldGroup>
+                  <Field data-invalid={!!createErrors.fromId}>
+                    <FieldLabel htmlFor="create-from-id">From Node ID</FieldLabel>
+                    <Controller
+                      name="fromId"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-from-id"
+                          {...field}
+                          placeholder="From node ID"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.fromId?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">To Node ID</label>
-                <Input
-                  value={newConnection.toId}
-                  onChange={(e) => setNewConnection((prev) => ({ ...prev, toId: e.target.value }))}
-                  placeholder="To node ID"
-                />
-              </div>
+                  <Field data-invalid={!!createErrors.toId}>
+                    <FieldLabel htmlFor="create-to-id">To Node ID</FieldLabel>
+                    <Controller
+                      name="toId"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-to-id"
+                          {...field}
+                          placeholder="To node ID"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.toId?.message}</FieldError>
+                  </Field>
 
-              <div className="flex space-x-4">
-                <Button onClick={handleCreate} className="flex-1">
-                  Create
-                </Button>
-                <Button variant="outline" onClick={() => setIsCreating(false)} className="flex-1">
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                  <div className="flex space-x-4">
+                    <Button type="submit" className="flex-1">
+                      Create
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreating(false)
+                        resetCreateForm()
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </FieldGroup>
+              </FieldSet>
+            </form>
           </div>
         </div>
       )}

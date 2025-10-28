@@ -22,7 +22,32 @@ import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { TooltipProvider} from '@/components/ui/tooltip'
 import useDebounce from '@/hooks/use-debounce-value'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from '@/components/ui/field'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
+// Zod schema for Project validation
+const projectEntrySchema = z.object({
+  name: z.string().min(1, 'Entry name is required'),
+  path: z.string().min(1, 'Entry path is required'),
+})
+
+const projectSchema = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  addr: z.string().min(1, 'Project address is required'),
+  type: z.nativeEnum(AppType),
+  entries: z.array(projectEntrySchema).default([]),
+})
+
+type ProjectFormData = z.infer<typeof projectSchema>
 
 function ProjectsContent() {
   const router = useRouter()
@@ -35,6 +60,34 @@ function ProjectsContent() {
     name: '',
     addr: '',
     type: undefined,
+  })
+
+  // React Hook Form for create project
+  const {
+    control: createControl,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+    setValue: setCreateValue,
+    getValues: getCreateValues,
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema) as any,
+    defaultValues: {
+      type: AppType.App,
+      entries: [],
+    },
+  })
+
+  // React Hook Form for edit project
+  const {
+    control: editControl,
+    handleSubmit: handleEditSubmit,
+    reset: resetEditForm,
+    formState: { errors: editErrors },
+    setValue: setEditValue,
+    getValues: getEditValues,
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema) as any,
   })
 
   // Get pagination from URL query parameters
@@ -68,13 +121,6 @@ function ProjectsContent() {
     updatePaginationParams(1, size) // Reset to first page when changing page size
   }
 
-  const [newProject, setNewProject] = useState({
-    name: '',
-    addr: '',
-    type: AppType.App,
-    entries: [] as ProjectEntry[],
-  })
-
   // Helper function to format entries for display
   const formatEntriesForDisplay = (entries?: ProjectEntry[]): string => {
     if (!entries || entries.length === 0) {
@@ -83,53 +129,44 @@ function ProjectsContent() {
     return `${entries.length} entries`
   }
 
-  // Helper functions for managing entries array
+  // Helper functions for managing entries array in create form
   const addNewEntry = () => {
-    setNewProject((prev) => ({
-      ...prev,
-      entries: [...prev.entries, { name: '', path: '' }],
-    }))
+    const currentEntries = getCreateValues('entries') || []
+    setCreateValue('entries', [...currentEntries, { name: '', path: '' }])
   }
 
   const updateEntry = (index: number, field: 'name' | 'path', value: string) => {
-    setNewProject((prev) => ({
-      ...prev,
-      entries: prev.entries.map((entry, i) => (i === index ? { ...entry, [field]: value } : entry)),
-    }))
+    const currentEntries = getCreateValues('entries') || []
+    const updatedEntries = currentEntries.map((entry, i) =>
+      i === index ? { ...entry, [field]: value } : entry,
+    )
+    setCreateValue('entries', updatedEntries)
   }
 
   const removeEntry = (index: number) => {
-    setNewProject((prev) => ({
-      ...prev,
-      entries: prev.entries.filter((_, i) => i !== index),
-    }))
+    const currentEntries = getCreateValues('entries') || []
+    const updatedEntries = currentEntries.filter((_, i) => i !== index)
+    setCreateValue('entries', updatedEntries)
   }
 
-  // Helper functions for editing project entries
+  // Helper functions for managing entries array in edit form
   const addEditingEntry = () => {
-    if (!editingProject) return
-    setEditingProject({
-      ...editingProject,
-      entries: [...(editingProject.entries || []), { name: '', path: '' }],
-    })
+    const currentEntries = getEditValues('entries') || []
+    setEditValue('entries', [...currentEntries, { name: '', path: '' }])
   }
 
   const updateEditingEntry = (index: number, field: 'name' | 'path', value: string) => {
-    if (!editingProject) return
-    setEditingProject({
-      ...editingProject,
-      entries: (editingProject.entries || []).map((entry, i) =>
-        i === index ? { ...entry, [field]: value } : entry,
-      ),
-    })
+    const currentEntries = getEditValues('entries') || []
+    const updatedEntries = currentEntries.map((entry, i) =>
+      i === index ? { ...entry, [field]: value } : entry,
+    )
+    setEditValue('entries', updatedEntries)
   }
 
   const removeEditingEntry = (index: number) => {
-    if (!editingProject) return
-    setEditingProject({
-      ...editingProject,
-      entries: (editingProject.entries || []).filter((_, i) => i !== index),
-    })
+    const currentEntries = getEditValues('entries') || []
+    const updatedEntries = currentEntries.filter((_, i) => i !== index)
+    setEditValue('entries', updatedEntries)
   }
 
   // Fetch projects with server-side filtering
@@ -158,25 +195,20 @@ function ProjectsContent() {
     }
   }
 
-  const handleCreate = async () => {
+  const handleCreate = async (data: ProjectFormData) => {
     // Filter out entries with both empty name and path
-    const filteredEntries = newProject.entries.filter(
+    const filteredEntries = (data.entries || []).filter(
       (entry) => entry.name.trim() !== '' || entry.path.trim() !== '',
     )
 
     try {
       await createProject({
-        name: newProject.name,
-        addr: newProject.addr,
-        type: newProject.type,
+        name: data.name,
+        addr: data.addr,
+        type: data.type,
         entries: filteredEntries,
       })
-      setNewProject({
-        name: '',
-        addr: '',
-        type: AppType.App,
-        entries: [],
-      })
+      resetCreateForm()
       // Refresh the projects data
       mutate(['projects', searchFilters, currentPage, pageSize])
     } catch (err) {
@@ -186,19 +218,19 @@ function ProjectsContent() {
     }
   }
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (data: ProjectFormData) => {
     if (!editingProject) return
 
     // Filter out entries with both empty name and path
-    const filteredEntries = (editingProject.entries || []).filter(
+    const filteredEntries = (data.entries || []).filter(
       (entry) => entry.name.trim() !== '' || entry.path.trim() !== '',
     )
 
     try {
       await updateProject(editingProject.id, {
-        name: editingProject.name,
-        addr: editingProject.addr,
-        type: editingProject.type,
+        name: data.name,
+        addr: data.addr,
+        type: data.type,
         entries: filteredEntries,
       })
       // Refresh the projects data
@@ -209,6 +241,18 @@ function ProjectsContent() {
       setEditingProject(null)
     }
   }
+
+  // Populate edit form when editingProject changes
+  useEffect(() => {
+    if (editingProject) {
+      resetEditForm({
+        name: editingProject.name,
+        addr: editingProject.addr,
+        type: editingProject.type,
+        entries: editingProject.entries || [],
+      })
+    }
+  }, [editingProject, resetEditForm])
 
   return (
     <TooltipProvider>
@@ -401,139 +445,171 @@ function ProjectsContent() {
             <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Project Name</label>
-                    <Input
-                      value={newProject.name}
-                      onChange={(e) => setNewProject((prev) => ({ ...prev, name: e.target.value }))}
-                      placeholder="Project name (must be unique)"
-                    />
-                  </div>
+              <form onSubmit={handleCreateSubmit(handleCreate)}>
+                <FieldSet>
+                  <FieldGroup>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field data-invalid={!!createErrors.name}>
+                        <FieldLabel htmlFor="create-name">Project Name</FieldLabel>
+                        <Controller
+                          name="name"
+                          control={createControl}
+                          render={({ field }) => (
+                            <Input
+                              id="create-name"
+                              {...field}
+                              placeholder="Project name (must be unique)"
+                              required
+                            />
+                          )}
+                        />
+                        <FieldError>{createErrors.name?.message}</FieldError>
+                      </Field>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Project Address</label>
-                    <Input
-                      value={newProject.addr}
-                      onChange={(e) => setNewProject((prev) => ({ ...prev, addr: e.target.value }))}
-                      placeholder="Project address/path"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Project Type</label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="create-type"
-                        value={AppType.Lib}
-                        checked={newProject.type === AppType.Lib}
-                        onChange={(e) =>
-                          setNewProject((prev) => ({ ...prev, type: e.target.value as AppType }))
-                        }
-                        className="text-blue-600"
-                      />
-                      <span className="text-sm">Library</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="create-type"
-                        value={AppType.App}
-                        checked={newProject.type === AppType.App}
-                        onChange={(e) =>
-                          setNewProject((prev) => ({ ...prev, type: e.target.value as AppType }))
-                        }
-                        className="text-blue-600"
-                      />
-                      <span className="text-sm">Application</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium">Project Entries</label>
-                    <Button type="button" variant="outline" size="sm" onClick={addNewEntry}>
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Add Entry
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Store project entries path for projects that cannot find entries by static
-                    analysis
-                  </p>
-
-                  {newProject.entries.length === 0 ? (
-                    <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
-                      <p className="text-sm text-gray-500">No entries added yet</p>
+                      <Field data-invalid={!!createErrors.addr}>
+                        <FieldLabel htmlFor="create-addr">Project Address</FieldLabel>
+                        <Controller
+                          name="addr"
+                          control={createControl}
+                          render={({ field }) => (
+                            <Input
+                              id="create-addr"
+                              {...field}
+                              placeholder="Project address/path"
+                              required
+                            />
+                          )}
+                        />
+                        <FieldError>{createErrors.addr?.message}</FieldError>
+                      </Field>
                     </div>
-                  ) : (
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {newProject.entries.map((entry, index) => (
-                        <div
-                          key={index}
-                          className="space-y-2 p-3 border border-gray-200 rounded-md"
-                        >
-                          <div className="flex gap-2 items-center">
-                            <div className="flex-1">
-                              <label className="block text-xs font-medium mb-1 text-gray-600">
-                                Entry Name
-                              </label>
-                              <Input
-                                value={entry.name}
-                                onChange={(e) => updateEntry(index, 'name', e.target.value)}
-                                placeholder="Entry name"
-                                className="w-full"
+
+                    <Field>
+                      <FieldLabel>Project Type</FieldLabel>
+                      <Controller
+                        name="type"
+                        control={createControl}
+                        render={({ field }) => (
+                          <div className="flex space-x-4">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="create-type"
+                                value={AppType.Lib}
+                                checked={field.value === AppType.Lib}
+                                onChange={(e) => field.onChange(e.target.value as AppType)}
+                                className="text-blue-600"
                               />
-                            </div>
-                            <div className="flex-1">
-                              <label className="block text-xs font-medium mb-1 text-gray-600">
-                                Entry Path
-                              </label>
-                              <Input
-                                value={entry.path}
-                                onChange={(e) => updateEntry(index, 'path', e.target.value)}
-                                placeholder="/path/to/entry"
-                                className="w-full"
+                              <span className="text-sm">Library</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="create-type"
+                                value={AppType.App}
+                                checked={field.value === AppType.App}
+                                onChange={(e) => field.onChange(e.target.value as AppType)}
+                                className="text-blue-600"
                               />
-                            </div>
-                            <div className="flex-shrink-0 self-end">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeEntry(index)}
-                                className="mt-6"
-                              >
-                                <XIcon className="h-4 w-4" />
-                              </Button>
-                            </div>
+                              <span className="text-sm">Application</span>
+                            </label>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        )}
+                      />
+                    </Field>
 
-                <div className="flex space-x-4">
-                  <Button onClick={handleCreate} className="flex-1">
-                    Create
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreating(false)
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+                    <Field>
+                      <div className="flex items-center justify-between mb-2">
+                        <FieldLabel>Project Entries</FieldLabel>
+                        <Button type="button" variant="outline" size="sm" onClick={addNewEntry}>
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Add Entry
+                        </Button>
+                      </div>
+                      <FieldDescription>
+                        Store project entries path for projects that cannot find entries by static
+                        analysis
+                      </FieldDescription>
+
+                      <Controller
+                        name="entries"
+                        control={createControl}
+                        render={({ field }) => (
+                          <div>
+                            {field.value && field.value.length === 0 ? (
+                              <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
+                                <p className="text-sm text-gray-500">No entries added yet</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-3 max-h-80 overflow-y-auto">
+                                {field.value?.map((entry, index) => (
+                                  <div
+                                    key={index}
+                                    className="space-y-2 p-3 border border-gray-200 rounded-md"
+                                  >
+                                    <div className="flex gap-2 items-center">
+                                      <div className="flex-1">
+                                        <label className="block text-xs font-medium mb-1 text-gray-600">
+                                          Entry Name
+                                        </label>
+                                        <Input
+                                          value={entry.name}
+                                          onChange={(e) => updateEntry(index, 'name', e.target.value)}
+                                          placeholder="Entry name"
+                                          className="w-full"
+                                        />
+                                      </div>
+                                      <div className="flex-1">
+                                        <label className="block text-xs font-medium mb-1 text-gray-600">
+                                          Entry Path
+                                        </label>
+                                        <Input
+                                          value={entry.path}
+                                          onChange={(e) => updateEntry(index, 'path', e.target.value)}
+                                          placeholder="/path/to/entry"
+                                          className="w-full"
+                                        />
+                                      </div>
+                                      <div className="flex-shrink-0 self-end">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => removeEntry(index)}
+                                          className="mt-6"
+                                        >
+                                          <XIcon className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </Field>
+
+                    <div className="flex space-x-4">
+                      <Button type="submit" className="flex-1">
+                        Create
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsCreating(false)
+                          resetCreateForm()
+                        }}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </FieldGroup>
+                </FieldSet>
+              </form>
             </div>
           </div>
         )}
@@ -544,151 +620,168 @@ function ProjectsContent() {
             <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Project Name</label>
-                    <Input
-                      value={editingProject.name}
-                      onChange={(e) =>
-                        setEditingProject((prev) =>
-                          prev ? { ...prev, name: e.target.value } : null,
-                        )
-                      }
-                      placeholder="Project name (must be unique)"
-                    />
-                  </div>
+              <form onSubmit={handleEditSubmit(handleUpdate)}>
+                <FieldSet>
+                  <FieldGroup>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field data-invalid={!!editErrors.name}>
+                        <FieldLabel htmlFor="edit-name">Project Name</FieldLabel>
+                        <Controller
+                          name="name"
+                          control={editControl}
+                          render={({ field }) => (
+                            <Input
+                              id="edit-name"
+                              {...field}
+                              placeholder="Project name (must be unique)"
+                              required
+                            />
+                          )}
+                        />
+                        <FieldError>{editErrors.name?.message}</FieldError>
+                      </Field>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Project Address</label>
-                    <Input
-                      value={editingProject.addr}
-                      onChange={(e) =>
-                        setEditingProject((prev) =>
-                          prev ? { ...prev, addr: e.target.value } : null,
-                        )
-                      }
-                      placeholder="Project address/path"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Project Type</label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="edit-type"
-                        value={AppType.Lib}
-                        checked={editingProject.type === AppType.Lib}
-                        onChange={(e) =>
-                          setEditingProject((prev) =>
-                            prev ? { ...prev, type: e.target.value as AppType } : null,
-                          )
-                        }
-                        className="text-blue-600"
-                      />
-                      <span className="text-sm">Library</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="edit-type"
-                        value={AppType.App}
-                        checked={editingProject.type === AppType.App}
-                        onChange={(e) =>
-                          setEditingProject((prev) =>
-                            prev ? { ...prev, type: e.target.value as AppType } : null,
-                          )
-                        }
-                        className="text-blue-600"
-                      />
-                      <span className="text-sm">Application</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium">Project Entries</label>
-                    <Button type="button" variant="outline" size="sm" onClick={addEditingEntry}>
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Add Entry
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Store project entries path for projects that cannot find entries by static
-                    analysis
-                  </p>
-
-                  {(editingProject.entries || []).length === 0 ? (
-                    <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
-                      <p className="text-sm text-gray-500">No entries added yet</p>
+                      <Field data-invalid={!!editErrors.addr}>
+                        <FieldLabel htmlFor="edit-addr">Project Address</FieldLabel>
+                        <Controller
+                          name="addr"
+                          control={editControl}
+                          render={({ field }) => (
+                            <Input
+                              id="edit-addr"
+                              {...field}
+                              placeholder="Project address/path"
+                              required
+                            />
+                          )}
+                        />
+                        <FieldError>{editErrors.addr?.message}</FieldError>
+                      </Field>
                     </div>
-                  ) : (
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {(editingProject.entries || []).map((entry, index) => (
-                        <div
-                          key={index}
-                          className="space-y-2 p-3 border border-gray-200 rounded-md"
-                        >
-                          <div className="flex gap-2 items-center">
-                            <div className="flex-1">
-                              <label className="block text-xs font-medium mb-1 text-gray-600">
-                                Entry Name
-                              </label>
-                              <Input
-                                value={entry.name}
-                                onChange={(e) => updateEditingEntry(index, 'name', e.target.value)}
-                                placeholder="Entry name"
-                                className="w-full"
+
+                    <Field>
+                      <FieldLabel>Project Type</FieldLabel>
+                      <Controller
+                        name="type"
+                        control={editControl}
+                        render={({ field }) => (
+                          <div className="flex space-x-4">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="edit-type"
+                                value={AppType.Lib}
+                                checked={field.value === AppType.Lib}
+                                onChange={(e) => field.onChange(e.target.value as AppType)}
+                                className="text-blue-600"
                               />
-                            </div>
-                            <div className="flex-1">
-                              <label className="block text-xs font-medium mb-1 text-gray-600">
-                                Entry Path
-                              </label>
-                              <Input
-                                value={entry.path}
-                                onChange={(e) => updateEditingEntry(index, 'path', e.target.value)}
-                                placeholder="/path/to/entry"
-                                className="w-full"
+                              <span className="text-sm">Library</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="edit-type"
+                                value={AppType.App}
+                                checked={field.value === AppType.App}
+                                onChange={(e) => field.onChange(e.target.value as AppType)}
+                                className="text-blue-600"
                               />
-                            </div>
-                            <div className="flex-shrink-0 self-end">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeEditingEntry(index)}
-                                className="mt-6"
-                              >
-                                <XIcon className="h-4 w-4" />
-                              </Button>
-                            </div>
+                              <span className="text-sm">Application</span>
+                            </label>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        )}
+                      />
+                    </Field>
 
-                <div className="flex space-x-4">
-                  <Button onClick={handleUpdate} className="flex-1">
-                    Update
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setEditingProject(null)
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+                    <Field>
+                      <div className="flex items-center justify-between mb-2">
+                        <FieldLabel>Project Entries</FieldLabel>
+                        <Button type="button" variant="outline" size="sm" onClick={addEditingEntry}>
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Add Entry
+                        </Button>
+                      </div>
+                      <FieldDescription>
+                        Store project entries path for projects that cannot find entries by static
+                        analysis
+                      </FieldDescription>
+
+                      <Controller
+                        name="entries"
+                        control={editControl}
+                        render={({ field }) => (
+                          <div>
+                            {field.value && field.value.length === 0 ? (
+                              <div className="text-center py-4 border border-dashed border-gray-300 rounded-md">
+                                <p className="text-sm text-gray-500">No entries added yet</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-3 max-h-80 overflow-y-auto">
+                                {field.value?.map((entry, index) => (
+                                  <div
+                                    key={index}
+                                    className="space-y-2 p-3 border border-gray-200 rounded-md"
+                                  >
+                                    <div className="flex gap-2 items-center">
+                                      <div className="flex-1">
+                                        <label className="block text-xs font-medium mb-1 text-gray-600">
+                                          Entry Name
+                                        </label>
+                                        <Input
+                                          value={entry.name}
+                                          onChange={(e) => updateEditingEntry(index, 'name', e.target.value)}
+                                          placeholder="Entry name"
+                                          className="w-full"
+                                        />
+                                      </div>
+                                      <div className="flex-1">
+                                        <label className="block text-xs font-medium mb-1 text-gray-600">
+                                          Entry Path
+                                        </label>
+                                        <Input
+                                          value={entry.path}
+                                          onChange={(e) => updateEditingEntry(index, 'path', e.target.value)}
+                                          placeholder="/path/to/entry"
+                                          className="w-full"
+                                        />
+                                      </div>
+                                      <div className="flex-shrink-0 self-end">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => removeEditingEntry(index)}
+                                          className="mt-6"
+                                        >
+                                          <XIcon className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      />
+                    </Field>
+
+                    <div className="flex space-x-4">
+                      <Button type="submit" className="flex-1">
+                        Update
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditingProject(null)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </FieldGroup>
+                </FieldSet>
+              </form>
             </div>
           </div>
         )}

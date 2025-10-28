@@ -14,7 +14,35 @@ import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProjectSelector } from '@/components/project-selector'
 import useDebounce from '@/hooks/use-debounce-value'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from '@/components/ui/field'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
+
+// Zod schema for Node validation
+const nodeSchema = z.object({
+  projectName: z.string().min(1, 'Project is required'),
+  branch: z.string().min(1, 'Branch is required'),
+  type: z.enum(NodeType),
+  name: z.string().min(1, 'Name is required'),
+  relativePath: z.string().min(1, 'Relative path is required'),
+  startLine: z.number().min(0, 'Start line must be a positive number'),
+  startColumn: z.number().min(0, 'Start column must be a positive number'),
+  endLine: z.number().min(0, 'End line must be a positive number'),
+  endColumn: z.number().min(0, 'End column must be a positive number'),
+  version: z.string().min(1, 'Version is required'),
+  meta: z.object({}).optional(),
+})
+
+type NodeFormData = z.infer<typeof nodeSchema>
 
 function NodesContent() {
   const router = useRouter()
@@ -24,6 +52,38 @@ function NodesContent() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
+
+  // React Hook Form for create node
+  const {
+    setValue,
+    resetField,
+    control: createControl,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+  } = useForm<NodeFormData>({
+    resolver: zodResolver(nodeSchema),
+    defaultValues: {
+      type: NodeType.NamedExport,
+      startLine: 0,
+      startColumn: 0,
+      endLine: 0,
+      endColumn: 0,
+      version: '1.0.0',
+      meta: {},
+    },
+  })
+
+  // React Hook Form for edit node
+  const {
+    control: editControl,
+    handleSubmit: handleEditSubmit,
+    reset: resetEditForm,
+    formState: { errors: editErrors },
+  } = useForm<NodeFormData>({
+    resolver: zodResolver(nodeSchema) as any,
+  })
+
   const [searchFilters, setSearchFilters] = useState({
     projectName: '',
     branch: '',
@@ -62,18 +122,6 @@ function NodesContent() {
   const handlePageSizeChange = (size: number) => {
     updatePaginationParams(1, size) // Reset to first page when changing page size
   }
-  const [newNode, setNewNode] = useState({
-    branch: '',
-    type: NodeType.NamedExport,
-    name: '',
-    relativePath: '',
-    startLine: 0,
-    startColumn: 0,
-    endLine: 0,
-    endColumn: 0,
-    version: '1.0.0',
-    meta: {},
-  })
 
   // Fetch nodes with server-side filtering
   const { data: nodesResponse, isLoading } = useSWR(
@@ -103,29 +151,10 @@ function NodesContent() {
     }
   }
 
-  const handleCreate = async () => {
-    if (!selectedProject) {
-      setError('Please select a project')
-      return
-    }
-
+  const handleCreate = async (data: NodeFormData) => {
     try {
-      await createNode({
-        ...newNode,
-        projectName: selectedProject.name,
-      })
-      setNewNode({
-        branch: '',
-        type: NodeType.NamedExport,
-        name: '',
-        relativePath: '',
-        startLine: 0,
-        startColumn: 0,
-        endLine: 0,
-        endColumn: 0,
-        version: '1.0.0',
-        meta: {},
-      })
+      await createNode(data)
+      resetCreateForm()
       setSelectedProject(undefined)
       // Refresh the nodes data
       mutate(['nodes', searchFilters, currentPage, pageSize])
@@ -136,22 +165,18 @@ function NodesContent() {
     }
   }
 
-  const handleUpdate = async () => {
+  // Populate edit form when editingNode changes
+  useEffect(() => {
+    if (editingNode) {
+      resetEditForm(editingNode)
+    }
+  }, [editingNode, resetEditForm])
+
+  const handleUpdate = async (data: NodeFormData) => {
     if (!editingNode) return
+
     try {
-      await updateNode(editingNode.id, {
-        projectName: editingNode.projectName,
-        branch: editingNode.branch,
-        type: editingNode.type,
-        name: editingNode.name,
-        relativePath: editingNode.relativePath,
-        startLine: editingNode.startLine,
-        startColumn: editingNode.startColumn,
-        endLine: editingNode.endLine,
-        endColumn: editingNode.endColumn,
-        version: editingNode.version,
-        meta: editingNode.meta,
-      })
+      await updateNode(editingNode.id, data)
       // Refresh the nodes data
       mutate(['nodes', searchFilters, currentPage, pageSize])
     } catch (err) {
@@ -354,74 +379,223 @@ function NodesContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create New Node</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
-                <ProjectSelector
-                  value={selectedProject}
-                  onValueChange={setSelectedProject}
-                  placeholder="Select a project..."
-                />
-              </div>
+            <form onSubmit={handleCreateSubmit(handleCreate)}>
+              <FieldSet>
+                <FieldGroup>
+                  <Field data-invalid={!!createErrors.projectName}>
+                    <FieldLabel htmlFor="create-project">Project</FieldLabel>
+                    <ProjectSelector
+                      value={selectedProject}
+                      onValueChange={(project) => {
+                        if (project) {
+                          setValue('projectName', project.name)
+                        }else {
+                          resetField('projectName')
+                        }
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Branch</label>
-                <Input
-                  value={newNode.branch}
-                  onChange={(e) => setNewNode((prev) => ({ ...prev, branch: e.target.value }))}
-                  placeholder="Branch name"
-                />
-              </div>
+                        setSelectedProject(project)
+                      }}
+                      placeholder="Select a project..."
+                    />
+                    <FieldError>{createErrors.projectName?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Type</label>
-                <select
-                  value={newNode.type}
-                  onChange={(e) =>
-                    setNewNode((prev) => ({ ...prev, type: e.target.value as NodeType }))
-                  }
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>
-                    DynamicModuleFederationReference
-                  </option>
-                </select>
-              </div>
+                  <Field data-invalid={!!createErrors.branch}>
+                    <FieldLabel htmlFor="create-branch">Branch</FieldLabel>
+                    <Controller
+                      name="branch"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-branch"
+                          {...field}
+                          placeholder="Branch name"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.branch?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <Input
-                  value={newNode.name}
-                  onChange={(e) => setNewNode((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Node name"
-                />
-              </div>
+                  <Field>
+                    <FieldLabel htmlFor="create-type">Type</FieldLabel>
+                    <Controller
+                      name="type"
+                      control={createControl}
+                      render={({ field }) => (
+                        <select
+                          id="create-type"
+                          {...field}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value={NodeType.NamedExport}>NamedExport</option>
+                          <option value={NodeType.NamedImport}>NamedImport</option>
+                          <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                          <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                          <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                          <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                          <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                          <option value={NodeType.EventOn}>EventOn</option>
+                          <option value={NodeType.EventEmit}>EventEmit</option>
+                          <option value={NodeType.DynamicModuleFederationReference}>
+                            DynamicModuleFederationReference
+                          </option>
+                        </select>
+                      )}
+                    />
+                  </Field>
 
-              <div className="flex space-x-4">
-                <Button onClick={handleCreate} className="flex-1">
-                  Create
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreating(false)
-                    setSelectedProject(undefined)
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                  <Field data-invalid={!!createErrors.name}>
+                    <FieldLabel htmlFor="create-name">Name</FieldLabel>
+                    <Controller
+                      name="name"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-name"
+                          {...field}
+                          placeholder="Node name"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.name?.message}</FieldError>
+                  </Field>
+
+                  <Field data-invalid={!!createErrors.relativePath}>
+                    <FieldLabel htmlFor="create-relative-path">Relative Path</FieldLabel>
+                    <Controller
+                      name="relativePath"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-relative-path"
+                          {...field}
+                          placeholder="Relative path"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.relativePath?.message}</FieldError>
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field data-invalid={!!createErrors.startLine}>
+                      <FieldLabel htmlFor="create-start-line">Start Line</FieldLabel>
+                      <Controller
+                        name="startLine"
+                        control={createControl}
+                        render={({ field }) => (
+                          <Input
+                            id="create-start-line"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{createErrors.startLine?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!createErrors.startColumn}>
+                      <FieldLabel htmlFor="create-start-column">Start Column</FieldLabel>
+                      <Controller
+                        name="startColumn"
+                        control={createControl}
+                        render={({ field }) => (
+                          <Input
+                            id="create-start-column"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{createErrors.startColumn?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!createErrors.endLine}>
+                      <FieldLabel htmlFor="create-end-line">End Line</FieldLabel>
+                      <Controller
+                        name="endLine"
+                        control={createControl}
+                        render={({ field }) => (
+                          <Input
+                            id="create-end-line"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{createErrors.endLine?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!createErrors.endColumn}>
+                      <FieldLabel htmlFor="create-end-column">End Column</FieldLabel>
+                      <Controller
+                        name="endColumn"
+                        control={createControl}
+                        render={({ field }) => (
+                          <Input
+                            id="create-end-column"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{createErrors.endColumn?.message}</FieldError>
+                    </Field>
+                  </div>
+
+                  <Field>
+                    <FieldLabel htmlFor="create-version">Version</FieldLabel>
+                    <Controller
+                      name="version"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-version"
+                          {...field}
+                          placeholder="1.0.0"
+                          required
+                        />
+                      )}
+                    />
+                  </Field>
+
+                  <div className="flex space-x-4">
+                    <Button type="submit" className="flex-1">
+                      Create
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreating(false)
+                        resetCreateForm()
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </FieldGroup>
+              </FieldSet>
+            </form>
           </div>
         </div>
       )}
@@ -432,90 +606,220 @@ function NodesContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Edit Node</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
-                <Input
-                  value={editingNode.projectName}
-                  onChange={(e) =>
-                    setEditingNode((prev) =>
-                      prev ? { ...prev, projectName: e.target.value } : null,
-                    )
-                  }
-                  placeholder="Project name"
-                />
-              </div>
+            <form onSubmit={handleEditSubmit(handleUpdate)}>
+              <FieldSet>
+                <FieldGroup>
+                  <Field data-invalid={!!editErrors.projectName}>
+                    <FieldLabel htmlFor="edit-project">Project</FieldLabel>
+                    <Controller
+                      name="projectName"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input
+                          id="edit-project"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange({ name: e.target.value })}
+                          placeholder="Project name"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{editErrors.projectName?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Branch</label>
-                <Input
-                  value={editingNode.branch}
-                  onChange={(e) =>
-                    setEditingNode((prev) => (prev ? { ...prev, branch: e.target.value } : null))
-                  }
-                  placeholder="Branch name"
-                />
-              </div>
+                  <Field data-invalid={!!editErrors.branch}>
+                    <FieldLabel htmlFor="edit-branch">Branch</FieldLabel>
+                    <Controller
+                      name="branch"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input
+                          id="edit-branch"
+                          {...field}
+                          placeholder="Branch name"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{editErrors.branch?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Type</label>
-                <select
-                  value={editingNode.type}
-                  onChange={(e) =>
-                    setEditingNode((prev) =>
-                      prev ? { ...prev, type: e.target.value as NodeType } : null,
-                    )
-                  }
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>
-                    DynamicModuleFederationReference
-                  </option>
-                </select>
-              </div>
+                  <Field>
+                    <FieldLabel htmlFor="edit-type">Type</FieldLabel>
+                    <Controller
+                      name="type"
+                      control={editControl}
+                      render={({ field }) => (
+                        <select
+                          id="edit-type"
+                          {...field}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value={NodeType.NamedExport}>NamedExport</option>
+                          <option value={NodeType.NamedImport}>NamedImport</option>
+                          <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                          <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
+                          <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
+                          <option value={NodeType.WebStorageRead}>WebStorageRead</option>
+                          <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
+                          <option value={NodeType.EventOn}>EventOn</option>
+                          <option value={NodeType.EventEmit}>EventEmit</option>
+                          <option value={NodeType.DynamicModuleFederationReference}>
+                            DynamicModuleFederationReference
+                          </option>
+                        </select>
+                      )}
+                    />
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <Input
-                  value={editingNode.name}
-                  onChange={(e) =>
-                    setEditingNode((prev) => (prev ? { ...prev, name: e.target.value } : null))
-                  }
-                  placeholder="Node name"
-                />
-              </div>
+                  <Field data-invalid={!!editErrors.name}>
+                    <FieldLabel htmlFor="edit-name">Name</FieldLabel>
+                    <Controller
+                      name="name"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input
+                          id="edit-name"
+                          {...field}
+                          placeholder="Node name"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{editErrors.name?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Relative Path</label>
-                <Input
-                  value={editingNode.relativePath || ''}
-                  onChange={(e) =>
-                    setEditingNode((prev) =>
-                      prev ? { ...prev, relativePath: e.target.value } : null,
-                    )
-                  }
-                  placeholder="Relative path"
-                />
-              </div>
+                  <Field data-invalid={!!editErrors.relativePath}>
+                    <FieldLabel htmlFor="edit-relative-path">Relative Path</FieldLabel>
+                    <Controller
+                      name="relativePath"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input
+                          id="edit-relative-path"
+                          {...field}
+                          placeholder="Relative path"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{editErrors.relativePath?.message}</FieldError>
+                  </Field>
 
-              <div className="flex space-x-4">
-                <Button onClick={handleUpdate} className="flex-1">
-                  Update
-                </Button>
-                <Button variant="outline" onClick={() => setEditingNode(null)} className="flex-1">
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field data-invalid={!!editErrors.startLine}>
+                      <FieldLabel htmlFor="edit-start-line">Start Line</FieldLabel>
+                      <Controller
+                        name="startLine"
+                        control={editControl}
+                        render={({ field }) => (
+                          <Input
+                            id="edit-start-line"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{editErrors.startLine?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!editErrors.startColumn}>
+                      <FieldLabel htmlFor="edit-start-column">Start Column</FieldLabel>
+                      <Controller
+                        name="startColumn"
+                        control={editControl}
+                        render={({ field }) => (
+                          <Input
+                            id="edit-start-column"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{editErrors.startColumn?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!editErrors.endLine}>
+                      <FieldLabel htmlFor="edit-end-line">End Line</FieldLabel>
+                      <Controller
+                        name="endLine"
+                        control={editControl}
+                        render={({ field }) => (
+                          <Input
+                            id="edit-end-line"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{editErrors.endLine?.message}</FieldError>
+                    </Field>
+
+                    <Field data-invalid={!!editErrors.endColumn}>
+                      <FieldLabel htmlFor="edit-end-column">End Column</FieldLabel>
+                      <Controller
+                        name="endColumn"
+                        control={editControl}
+                        render={({ field }) => (
+                          <Input
+                            id="edit-end-column"
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            min="0"
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{editErrors.endColumn?.message}</FieldError>
+                    </Field>
+                  </div>
+
+                  <Field>
+                    <FieldLabel htmlFor="edit-version">Version</FieldLabel>
+                    <Controller
+                      name="version"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input
+                          id="edit-version"
+                          {...field}
+                          placeholder="1.0.0"
+                          required
+                        />
+                      )}
+                    />
+                  </Field>
+
+                  <div className="flex space-x-4">
+                    <Button type="submit" className="flex-1">
+                      Update
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingNode(null)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </FieldGroup>
+              </FieldSet>
+            </form>
           </div>
         </div>
       )}

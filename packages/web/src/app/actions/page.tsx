@@ -27,6 +27,28 @@ import {
   type Project,
 } from '@/lib/api'
 import { ProjectSelector } from '@/components/project-selector'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from '@/components/ui/field'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+// Zod schema for Action validation
+const actionSchema = z.object({
+  projectName: z.string().min(1, 'Project is required'),
+  projectAddr: z.string().min(1, 'Project address is required'),
+  branch: z.string().min(1, 'Branch is required'),
+  type: z.enum(['static_analysis', 'report', 'connection_auto_create']),
+  targetBranch: z.string().optional(),
+})
+
+type ActionFormData = z.infer<typeof actionSchema>
+
 function ActionsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
@@ -42,13 +64,29 @@ function ActionsContent() {
     }
   } | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
-  const [newAction, setNewAction] = useState<CreateActionData>({
-    projectAddr: '',
-    projectName: '',
-    branch: '',
-    type: 'static_analysis',
-    targetBranch: '',
+
+  // React Hook Form for create action
+  const {
+    control: createControl,
+    handleSubmit: handleCreateSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+    watch,
+    setValue,
+    resetField,
+  } = useForm<ActionFormData>({
+    resolver: zodResolver(actionSchema),
+    defaultValues: {
+      type: 'static_analysis',
+      projectAddr: '',
+      projectName: '',
+      branch: '',
+      targetBranch: '',
+    },
   })
+
+  // Watch the type field to conditionally show targetBranch
+  const actionType = watch('type')
 
   const {
     data: actionsResponse,
@@ -60,22 +98,16 @@ function ActionsContent() {
 
   const actions = actionsResponse?.data || []
 
-  // Update newAction when project is selected
+  // Update form values when project is selected
   React.useEffect(() => {
     if (selectedProject) {
-      setNewAction((prev) => ({
-        ...prev,
-        projectName: selectedProject.name,
-        projectAddr: selectedProject.addr,
-      }))
+      setValue('projectName', selectedProject.name)
+      setValue('projectAddr', selectedProject.addr)
     } else {
-      setNewAction((prev) => ({
-        ...prev,
-        projectName: '',
-        projectAddr: '',
-      }))
+      setValue('projectName', '')
+      setValue('projectAddr', '')
     }
-  }, [selectedProject])
+  }, [selectedProject, setValue])
 
   const handleDelete = async (actionId: string) => {
     try {
@@ -86,18 +118,12 @@ function ActionsContent() {
     }
   }
 
-  const handleCreate = async () => {
+  const handleCreate = async (data: ActionFormData) => {
     try {
-      await createAction(newAction)
-      setIsCreating(false)
+      await createAction(data)
+      resetCreateForm()
       setSelectedProject(undefined)
-      setNewAction({
-        projectAddr: '',
-        projectName: '',
-        branch: '',
-        type: 'static_analysis',
-        targetBranch: '',
-      })
+      // Refresh the actions data
       mutateActions()
     } catch (err) {
       if (err instanceof Error && err.message.includes('Too many running actions')) {
@@ -107,6 +133,8 @@ function ActionsContent() {
       } else {
         setError(err instanceof Error ? err.message : 'Failed to create action')
       }
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -348,72 +376,101 @@ function ActionsContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create New Action</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
-                <ProjectSelector
-                  value={selectedProject}
-                  onValueChange={setSelectedProject}
-                  placeholder="Select a project..."
-                />
-              </div>
+            <form onSubmit={handleCreateSubmit(handleCreate)}>
+              <FieldSet>
+                <FieldGroup>
+                  <Field data-invalid={!!createErrors.projectName}>
+                    <FieldLabel htmlFor="create-project">Project</FieldLabel>
+                    <ProjectSelector
+                      value={selectedProject}
+                      onValueChange={(project) => {
+                        if (project) {
+                          setValue('projectName', project.name)
+                        }else {
+                          resetField('projectName')
+                        }
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Branch</label>
-                <Input
-                  value={newAction.branch}
-                  onChange={(e) => setNewAction((prev) => ({ ...prev, branch: e.target.value }))}
-                  placeholder="Branch name (e.g., main, develop)"
-                />
-              </div>
+                        setSelectedProject(project)
+                      }}
+                      placeholder="Select a project..."
+                    />
+                    <FieldError>{createErrors.projectName?.message}</FieldError>
+                  </Field>
 
-              {newAction.type === 'report' && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Target Branch</label>
-                  <Input
-                    value={newAction.targetBranch}
-                    onChange={(e) =>
-                      setNewAction((prev) => ({ ...prev, targetBranch: e.target.value }))
-                    }
-                    placeholder="Target branch for comparison (e.g., main)"
-                  />
-                </div>
-              )}
+                  <Field data-invalid={!!createErrors.branch}>
+                    <FieldLabel htmlFor="create-branch">Branch</FieldLabel>
+                    <Controller
+                      name="branch"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input
+                          id="create-branch"
+                          {...field}
+                          placeholder="Branch name (e.g., main, develop)"
+                          required
+                        />
+                      )}
+                    />
+                    <FieldError>{createErrors.branch?.message}</FieldError>
+                  </Field>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Action Type</label>
-                <select
-                  value={newAction.type}
-                  onChange={(e) =>
-                    setNewAction((prev) => ({
-                      ...prev,
-                      type: e.target.value as CreateActionData['type'],
-                    }))
-                  }
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="static_analysis">Analysis</option>
-                  <option value="report">Report</option>
-                </select>
-              </div>
+                  {actionType === 'report' && (
+                    <Field>
+                      <FieldLabel htmlFor="create-target-branch">Target Branch</FieldLabel>
+                      <Controller
+                        name="targetBranch"
+                        control={createControl}
+                        render={({ field }) => (
+                          <Input
+                            id="create-target-branch"
+                            {...field}
+                            placeholder="Target branch for comparison (e.g., main)"
+                          />
+                        )}
+                      />
+                    </Field>
+                  )}
 
-              <div className="flex space-x-4">
-                <Button onClick={handleCreate} className="flex-1">
-                  <PlayIcon className="h-4 w-4 mr-2" />
-                  Create & Run
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreating(false)
-                    setSelectedProject(undefined)
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                  <Field>
+                    <FieldLabel htmlFor="create-type">Action Type</FieldLabel>
+                    <Controller
+                      name="type"
+                      control={createControl}
+                      render={({ field }) => (
+                        <select
+                          id="create-type"
+                          {...field}
+                          className="w-full px-3 py-2 border rounded-md"
+                        >
+                          <option value="static_analysis">Analysis</option>
+                          <option value="report">Report</option>
+                          <option value="connection_auto_create">Auto-create Connections</option>
+                        </select>
+                      )}
+                    />
+                  </Field>
+
+                  <div className="flex space-x-4">
+                    <Button type="submit" className="flex-1">
+                      <PlayIcon className="h-4 w-4 mr-2" />
+                      Create & Run
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreating(false)
+                        setSelectedProject(undefined)
+                        resetCreateForm()
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </FieldGroup>
+              </FieldSet>
+            </form>
           </div>
         </div>
       )}

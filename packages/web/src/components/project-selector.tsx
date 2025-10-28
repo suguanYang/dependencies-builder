@@ -152,7 +152,7 @@ export function ProjectSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('w-full justify-between', className)}
+          className={cn('w-full justify-between h-12', className)}
         >
           {value ? (
             <div className="flex flex-col items-start">
