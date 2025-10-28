@@ -1,56 +1,51 @@
-import Fastify, { FastifyBaseLogger } from 'fastify'
-import cors from '@fastify/cors'
-import { setupAPI } from './api'
 import process from 'node:process'
-import logger, { fatal, info } from './logging'
-import { prisma } from './database/prisma'
+import { NestFactory } from '@nestjs/core'
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
+import { AppModule } from './app.module'
+import logger, { info } from './logging'
+import { PrismaService } from './database/prisma.service'
 
-async function startServer() {
-  const fastify = Fastify({
-    loggerInstance: logger as FastifyBaseLogger,
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({
+      logger,
+    }),
+    {
+      bodyParser: false,
+    },
+  )
+
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.CLIENT_DOMAIN,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    maxAge: 86400,
   })
 
-  try {
-    // Setup CORS
-    await fastify.register(cors, {
-      origin: process.env.CLIENT_DOMAIN,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With"
-      ],
-      credentials: true,
-      maxAge: 86400
-    })
-    info('CORS configured')
+  // Get PrismaService for graceful shutdown
+  const prismaService = app.get(PrismaService)
 
-    // Setup API routes
-    await setupAPI(fastify)
-    info('API routes registered')
+  const port = parseInt(process.env.PORT || '3001')
+  const host = process.env.HOST || '0.0.0.0'
 
-    // Start server
-    const port = parseInt(process.env.PORT || '3001')
-    const host = process.env.HOST || '0.0.0.0'
-
-    await fastify.listen({ port, host })
-  } catch (error) {
-    fatal(error, 'Failed to start server')
-    process.exit(1)
-  }
+  await app.listen(port, host)
+  info(`NestJS server running on ${host}:${port}`)
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
     info('Shutting down gracefully...')
-    await prisma.$disconnect()
-    await fastify.close()
+    await prismaService.$disconnect()
+    await app.close()
     process.exit(0)
   })
 
   process.on('SIGTERM', async () => {
     info('Shutting down gracefully...')
-    await prisma.$disconnect()
-    await fastify.close()
+    await prismaService.$disconnect()
+    await app.close()
     process.exit(0)
   })
 
@@ -58,10 +53,10 @@ async function startServer() {
   if (import.meta.hot) {
     // @ts-ignore
     import.meta.hot.on('vite:beforeFullReload', async () => {
-      await prisma.$disconnect()
-      await fastify.close()
+      await prismaService.$disconnect()
+      await app.close()
     })
   }
 }
 
-startServer()
+bootstrap()

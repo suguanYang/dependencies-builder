@@ -1,12 +1,8 @@
 import { spawn } from 'node:child_process'
 import kill from 'tree-kill'
-import { getAdminUserKey, revokeAdminKey } from '../auth'
 import { error, info } from '../logging'
-import * as repository from '../database/repository'
-
-export type ActionData = Required<repository.CreateActionData> & {
-  targetBranch?: string
-}
+import { CreateActionDto } from '../actions/dto/create-action.dto'
+import { getAdminUserKey, revokeAdminKey } from '../auth/auth.config'
 
 export interface CLIExecutionResult {
   success: boolean
@@ -22,11 +18,8 @@ export interface CLIExecution {
 
 const activeExecutions = new Map<string, CLIExecution>()
 
-export async function executeCLI(actionId: string, actionData: ActionData): Promise<CLIExecution> {
+export async function executeCLI(actionId: string, actionData: CreateActionDto, onSuccess: () => void, onError: (err?: string) => void): Promise<CLIExecution> {
   try {
-    // Update action status to running
-    await repository.updateAction(actionId, { status: 'running' })
-
     // Determine CLI command based on action type
     const cliCommand = getCLICommand(actionId, actionData)
 
@@ -73,24 +66,16 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
 
       if (code === 0) {
         info(`action:${actionId} CLI closed with code: ` + code)
-        repository.updateAction(actionId, {
-          status: 'completed',
-        })
 
         info(`action:${actionId} action is completed`)
+
+        onSuccess()
       } else {
         error(`action:${actionId} CLI closed with code: ` + code)
-        repository.updateAction(actionId, {
-          status: 'failed',
-        })
-
-        if (errorMessage) {
-          repository.updateAction(actionId, {
-            error: errorMessage,
-          })
-        }
 
         error(`action:${actionId} is failed`)
+
+        onError(errorMessage)
       }
     })
 
@@ -101,9 +86,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
 
       activeExecutions.delete(actionId)
 
-      repository.updateAction(actionId, {
-        status: 'failed',
-      })
+      onError()
 
       error(`action:${actionId} Failed to execute CLI command: ${err.message || err}`)
     })
@@ -130,10 +113,6 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
               reject(err)
               return
             }
-            await repository.updateAction(actionId, {
-              status: 'failed',
-              error: 'stopped'
-            })
             resolve()
           })
         })
@@ -146,10 +125,6 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     return execution
   } catch (err) {
     error(err)
-    await repository.updateAction(actionId, {
-      status: 'failed',
-      error: `Failed to excute cli: ${err instanceof Error ? err.message : err}`
-    })
     throw error
   }
 }
@@ -158,7 +133,7 @@ export function getActiveExecution(actionId: string): CLIExecution | undefined {
   return activeExecutions.get(actionId)
 }
 
-function getCLICommand(actionId: string, actionData: ActionData): string[] {
+function getCLICommand(actionId: string, actionData: CreateActionDto): string[] {
   switch (actionData.type) {
     case 'static_analysis':
       const analyzeArgs = [

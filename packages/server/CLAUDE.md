@@ -10,6 +10,7 @@ For now you are working on a system with the following technologies:
 - Pnpm, pnpm workspace
 - Nodejs22
 - yargs
+- NestJS
 
 Generate code, corrections, and refactorings that comply with the following guidelines:
 TypeScript General Guidelines
