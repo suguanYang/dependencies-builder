@@ -232,6 +232,7 @@ export interface Action {
     projectName?: string
     branch?: string
     targetBranch?: string
+    ignoreCallGraph?: boolean
   }
   createdAt: string
   updatedAt: string
@@ -245,6 +246,7 @@ export interface CreateActionData {
   branch?: string
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
+  ignoreCallGraph?: boolean
 }
 
 export async function getActions(): Promise<{ data: Action[]; total: number }> {
