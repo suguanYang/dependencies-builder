@@ -26,6 +26,7 @@ export interface AnalyzeOptions {
   type?: REPO_TYPE
   targetBranch?: string
   actionId?: string
+  ignoreCallGraph?: boolean
   /**
    * The repository to analyze, it can be a local directory or a remote git repository
    */
@@ -136,6 +137,10 @@ class Context {
 
   getActionId() {
     return this.options.actionId
+  }
+
+  getIgnoreCallGraph() {
+    return this.options.ignoreCallGraph || false
   }
 
   findPackageDirectory() {

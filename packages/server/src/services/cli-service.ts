@@ -175,6 +175,11 @@ function getCLICommand(actionId: string, actionData: ActionData): string[] {
         '--verbose',
       ]
 
+      // Add ignore-call-graph flag if specified
+      if (actionData.ignoreCallGraph) {
+        analyzeArgs.push('--ignore-call-graph')
+      }
+
       return analyzeArgs
     case 'report':
       const reportArgs = [
@@ -192,6 +197,11 @@ function getCLICommand(actionId: string, actionData: ActionData): string[] {
         actionId,
         '--verbose',
       ]
+
+      // Add ignore-call-graph flag if specified
+      if (actionData.ignoreCallGraph) {
+        reportArgs.push('--ignore-call-graph')
+      }
 
       return reportArgs
     default:

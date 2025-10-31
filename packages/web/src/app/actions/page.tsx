@@ -45,6 +45,7 @@ const actionSchema = z.object({
   branch: z.string().min(1, 'Branch is required'),
   type: z.enum(['static_analysis', 'report', 'connection_auto_create']),
   targetBranch: z.string().optional(),
+  ignoreCallGraph: z.boolean().optional(),
 })
 
 type ActionFormData = z.infer<typeof actionSchema>
@@ -82,6 +83,7 @@ function ActionsContent() {
       projectName: '',
       branch: '',
       targetBranch: '',
+      ignoreCallGraph: false,
     },
   })
 
@@ -173,6 +175,7 @@ function ActionsContent() {
         projectName: action.parameters.projectName,
         branch: action.parameters.branch,
         targetBranch: action.parameters.targetBranch,
+        ignoreCallGraph: action.parameters.ignoreCallGraph,
       }
       await createAction(retryData)
       mutateActions()
@@ -448,6 +451,30 @@ function ActionsContent() {
                         </select>
                       )}
                     />
+                  </Field>
+
+                  <Field>
+                    <div className="flex items-center space-x-2">
+                      <Controller
+                        name="ignoreCallGraph"
+                        control={createControl}
+                        render={({ field }) => (
+                          <input
+                            type="checkbox"
+                            id="create-ignore-call-graph"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        )}
+                      />
+                      <FieldLabel htmlFor="create-ignore-call-graph" className="text-sm font-normal">
+                        Ignore Call Graph
+                      </FieldLabel>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Skip call graph generation to speed up analysis (will return empty call graph results)
+                    </p>
                   </Field>
 
                   <div className="flex space-x-4">

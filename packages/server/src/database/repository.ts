@@ -354,6 +354,7 @@ export interface CreateActionData {
   branch?: string
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
+  ignoreCallGraph?: boolean
 }
 
 export interface UpdateActionData {
@@ -399,6 +400,7 @@ export async function createAction(actionData: CreateActionData) {
   if (actionData.targetBranch) parameters.targetBranch = actionData.targetBranch
   if (actionData.projectName) parameters.projectName = actionData.projectName
   if (actionData.projectAddr) parameters.projectAddr = actionData.projectAddr
+  if (actionData.ignoreCallGraph !== undefined) parameters.ignoreCallGraph = actionData.ignoreCallGraph
 
   return prisma.action.create({
     data: {

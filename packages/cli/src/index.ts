@@ -38,6 +38,11 @@ yargs(hideBin(process.argv))
           describe: 'Project type',
           type: 'string',
         })
+        .option('ignore-call-graph', {
+          describe: 'Skip call graph generation to speed up analysis',
+          type: 'boolean',
+          default: false,
+        })
     },
     async (argv) => {
       const { analyzeProject } = await import('./commands/analyze')
@@ -51,7 +56,8 @@ yargs(hideBin(process.argv))
           repository: argv.repository,
           name: argv.name,
           type: argv.type as any,
-          actionId: argv.actionId
+          actionId: argv.actionId,
+          ignoreCallGraph: argv.ignoreCallGraph
         },
         analyzeProject,
       )
@@ -90,6 +96,11 @@ yargs(hideBin(process.argv))
           describe: 'the server side action id',
           type: 'string'
         })
+        .option('ignore-call-graph', {
+          describe: 'Skip call graph generation to speed up analysis',
+          type: 'boolean',
+          default: false,
+        })
         .option('verbose', {
           alias: 'v',
           describe: 'Enable verbose output',
@@ -110,7 +121,8 @@ yargs(hideBin(process.argv))
           targetBranch: argv.targetBranch,
           name: argv.name,
           type: argv.type as any,
-          actionId: argv.actionId
+          actionId: argv.actionId,
+          ignoreCallGraph: argv.ignoreCallGraph
         },
         () => generateReport(),
       )
