@@ -30,9 +30,9 @@ export const callChainQuery = `
   import libs.callStack
   import libs.location
   
-  from CallAbleNode parent, CallAbleNode leaf, string path
+  from CallAbleNode parent, CallAbleNode child
   where
     ($$nodeQuery$$) and
-    calls+(parent, leaf)
+    calls+(parent, child)
   select path
 `
