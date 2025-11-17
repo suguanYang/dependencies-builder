@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import useSWR, { SWRConfig } from 'swr'
+import React, { useState, useEffect, Suspense } from 'react'
+import useSWR, { SWRConfig, mutate } from 'swr'
 import {
   PlusIcon,
   TrashIcon,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
+import { VirtualTable } from '@/components/virtual-table'
 import { swrConfig } from '@/lib/swr-config'
 import {
   type Action,
@@ -25,6 +26,7 @@ import {
   stopActionExecution,
   getActionById,
   type Project,
+  type ActionFilters,
 } from '@/lib/api'
 import { ProjectSelector } from '@/components/project-selector'
 import {
@@ -37,6 +39,8 @@ import {
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useRouter, useSearchParams } from 'next/navigation'
+import useDebounce from '@/hooks/use-debounce-value'
 
 // Zod schema for Action validation
 const actionSchema = z.object({
@@ -51,6 +55,9 @@ const actionSchema = z.object({
 type ActionFormData = z.infer<typeof actionSchema>
 
 function ActionsContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [viewingResult, setViewingResult] = useState<{
@@ -62,9 +69,65 @@ function ActionsContent() {
       branch?: string
       type: string
       result: any
+      error?: string
+      status: string
     }
   } | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
+
+  // Get pagination from URL query parameters
+  const currentPage = parseInt(searchParams.get('page') || '1')
+  const pageSize = parseInt(searchParams.get('pageSize') || '20')
+
+  const [searchFilters, setSearchFilters] = useState<ActionFilters>({
+    type: (searchParams.get('type') as ActionFilters['type']) || undefined,
+    status: (searchParams.get('status') as ActionFilters['status']) || undefined,
+  })
+
+  const [clientFilters, setClientFilters] = useState({
+    projectName: searchParams.get('projectName') || '',
+    branch: searchParams.get('branch') || '',
+  })
+
+  // Use debounced search filters for API calls
+  const debouncedSearchFilters = useDebounce(searchFilters, 300)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      handlePageChange(1)
+    }
+  }, [debouncedSearchFilters])
+
+  // Function to update URL with pagination parameters
+  const updatePaginationParams = (page: number, size: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    params.set('pageSize', size.toString())
+
+    // Add filter parameters
+    if (debouncedSearchFilters.type) params.set('type', debouncedSearchFilters.type)
+    else params.delete('type')
+
+    if (debouncedSearchFilters.status) params.set('status', debouncedSearchFilters.status)
+    else params.delete('status')
+
+    if (clientFilters.projectName) params.set('projectName', clientFilters.projectName)
+    else params.delete('projectName')
+
+    if (clientFilters.branch) params.set('branch', clientFilters.branch)
+    else params.delete('branch')
+
+    router.push(`?${params.toString()}`)
+  }
+
+  const handlePageChange = (page: number) => {
+    updatePaginationParams(page, pageSize)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    updatePaginationParams(1, size) // Reset to first page when changing page size
+  }
 
   // React Hook Form for create action
   const {
@@ -90,15 +153,34 @@ function ActionsContent() {
   // Watch the type field to conditionally show targetBranch
   const actionType = watch('type')
 
-  const {
-    data: actionsResponse,
-    isLoading,
-    mutate: mutateActions,
-  } = useSWR('actions', () => getActions(), {
-    refreshInterval: 5000
-  })
+  // Fetch actions with server-side filtering
+  const { data: actionsResponse, isLoading } = useSWR(
+    ['actions', debouncedSearchFilters, currentPage, pageSize],
+    () =>
+      getActions({
+        type: debouncedSearchFilters.type || undefined,
+        status: debouncedSearchFilters.status || undefined,
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
+      }),
+    {
+      refreshInterval: 5000
+    }
+  )
 
   const actions = actionsResponse?.data || []
+  const totalCount = actionsResponse?.total || 0
+
+  // Apply client-side filtering for projectName and branch
+  const filteredActions = actions.filter((action: Action) => {
+    if (clientFilters.projectName && !action.parameters.projectName?.toLowerCase().includes(clientFilters.projectName.toLowerCase())) {
+      return false
+    }
+    if (clientFilters.branch && !action.parameters.branch?.toLowerCase().includes(clientFilters.branch.toLowerCase())) {
+      return false
+    }
+    return true
+  })
 
   // Update form values when project is selected
   React.useEffect(() => {
@@ -114,7 +196,8 @@ function ActionsContent() {
   const handleDelete = async (actionId: string) => {
     try {
       await deleteAction(actionId)
-      mutateActions()
+      // Refresh the actions data
+      mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete action')
     }
@@ -126,7 +209,7 @@ function ActionsContent() {
       resetCreateForm()
       setSelectedProject(undefined)
       // Refresh the actions data
-      mutateActions()
+      mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
     } catch (err) {
       if (err instanceof Error && err.message.includes('Too many running actions')) {
         setError(
@@ -150,6 +233,8 @@ function ActionsContent() {
         branch: response.parameters.branch,
         type: response.type,
         result: response.result,
+        error: response.error,
+        status: response.status,
       }
       setViewingResult({ actionId, result })
     } catch (err) {
@@ -160,7 +245,8 @@ function ActionsContent() {
   const handleStopExecution = async (actionId: string) => {
     try {
       await stopActionExecution(actionId)
-      mutateActions()
+      // Refresh the actions data
+      mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop action execution')
     }
@@ -178,7 +264,8 @@ function ActionsContent() {
         ignoreCallGraph: action.parameters.ignoreCallGraph,
       }
       await createAction(retryData)
-      mutateActions()
+      // Refresh the actions data
+      mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
     } catch (err) {
       if (err instanceof Error && err.message.includes('Too many running actions')) {
         setError(
@@ -189,6 +276,7 @@ function ActionsContent() {
       }
     }
   }
+
 
   const getStatusColor = (status: Action['status']) => {
     switch (status) {
@@ -207,39 +295,93 @@ function ActionsContent() {
 
   return (
     <div className="pt-6 px-6">
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">All Actions ({actions.length})</h2>
+      <div className="flex gap-6 h-full">
+        {/* Left side - Filters */}
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white p-4 rounded-lg shadow-sm border sticky top-6 h-fit">
+            <h2 className="text-lg font-semibold mb-4">Filters</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Type</label>
+                <select
+                  value={searchFilters.type || ''}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, type: e.target.value as ActionFilters['type'] }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Types</option>
+                  <option value="static_analysis">Analysis</option>
+                  <option value="report">Report</option>
+                  <option value="connection_auto_create">Auto-create Connections</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Status</label>
+                <select
+                  value={searchFilters.status || ''}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, status: e.target.value as ActionFilters['status'] }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="running">Running</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Project Name</label>
+                <Input
+                  placeholder="Partial match project"
+                  value={clientFilters.projectName || ''}
+                  onChange={(e) =>
+                    setClientFilters((prev) => ({ ...prev, projectName: e.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Branch</label>
+                <Input
+                  placeholder="Partial match branch"
+                  value={clientFilters.branch || ''}
+                  onChange={(e) =>
+                    setClientFilters((prev) => ({ ...prev, branch: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => mutateActions()}
-            variant="outline"
-            size="sm"
-            className="flex-1 sm:flex-none"
-          >
-            <RefreshCwIcon className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button onClick={() => setIsCreating(true)} size="sm" className="flex-1 sm:flex-none">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Action
-          </Button>
-        </div>
-      </div>
 
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircleIcon className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error}
-            <Button variant="outline" size="sm" className="ml-2" onClick={() => setError('')}>
-              Dismiss
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+        {/* Right side - Table */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="mb-6 flex justify-between items-center flex-shrink-0">
+            <div>
+              <h2 className="text-xl font-semibold">All Actions ({filteredActions.length})</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => mutate(['actions', debouncedSearchFilters, currentPage, pageSize])} variant="outline" size="sm">
+                <RefreshCwIcon className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button onClick={() => setIsCreating(true)} size="sm">
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create Action
+              </Button>
+            </div>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+                <Button variant="outline" size="sm" className="ml-2" onClick={() => setError('')}>
+                  Dismiss
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
       {isLoading && (
         <div className="text-center py-8">
@@ -250,128 +392,123 @@ function ActionsContent() {
       {!isLoading && actions.length === 0 && (
         <div className="text-center py-8">
           <p className="text-gray-500">
-            No actions found. Create your first action to get started.
+            {totalCount === 0
+              ? 'No actions found. Create your first action to get started.'
+              : 'No actions match the selected filters.'
+            }
           </p>
         </div>
       )}
 
-      {!isLoading && actions.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <table className="w-full min-w-max">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-24">
-                  ID
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sm:min-w-[200px] max-w-[200px] sm:max-w-[300px]">
-                  Project
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-32">
-                  Branch
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 sm:w-24">
-                  Type
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 sm:w-28">
-                  Status
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 sm:w-32">
-                  Created
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 sm:w-48">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {actions.map((action: Action) => (
-                <tr key={action.id} className="hover:bg-gray-50">
-                  <td
-                    className="px-3 py-3 text-sm text-gray-900 font-mono truncate"
-                    title={action.id}
-                  >
-                    {action.id.substring(0, 8)}...
-                  </td>
-                  <td
-                    className="px-3 py-3 text-sm text-gray-900 truncate"
-                    title={action.parameters.projectName}
-                  >
-                    {action.parameters.projectName}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-gray-900 truncate">
-                    {action.parameters.branch}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-gray-900">
-                    <span className="capitalize">{action.type.replace('_', ' ')}</span>
-                  </td>
-                  <td className="px-3 py-3 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(action.status)}`}
-                    >
-                      {action.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
-                    {new Date(action.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-3 text-sm">
-                    <div className="flex flex-wrap gap-1">
-                      {action.status === 'running' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleStopExecution(action.id)}
-                          title="Stop Execution"
-                        >
-                          <SquareIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {action.status === 'completed' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewResult(action.id)}
-                          title="View Result"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {action.status === 'failed' && action.error && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setError(action.error || 'Unknown error')}
-                          title="View Error"
-                        >
-                          <AlertCircleIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRetry(action)}
-                        disabled={action.status === 'running'}
-                        title="Retry Action"
-                      >
-                        <RotateCcwIcon className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(action.id)}
-                        disabled={action.status === 'running'}
-                        title="Delete Action"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!isLoading && filteredActions.length > 0 && (
+        <VirtualTable
+          items={filteredActions}
+          height={pageSize >= 20 ? '70vh' : '640px'}
+          itemHeight={64}
+          columns={[
+            {
+              key: 'id',
+              header: 'ID',
+              width: '160',
+              render: (action: Action) => (
+                <div className="font-mono truncate" title={action.id}>
+                  {action.id}
+                </div>
+              ),
+            },
+            {
+              key: 'type',
+              header: 'Type',
+              width: '120',
+              render: (action: Action) => (
+                <span className="capitalize">{action.type.replace('_', ' ')}</span>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              width: '100',
+              render: (action: Action) => (
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(action.status)}`}
+                >
+                  {action.status}
+                </span>
+              ),
+            },
+            {
+              key: 'createdAt',
+              header: 'Created',
+              width: '160',
+              render: (action: Action) => (
+                <div className="text-sm text-gray-500 whitespace-nowrap">
+                  {new Date(action.createdAt).toLocaleString()}
+                </div>
+              ),
+            },
+            {
+              key: 'Actions',
+              header: 'Actions',
+              width: '60',
+              render: (action: Action) => (
+                 <div className="flex space-x-2">
+              {action.status === 'running' && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleStopExecution(action.id)}
+                  title="Stop Execution"
+                >
+                  <SquareIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {(action.status === 'completed' || action.status === 'failed') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewResult(action.id)}
+                  title={action.status === 'completed' ? 'View Result' : 'View Error'}
+                >
+                  {action.status === 'completed' ? (
+                    <EyeIcon className="h-4 w-4" />
+                  ) : (
+                    <AlertCircleIcon className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRetry(action)}
+                disabled={action.status === 'running'}
+                title="Retry Action"
+              >
+                <RotateCcwIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDelete(action.id)}
+                disabled={action.status === 'running'}
+                title="Delete Action"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </Button>
+            </div>
+              ),
+            }
+          ]}
+          pagination={{
+            pageSize,
+            currentPage,
+            totalItems: totalCount,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange,
+          }}
+        />
       )}
+        </div>
+      </div>
 
       {/* Create Action Modal */}
       {isCreating && (
@@ -525,7 +662,18 @@ function ActionsContent() {
                 </p>
                 <p className="text-sm text-gray-600">Branch: {viewingResult.result.branch}</p>
                 <p className="text-sm text-gray-600">Type: {viewingResult.result.type}</p>
+                <p className="text-sm text-gray-600">Status: {viewingResult.result.status}</p>
               </div>
+
+              {viewingResult.result.error && (
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2 text-red-600">Error</h4>
+                  <pre className="text-sm overflow-auto bg-red-50 p-4 rounded border border-red-200 text-red-700">
+                    {viewingResult.result.error}
+                  </pre>
+                </div>
+              )}
+
               <h4 className="font-medium mb-2">Result Data</h4>
               <pre className="text-sm overflow-auto bg-white p-4 rounded border">
                 {JSON.stringify(viewingResult.result.result, null, 2)}
@@ -541,7 +689,9 @@ function ActionsContent() {
 export default function ActionsPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <ActionsContent />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading actions...</div>}>
+        <ActionsContent />
+      </Suspense>
     </SWRConfig>
   )
 }

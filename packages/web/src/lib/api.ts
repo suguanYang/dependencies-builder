@@ -249,8 +249,23 @@ export interface CreateActionData {
   ignoreCallGraph?: boolean
 }
 
-export async function getActions(): Promise<{ data: Action[]; total: number }> {
-  return apiRequest('/actions')
+export interface ActionFilters {
+  type?: 'static_analysis' | 'report' | 'connection_auto_create'
+  status?: 'pending' | 'running' | 'completed' | 'failed'
+  limit?: number
+  offset?: number
+}
+
+export async function getActions(filters?: ActionFilters): Promise<{ data: Action[]; total: number }> {
+  const params = new URLSearchParams()
+
+  if (filters?.type) params.append('type', filters.type)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.limit) params.append('limit', filters.limit.toString())
+  if (filters?.offset) params.append('offset', filters.offset.toString())
+
+  const queryString = params.toString()
+  return apiRequest(`/actions${queryString ? `?${queryString}` : ''}`)
 }
 
 export async function getActionById(id: string): Promise<Action> {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import useSWR, { SWRConfig } from 'swr'
-import { EyeIcon, DownloadIcon, AlertCircleIcon } from 'lucide-react'
+import { EyeIcon, AlertCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -24,7 +24,9 @@ function ReportsContent() {
     connections: any[]
   } | null>(null)
 
-  const { data: actionsResponse, isLoading } = useSWR('reports-actions', () => getActions())
+  const { data: actionsResponse, isLoading } = useSWR('reports-actions', () => getActions({
+    type: 'report'
+  }))
 
   const actions = actionsResponse?.data || []
   const reportActions = actions.filter(

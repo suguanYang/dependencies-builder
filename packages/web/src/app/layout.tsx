@@ -11,6 +11,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/icon.svg" sizes="256x256" type="image/x-icon" />
+      </head>
       <body>
         <AuthProvider>
           <SidebarProvider>
