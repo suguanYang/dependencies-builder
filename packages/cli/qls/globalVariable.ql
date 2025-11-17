@@ -9,6 +9,7 @@
 
 import javascript
 import libs.location
+import libs.builtInGlobalVars
 
 private predicate isAssignToGlobalVar(DataFlow::Node source) {
   exists(AssignExpr ass |
@@ -18,6 +19,7 @@ private predicate isAssignToGlobalVar(DataFlow::Node source) {
 
 from DataFlow::Node globalRef, string name, string type
 where
+  not isBuiltinGlobalVar(name) and
   globalRef = DataFlow::globalVarRef(name) and
   if (isAssignToGlobalVar(globalRef))
   then type = "Write"

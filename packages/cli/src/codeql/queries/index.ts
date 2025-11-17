@@ -17,7 +17,6 @@ import {
 } from './type'
 import { PACKAGE_ROOT } from '../../utils/constant'
 import { projectNameToCodeQLName } from '../../utils/names'
-import isBuiltinGV from './global-vars'
 
 const qlsDir = path.join(PACKAGE_ROOT, 'qls')
 
@@ -195,11 +194,6 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
     ) as GlobalVariableQuery
     const nodes: Node[] = []
     globalVarResult['#select'].tuples.forEach((tuple: [string, 'Write' | 'Read', string]) => {
-      const name = tuple[0]
-      if (isBuiltinGV(name)) {
-        return
-      }
-
       nodes.push({
         projectName,
         branch: ctx.getBranch(),
