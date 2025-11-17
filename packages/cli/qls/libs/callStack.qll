@@ -3,7 +3,11 @@ import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.DataFlow
 private import semmle.javascript.dataflow.internal.PreCallGraphStep
 
-// Helper for React.lazy and lazyHoc; resolves the underlying component including `.then(() => ({default: m.X}))`
+/**
+ * Gets the maximum path depth to explore.
+ */
+private int getCallStackDepthLimit() { result = 20 }
+
 class LazyComponent extends CallExpr {
   LazyComponent() {
     this.getCallee().(VarAccess).getName() = "lazyHoc" or
@@ -11,27 +15,39 @@ class LazyComponent extends CallExpr {
     this = react().getAMemberCall("lazy").asExpr()
   }
 
-  CallAbleNode getUnderlyingNode() {
-    exists(ArrowFunctionExpr callback, DynamicImportExpr importExpr |
+  private cached DynamicImportExpr getImportExpr() {
+    exists(ArrowFunctionExpr callback |
       callback = this.getArgument(0) and
       (
-        callback.getBody() = importExpr or
-        importExpr = callback.getBody().getAChild*()
-      ) and
+        callback.getBody() = result or
+        result = callback.getBody().getAChild*()
+      )
+    )
+  }
+
+  private cached ArrowFunctionExpr getThenCallback() {
+    exists(MethodCallExpr thenCall |
+      thenCall.getReceiver() = this.getImportExpr() and
+      thenCall.getMethodName() = "then" and
+      result = thenCall.getArgument(0)
+    )
+  }
+
+  cached CallAbleNode getUnderlyingNode() {
+    exists(DynamicImportExpr importExpr |
+      importExpr = this.getImportExpr() and
       // handle `.then(() => ({ default: m.X }))`
-      if exists(MethodCallExpr thenCall | thenCall.getReceiver() = importExpr and thenCall.getMethodName() = "then")
+      if exists(this.getThenCallback())
       then
-        exists(MethodCallExpr thenCall, ArrowFunctionExpr thenCallback, DataFlow::ObjectLiteralNode returnedObj, DataFlow::PropWrite defaultWrite, DataFlow::PropRead pr |
-          thenCall.getReceiver() = importExpr and
-          thenCall.getMethodName() = "then" and
-          thenCallback = thenCall.getArgument(0) and
+        exists(ArrowFunctionExpr thenCallback, DataFlow::ObjectLiteralNode returnedObj,
+          DataFlow::PropWrite defaultWrite, DataFlow::PropRead pr, CallAbleNode node
+        |
+          thenCallback = this.getThenCallback() and
           returnedObj = thenCallback.getAReturnedExpr().flow().getALocalSource() and
           defaultWrite = returnedObj.getAPropertyWrite("default") and
           pr = defaultWrite.getRhs().getALocalSource() and
-          exists(CallAbleNode node |
-            node.getACreatorReference().flowsTo(pr) and
-            result = node
-          )
+          node.getACreatorReference().flowsTo(pr) and
+          result = node
         )
       else
         // simple case: default export
@@ -43,12 +59,15 @@ class LazyComponent extends CallExpr {
     )
   }
 
-  private DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
+  private cached DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
     t.start() and result = DataFlow::valueNode(this)
-    or exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t))
+    or
+    exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t))
   }
 
-  DataFlow::SourceNode getACreatorReference() { result = this.getACreatorReference(DataFlow::TypeTracker::end()) }
+  cached DataFlow::SourceNode getACreatorReference() {
+    result = this.getACreatorReference(DataFlow::TypeTracker::end())
+  }
 }
 
 private class ReactJsxElement extends JsxElement {
@@ -56,84 +75,71 @@ private class ReactJsxElement extends JsxElement {
 
   ReactJsxElement() { component.getACreatorReference().flowsToExpr(this.getNameExpr()) }
 
-  /**
-   * Gets the component this element instantiates.
-   */
   CallAbleNode getComponent() { result = component }
 }
 
-// JSX element whose tag resolves to a LazyComponent; exposes its underlying node
 private class JsxLazyElement extends JsxElement {
   LazyComponent lc;
 
   JsxLazyElement() { lc.getACreatorReference().flowsToExpr(this.getNameExpr()) }
 
-  CallAbleNode getUnderlying() { result = lc.getUnderlyingNode() }
+  cached CallAbleNode getUnderlying() { result = lc.getUnderlyingNode() }
 }
 
 private class FunctionNode extends Function {
-  // Only include functions defined at the top level
   FunctionNode() {
     this.getEnclosingContainer() instanceof TopLevel and
-    not this.inExternsFile() 
+    not this.inExternsFile()
   }
 
-  private DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
+  private cached DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
     t.start() and result = DataFlow::valueNode(this)
-    or exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t)) // track
+    or
+    exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t))
   }
 
-  DataFlow::SourceNode getACreatorReference() { result = this.getACreatorReference(DataFlow::TypeTracker::end()) }
+  cached DataFlow::SourceNode getACreatorReference() {
+    result = this.getACreatorReference(DataFlow::TypeTracker::end())
+  }
 }
 
-class CallAbleNode extends AstNode { // AstNode base from many QL classes
+class CallAbleNode extends AstNode {
   CallAbleNode() {
-    // Prefer a single representation:
-    // - Functional components appear as FunctionNode (avoid duplicate ReactComponent view)
-    // - Class components appear as ReactComponent (they are not Function)
     this instanceof FunctionNode
     or
     this instanceof ReactComponent
   }
 
-  // resolve variable declarator name when assigned
-  // Source: Expr.qll VariableDeclarator, Variables.qll VarRef/BindingPattern
-  string getNameByVarDecl() {
-    exists(VariableDeclarator vd | // VariableDeclarator from Expr.qll/Stmt.qll
-      vd.getInit() = this and // initializer equals this node
-      result = vd.getBindingPattern().(VarRef).getName() // VarRef.getName from Variables.qll
+  cached string getNameByVarDecl() {
+    exists(VariableDeclarator vd |
+      vd.getInit() = this and
+      result = vd.getBindingPattern().(VarRef).getName()
     )
   }
 
-  // unique id for cycle detection and path readability
-  string getId() {
-    result = this.getFile().getRelativePath() + ":" + this.getLocation().getStartLine() + ":" + this.getLocation().getStartColumn() + ":" + this.getLocation().getEndLine() + ":" + this.getLocation().getEndColumn()
+  cached string getId() {
+    result =
+      this.getFile().getRelativePath() + ":" + this.getLocation().getStartLine() + ":" +
+        this.getLocation().getStartColumn() + ":" + this.getLocation().getEndLine() + ":" +
+        this.getLocation().getEndColumn()
   }
 
-  // unify creator-reference access across different underlying kinds
-  // Source: React.qll getAComponentCreatorReference; our wrappers expose similar
-  DataFlow::SourceNode getACreatorReference() {
+  cached DataFlow::SourceNode getACreatorReference() {
     result = this.(ReactComponent).getAComponentCreatorReference()
     or result = this.(FunctionNode).getACreatorReference()
-    // or result = this.(LazyComponent).getACreatorReference()
-    // or result = this.(ForwardRefComponent).getACreatorReference()
   }
 }
 
-private class CallNode extends CallExpr { // CallExpr from Expr.qll
+private class CallNode extends CallExpr {
   FunctionNode resolved;
 
   CallNode() {
     resolved.getACreatorReference().flowsToExpr(this.getCallee())
   }
 
-  // Getter for our resolved callable callee (avoid overriding any base API)
-  FunctionNode getCalleeNode() { result = resolved }
+  cached FunctionNode getCalleeNode() { result = resolved }
 
-  /**
-   * Gets an argument of this call that is a top-level function.
-   */
-  FunctionNode getArgumentFunctionNode(int i) {
+  cached FunctionNode getArgumentFunctionNode(int i) {
     exists(FunctionNode fn |
       fn.getACreatorReference().flowsTo(this.getArgument(i).flow().getALocalSource()) and
       result = fn
@@ -141,31 +147,32 @@ private class CallNode extends CallExpr { // CallExpr from Expr.qll
   }
 }
 
-private Function getFunction(CallAbleNode c) {
+private cached Function getFunction(CallAbleNode c) {
   c instanceof ReactComponent and result = c.(ReactComponent).getInstanceMethod("render")
-  or c instanceof Function and result = c
+  or
+  c instanceof Function and result = c
 }
 
-predicate calls(CallAbleNode parent, CallAbleNode child) {
-  // direct function-like call within parent's function
-  exists(CallNode call | // our helper wrapper
+cached predicate calls(CallAbleNode parent, CallAbleNode child) {
+  // direct function-like call
+  exists(CallNode call |
     call.getEnclosingFunction*() = getFunction(parent) and
     call.getCalleeNode() = child
   )
   or
-  // higher-order function: parent passes a function argument to some callee
+  // higher-order function
   exists(CallNode call |
     call.getEnclosingFunction*() = getFunction(parent) and
     child = call.getArgumentFunctionNode(_)
   )
   or
-  // direct JSX element rendering within parent's function
+  // direct JSX element rendering
   exists(ReactJsxElement jsx |
     jsx.getEnclosingFunction*() = getFunction(parent) and
     jsx.getComponent() = child
   )
   or
-  // JSX element rendering a LazyComponent; use its underlying node as the child
+  // JSX element rendering a LazyComponent
   exists(JsxLazyElement jx |
     jx.getEnclosingFunction*() = getFunction(parent) and
     jx.getUnderlying() = child
@@ -173,25 +180,38 @@ predicate calls(CallAbleNode parent, CallAbleNode child) {
 }
 
 /**
+ * Internal recursive predicate for building the call stack with a depth limit.
+ */
+private predicate callStackRec(CallAbleNode parent, CallAbleNode child, string path, int len) {
+  // base edge
+  calls(parent, child) and
+  path = parent.getId() + "->" + child.getId() and
+  len = 1
+  or
+  // recursive extension
+  exists(CallAbleNode mid, string parentPath, int parentLen |
+    callStackRec(parent, mid, parentPath, parentLen) and
+    calls(mid, child) and
+    // *** PERFORMANCE FIX ***
+    // not parentPath.matches("%" + child.getId() + "%") and
+    len = parentLen + 1 and
+    len <= getCallStackDepthLimit() and // *** CRASH PREVENTION ***
+    path = parentPath + "->" + child.getId()
+  )
+}
+
+/**
  * Recursively builds the render path from a starting component to an ending component.
- * Uses component names for readability but unique IDs for cycle detection.
  */
 predicate callStack(CallAbleNode parent, CallAbleNode child, string path) {
-  // base edge
-  calls(parent, child) and path = parent.getId() + "->" + child.getId()
-  or
-  // recursive extension with cycle check via string containment
-  exists(CallAbleNode mid, string parentPath |
-    callStack(parent, mid, parentPath) and // transitive
-    calls(mid, child) and // extend
-    not parentPath.matches("%" + child.getId() + "%") and // cycle guard
-    path = parentPath + "->" + child.getId()
+  exists(int len |
+    callStackRec(parent, child, path, len)
   )
 }
 
 /**
  * A "leaf" component is one that does not render any other known components.
  */
-predicate isLeaf(CallAbleNode c) { // leaf if no outgoing calls
+cached predicate isLeaf(CallAbleNode c) {
   not exists(CallAbleNode child | calls(c, child))
 }

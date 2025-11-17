@@ -24,12 +24,12 @@ export const runCodeQL = async () => {
   const ctx = getContext()
   const ignoreCallGraph = ctx.getIgnoreCallGraph()
 
-  let callGraphResults: string[] = []
+  let callGraphResults: [string, string][] = []
 
   if (!ignoreCallGraph) {
     const callGraphQuery = buildCallGraphQuery(results.nodes)
     await codeql.runSingleQuery(callGraphQuery, 'callGraph')
-    callGraphResults = await codeql.decodeSingleResult<string>('callGraph')
+    callGraphResults = await codeql.decodeSingleResult<[string, string]>('callGraph')
   }
 
   return {

@@ -65,7 +65,7 @@ export async function generateReport(): Promise<void> {
 }
 
 function getAnalysisResults(targetBranch: string): Results & {
-  callGraph: string[]
+  callGraph: [string, string][]
   version: string
 } {
   const ctx = getContext()
@@ -151,9 +151,10 @@ async function getDiffChangedLines(
 
 async function findAffectedToNodes(
   nodes: Results['nodes'],
-  callGraph: string[],
+  callGraph: [string, string][],
   changedLines: ChangedLine[],
 ): Promise<any[]> {
+  const seen = new Set()
   const affectedNodes = new Set<any>()
 
   const toNodes = nodes.filter(
@@ -164,13 +165,12 @@ async function findAffectedToNodes(
       node.type === 'EventEmit',
   )
 
-  for (const callGraphNode of callGraph) {
-    const path = callGraphNode[0]
-    const locations = path.split('->')
+  for (const edge of callGraph) {
+    const rootNode = edge[0]
     const toNode = toNodes.find(
       (node) =>
         `${node.relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}` ===
-        locations[0],
+        rootNode,
     )
 
     if (!toNode) {
@@ -182,7 +182,12 @@ async function findAffectedToNodes(
     }
 
     let isAffected = false
-    for (const location of locations) {
+    for (const location of edge) {
+      if (seen.has(location)) {
+        continue
+      }
+      seen.add(location)
+
       const [relativePath, startLine, _startColumn, endLine, _endColumn] = location.split(':')
       for (const changedLine of changedLines) {
         if (changedLine.file === relativePath) {

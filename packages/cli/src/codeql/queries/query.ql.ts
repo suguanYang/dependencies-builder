@@ -33,8 +33,6 @@ export const callChainQuery = `
   from CallAbleNode parent, CallAbleNode leaf, string path
   where
     ($$nodeQuery$$) and
-    isLeaf(leaf) and
-    calls+(parent, leaf) and
-    callStack(parent, leaf, path)
+    calls+(parent, leaf)
   select path
 `
