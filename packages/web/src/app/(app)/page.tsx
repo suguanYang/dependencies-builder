@@ -26,12 +26,14 @@ function HomeContent() {
   const { data: standaloneNodesResponse } = useSWR('dashboard-standalone-nodes', () =>
     getNodes({ standalone: true, limit: 1 }),
   )
-  const { data: actionsResponse } = useSWR('dashboard-actions', () => getActions())
+  const { data: reportsesponse } = useSWR('dashboard-actions', () => getActions({
+    type: 'report'
+  }))
 
   const nodes = nodesResponse?.data || []
   const connections = connectionsResponse?.data || []
   const standaloneNodes = standaloneNodesResponse?.data || []
-  const actions = actionsResponse?.data || []
+  const reportActions = reportsesponse?.data || []
 
   // Calculate dashboard statistics
   const totalNodes = nodesResponse?.total || 0
@@ -39,7 +41,6 @@ function HomeContent() {
   const standaloneNodesCount = standaloneNodesResponse?.total || 0
 
   // Calculate report statistics
-  const reportActions = actions.filter((action) => action.type === 'report')
   const completedReports = reportActions.filter((action) => action.status === 'completed').length
   const failedReports = reportActions.filter((action) => action.status === 'failed').length
 
@@ -106,8 +107,17 @@ function HomeContent() {
   return (
     <div className="pt-6 px-6">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dependency Management System</h1>
-        <p className="text-gray-600 mt-2">Monitor and manage project dependencies</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dependency Management System</h1>
+            <p className="text-gray-600 mt-2">Monitor and manage project dependencies</p>
+          </div>
+          <Link href="/docs/getting-started">
+            <Button variant="outline" size="sm">
+              Getting Started (Docs)
+            </Button>
+          </Link>
+        </div>
       </header>
 
       {/* System Overview */}
@@ -322,20 +332,13 @@ function HomeContent() {
                     <td className="px-4 py-4 text-sm text-gray-900">
                       {new Date(action.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-4 text-sm">
-                      <Link href="/actions">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {reportActions.length > 5 && (
               <div className="px-6 py-3 bg-gray-50 text-center">
-                <Link href="/actions">
+                <Link href="/reports">
                   <Button variant="outline" size="sm">
                     View All Reports
                   </Button>

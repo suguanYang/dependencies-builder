@@ -1,4 +1,4 @@
-import './globals.css'
+import '../globals.css'
 import { SidebarProvider } from '@/contexts/sidebar-context'
 import { AuthProvider } from '@/contexts/auth-context'
 import { GlobalErrorDisplay } from '@/components/global-error-display'
