@@ -3,9 +3,7 @@ import createMDX from '@next/mdx'
 
 const IS_PROD = process.env.NODE_ENV !== 'development'
 
-/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  cacheComponents: true,
   output: IS_PROD ? 'export' : 'standalone',
   distDir: 'dist',
   // Configure pageExtensions to include markdown and MDX files
