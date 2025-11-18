@@ -108,7 +108,7 @@ function nodesRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // POST /nodes/batch-create - Create multiple nodes(same project) in batch
+  // POST /nodes/batch-create - Create multiple nodes(same project, and same branch) in batch
   fastify.post('/nodes/batch-create', {
     preHandler: [authenticate]
   }, async (request, reply) => {
@@ -127,11 +127,13 @@ function nodesRoutes(fastify: FastifyInstance) {
         return
       }
 
-      const createdNodes = await repository.createNodes(
-        nodesData.map((node, idx) => ({
+      const createdNodes = await repository.createProjectBranchNodes(
+        nodesData.map((node) => ({
           ...node,
           projectId: project.id,
         })),
+        project.id,
+        nodesData[0].branch
       )
 
       reply.code(201).send({

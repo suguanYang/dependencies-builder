@@ -122,7 +122,7 @@ async function getDiffChangedLines(
       }
 
       if (line.startsWith('@@')) {
-        const match = line.match(/\+(\d+)(?:,(\d+))?/)
+        const match = line.match(/[-+](\d+)(?:,(\d+))?/)
         if (match && currentFile) {
           const startLine = parseInt(match[1])
           const count = match[2] ? parseInt(match[2]) : 1

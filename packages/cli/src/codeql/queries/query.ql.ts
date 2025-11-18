@@ -34,5 +34,5 @@ export const callChainQuery = `
   where
     ($$nodeQuery$$) and
     calls+(parent, child)
-  select path
+  select getLocation(parent), getLocation(child)
 `

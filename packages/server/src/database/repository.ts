@@ -55,7 +55,7 @@ export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any },
       }
     }
   }
-  console.log('---------finalWhere: ', finalWhere)
+
   const [data, total] = await Promise.all([
     prisma.node.findMany({
       where: finalWhere,
@@ -144,14 +144,25 @@ export async function updateNode(
   return updatedNode
 }
 
-export async function createNodes(
+export async function createProjectBranchNodes(
   nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
+  projectId: string,
+  branch: string,
 ) {
-  const createdNodes = await prisma.node.createMany({
-    data: nodes,
-  })
+  const [_, createdNodes] = await prisma.$transaction([
+    prisma.node.deleteMany({
+      where: {
+        branch,
+        projectId
+      }
+    }),
+    prisma.node.createMany({
+      data: nodes,
+    })
+  ])
   return createdNodes
 }
+
 
 export async function deleteNode(id: string) {
   try {
@@ -380,7 +391,9 @@ export async function getActions(query: ActionQuery = {}) {
       take: limit,
       skip: offset,
     }),
-    prisma.action.count(),
+    prisma.action.count({
+      where,
+    }),
   ])
 
   return { data, total }

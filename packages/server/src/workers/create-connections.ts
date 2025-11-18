@@ -25,6 +25,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
         name: true,
         projectName: true,
         meta: true,
+        branch: true
       },
     })
 
@@ -64,6 +65,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
       const matchingExports = namedExports.filter(
         (exportNode) =>
           exportNode.name === importName &&
+          exportNode.branch === importNode.branch &&
           // es6 imports should be from the index file, and we are not consider the sub files import
           ((exportNode.meta as Record<string, string>)?.entryName === 'index' ||
             (exportNode.meta as Record<string, string>)?.entryName === 'seeyon_ui_index' ||
@@ -94,6 +96,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
         const matchingExports = namedExports.filter(
           (exportNode) =>
             exportNode.name === importName &&
+            exportNode.branch === runtimeImport.branch &&
             exportNode.projectName === packageName &&
             exportNode.projectName !== runtimeImport.projectName,
         )
@@ -118,7 +121,9 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
     for (const readNode of globalVarReads) {
       const matchingWrites = globalVarWrites.filter(
         (writeNode) =>
-          writeNode.name === readNode.name && writeNode.projectName !== readNode.projectName,
+          writeNode.name === readNode.name &&
+          writeNode.branch === readNode.branch &&
+          writeNode.projectName !== readNode.projectName,
       )
 
       for (const writeNode of matchingWrites) {
@@ -141,7 +146,9 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
       const storageKey = readNode.name
       const matchingWrites = storageWrites.filter((writeNode) => {
         return (
-          writeNode.name === storageKey && writeNode.projectName !== readNode.projectName
+          writeNode.name === storageKey &&
+          writeNode.branch === readNode.branch &&
+          writeNode.projectName !== readNode.projectName
         )
       })
 
@@ -165,7 +172,9 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
     for (const onNode of eventOns) {
       const onEventName = onNode.name
       const matchingEmits = eventEmits.filter((emitNode) => {
-        return emitNode?.name === onEventName && emitNode.projectName !== onNode.projectName
+        return emitNode?.name === onEventName &&
+          emitNode.branch === onNode.branch &&
+          emitNode.projectName !== onNode.projectName
       })
 
       for (const emitNode of matchingEmits) {
@@ -189,6 +198,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
       const matchingExports = namedExports.filter(
         (exportNode) =>
           (exportNode.meta as Record<string, string>)?.entryName === referName &&
+          exportNode.branch === dynamicModuleFederationReference.branch &&
           exportNode.projectName === referProject,
       )
 
