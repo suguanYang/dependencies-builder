@@ -1,6 +1,7 @@
 import os, { homedir } from 'node:os'
 import path, { join } from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import crypto from 'node:crypto';
 
 import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -265,5 +266,5 @@ export async function runWithContext<T>(options: AnalyzeOptions, fn: () => T): P
 
 // generate a random tmp dir
 function getOutputDir(): string {
-  return join(os.tmpdir(), `dependency-analyzer-${Date.now()}`)
+  return join(os.tmpdir(), `dependency-analyzer-${crypto.randomUUID()}`)
 }
