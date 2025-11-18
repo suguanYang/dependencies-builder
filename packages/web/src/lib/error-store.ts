@@ -31,7 +31,7 @@ class ErrorStore {
   }
 
   removeError(id: string) {
-    this.errors = this.errors.filter(error => error.id !== id)
+    this.errors = this.errors.filter((error) => error.id !== id)
     this.notifyListeners()
   }
 
@@ -51,13 +51,13 @@ class ErrorStore {
     listener(this.errors)
 
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener)
+      this.listeners = this.listeners.filter((l) => l !== listener)
     }
   }
 
   private notifyListeners() {
     const currentErrors = this.getErrors()
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       listener(currentErrors)
     })
   }

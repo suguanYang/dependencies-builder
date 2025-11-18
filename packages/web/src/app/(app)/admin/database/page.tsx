@@ -2,12 +2,26 @@
 
 import React, { useState, Suspense } from 'react'
 import useSWR, { mutate } from 'swr'
-import { DatabaseIcon, PlayIcon, TableIcon, EyeIcon, RefreshCwIcon, ArrowLeftIcon } from 'lucide-react'
+import {
+  DatabaseIcon,
+  PlayIcon,
+  TableIcon,
+  EyeIcon,
+  RefreshCwIcon,
+  ArrowLeftIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon, CheckCircleIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { swrConfig } from '@/lib/swr-config'
 import { SWRConfig } from 'swr'
 import Link from 'next/link'
@@ -21,7 +35,7 @@ import {
 } from '@/lib/api'
 
 function DatabaseAdminContent() {
-  const [query, setQuery] = useState<string>('SELECT * FROM sqlite_master WHERE type = \'table\'')
+  const [query, setQuery] = useState<string>("SELECT * FROM sqlite_master WHERE type = 'table'")
   const [queryResult, setQueryResult] = useState<DatabaseQueryResult | null>(null)
   const [isExecuting, setIsExecuting] = useState<boolean>(false)
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
@@ -33,7 +47,7 @@ function DatabaseAdminContent() {
     getDatabaseSchema,
     {
       revalidateOnFocus: false,
-    }
+    },
   )
 
   const handleExecuteQuery = async () => {
@@ -106,7 +120,10 @@ function DatabaseAdminContent() {
                 <thead className="bg-gray-100">
                   <tr>
                     {Object.keys(queryResult.data[0]).map((key) => (
-                      <th key={key} className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                      <th
+                        key={key}
+                        className="px-4 py-2 text-left font-medium text-gray-700 border-b"
+                      >
                         {key}
                       </th>
                     ))}
@@ -148,9 +165,15 @@ function DatabaseAdminContent() {
                 <tr>
                   <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">Column</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">Type</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">Nullable</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">Default</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">Primary Key</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                    Nullable
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                    Default
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                    Primary Key
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -179,7 +202,10 @@ function DatabaseAdminContent() {
               <thead className="bg-gray-100">
                 <tr>
                   {tableInfo.schema.map((column) => (
-                    <th key={column.name} className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                    <th
+                      key={column.name}
+                      className="px-4 py-2 text-left font-medium text-gray-700 border-b"
+                    >
                       {column.name}
                     </th>
                   ))}
@@ -204,7 +230,6 @@ function DatabaseAdminContent() {
       </div>
     )
   }
-
 
   return (
     <div className="pt-6 px-6">
@@ -315,7 +340,6 @@ function DatabaseAdminContent() {
           {/* Table info */}
           {renderTableInfo()}
         </div>
-
       </div>
     </div>
   )
@@ -324,16 +348,18 @@ function DatabaseAdminContent() {
 export default function DatabaseAdminPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-50 p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <DatabaseIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">Loading Database Admin...</p>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gray-50 p-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <DatabaseIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">Loading Database Admin...</p>
+              </div>
             </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <DatabaseAdminContent />
       </Suspense>
     </SWRConfig>

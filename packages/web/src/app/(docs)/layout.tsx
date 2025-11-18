@@ -13,7 +13,10 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
           {/* Sidebar */}
           <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6">
             <div className="mb-8">
-              <Link href="/docs" className="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">
+              <Link
+                href="/docs"
+                className="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
+              >
                 DMS 文档
               </Link>
             </div>
@@ -44,9 +47,7 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
           {/* Main Content */}
           <div className="flex-1 p-8">
             <div className="max-w-4xl mx-auto">
-              <div className="prose prose-lg max-w-none dark:prose-invert">
-                {children}
-              </div>
+              <div className="prose prose-lg max-w-none dark:prose-invert">{children}</div>
             </div>
           </div>
         </div>

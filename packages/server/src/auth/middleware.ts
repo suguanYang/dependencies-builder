@@ -21,7 +21,6 @@ export interface AuthenticatedRequest extends FastifyRequest {
  * Authentication middleware that verifies the session token
  */
 export async function authenticate(request: AuthenticatedRequest, reply: FastifyReply) {
-
   try {
     const apiKey = request.headers['dms-key']
 
@@ -31,7 +30,7 @@ export async function authenticate(request: AuthenticatedRequest, reply: Fastify
         body: {
           key: apiKey,
         },
-      });
+      })
 
       if (data.valid) {
         return
@@ -39,19 +38,18 @@ export async function authenticate(request: AuthenticatedRequest, reply: Fastify
 
       return reply.status(401).send({
         error: 'Unauthorized',
-        message: 'Invalid or expired apiKey'
+        message: 'Invalid or expired apiKey',
       })
     }
 
-
     const session = await auth.api.getSession({
-      headers: request.headers
+      headers: request.headers,
     })
 
     if (!session || !session.user) {
       return reply.status(401).send({
         error: 'Unauthorized',
-        message: 'Invalid or expired session'
+        message: 'Invalid or expired session',
       })
     }
 
@@ -59,7 +57,7 @@ export async function authenticate(request: AuthenticatedRequest, reply: Fastify
     if (session.user.banned) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: 'Your account has been banned'
+        message: 'Your account has been banned',
       })
     }
 
@@ -69,19 +67,18 @@ export async function authenticate(request: AuthenticatedRequest, reply: Fastify
       email: session.user.email,
       name: session.user.name || undefined,
       role: session.user.role || 'user',
-      banned: session.user.banned || false
+      banned: session.user.banned || false,
     }
     request.session = {
       id: session.session.id,
       userId: session.session.userId,
-      expiresAt: session.session.expiresAt
+      expiresAt: session.session.expiresAt,
     }
-
   } catch (error) {
     console.error('Authentication error:', error)
     return reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Authentication failed'
+      message: 'Authentication failed',
     })
   }
 }
@@ -93,14 +90,14 @@ export async function requireAdmin(request: AuthenticatedRequest, reply: Fastify
   if (!request.user) {
     return reply.status(401).send({
       error: 'Unauthorized',
-      message: 'Authentication required'
+      message: 'Authentication required',
     })
   }
 
   if (request.user.role !== 'admin') {
     return reply.status(403).send({
       error: 'Forbidden',
-      message: 'Admin role required'
+      message: 'Admin role required',
     })
   }
 }
@@ -108,7 +105,11 @@ export async function requireAdmin(request: AuthenticatedRequest, reply: Fastify
 /**
  * Check if user has specific permission
  */
-export async function hasPermission(request: AuthenticatedRequest, _resource: string, action: string): Promise<boolean> {
+export async function hasPermission(
+  request: AuthenticatedRequest,
+  _resource: string,
+  action: string,
+): Promise<boolean> {
   if (!request.user) {
     return false
   }
@@ -131,7 +132,7 @@ export function requirePermission(resource: string, action: string) {
     if (!request.user) {
       return reply.status(401).send({
         error: 'Unauthorized',
-        message: 'Authentication required'
+        message: 'Authentication required',
       })
     }
 
@@ -139,7 +140,7 @@ export function requirePermission(resource: string, action: string) {
     if (!hasPerm) {
       return reply.status(403).send({
         error: 'Forbidden',
-        message: `Permission denied: ${action} ${resource}`
+        message: `Permission denied: ${action} ${resource}`,
       })
     }
   }

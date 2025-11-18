@@ -105,8 +105,8 @@ async function createAction(project: Project, branch: string): Promise<Action> {
     method: 'POST',
     body: JSON.stringify(actionData),
     headers: {
-      'dms-key': key
-    }
+      'dms-key': key,
+    },
   })
 
   console.log(`Created action ${action.id} for project ${project.name} (branch: ${branch})`)
@@ -134,7 +134,9 @@ async function waitForAvailableSlots(): Promise<void> {
   let runningCount = await countRunningActions()
 
   while (runningCount >= MAX_CONCURRENT_ACTIONS) {
-    console.log(`Waiting for available slots (${runningCount}/${MAX_CONCURRENT_ACTIONS} running)...`)
+    console.log(
+      `Waiting for available slots (${runningCount}/${MAX_CONCURRENT_ACTIONS} running)...`,
+    )
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
     runningCount = await countRunningActions()
   }
@@ -169,7 +171,9 @@ async function processProjectsContinuously(projects: Project[], branch: string):
     }
   }
 
-  console.log(`Continuous processing completed: ${processedCount} successful, ${failedCount} failed`)
+  console.log(
+    `Continuous processing completed: ${processedCount} successful, ${failedCount} failed`,
+  )
 }
 
 /**
@@ -182,7 +186,9 @@ async function main(branch: string): Promise<void> {
     // Check if there are any running actions
     const runningCount = await countRunningActions()
     if (runningCount >= MAX_CONCURRENT_ACTIONS) {
-      console.warn(`Found ${runningCount} running actions (max: ${MAX_CONCURRENT_ACTIONS}). Waiting for available slots...`)
+      console.warn(
+        `Found ${runningCount} running actions (max: ${MAX_CONCURRENT_ACTIONS}). Waiting for available slots...`,
+      )
       await waitForAvailableSlots()
     }
 

@@ -25,7 +25,7 @@ async function seedAdminUser() {
 
     // Check if admin user already exists using Prisma directly
     const existingUser = await prisma.user.findUnique({
-      where: { email: 'admin@gg.com' }
+      where: { email: 'admin@gg.com' },
     })
 
     if (existingUser) {
@@ -34,7 +34,7 @@ async function seedAdminUser() {
       // Update existing user to admin role
       await prisma.user.update({
         where: { email: 'admin@gg.com' },
-        data: { role: 'admin' }
+        data: { role: 'admin' },
       })
 
       console.log('Admin user role updated successfully')
@@ -56,7 +56,7 @@ async function seedAdminUser() {
       // Set admin role for the new user
       await prisma.user.update({
         where: { email: 'admin@gg.com' },
-        data: { role: 'admin' }
+        data: { role: 'admin' },
       })
 
       console.log('Admin role assigned successfully')

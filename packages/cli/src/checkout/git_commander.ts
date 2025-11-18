@@ -108,7 +108,9 @@ class GitCommander implements IGitCommander {
   }
 
   async getRevisionId(branch: string = 'HEAD'): Promise<string> {
-    return run('git', ['rev-parse', branch], { cwd: this.workingDirectory }, true).then(id => id.trim())
+    return run('git', ['rev-parse', branch], { cwd: this.workingDirectory }, true).then((id) =>
+      id.trim(),
+    )
   }
 
   static async createCommandManager(workingDirectory: string): Promise<IGitCommander> {

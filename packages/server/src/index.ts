@@ -14,14 +14,10 @@ async function startServer() {
     // Setup CORS
     await fastify.register(cors, {
       origin: process.env.CLIENT_DOMAIN,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With"
-      ],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
       credentials: true,
-      maxAge: 86400
+      maxAge: 86400,
     })
     info('CORS configured')
 

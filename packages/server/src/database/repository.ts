@@ -153,16 +153,15 @@ export async function createProjectBranchNodes(
     prisma.node.deleteMany({
       where: {
         branch,
-        projectId
-      }
+        projectId,
+      },
     }),
     prisma.node.createMany({
       data: nodes,
-    })
+    }),
   ])
   return createdNodes
 }
-
 
 export async function deleteNode(id: string) {
   try {
@@ -413,7 +412,8 @@ export async function createAction(actionData: CreateActionData) {
   if (actionData.targetBranch) parameters.targetBranch = actionData.targetBranch
   if (actionData.projectName) parameters.projectName = actionData.projectName
   if (actionData.projectAddr) parameters.projectAddr = actionData.projectAddr
-  if (actionData.ignoreCallGraph !== undefined) parameters.ignoreCallGraph = actionData.ignoreCallGraph
+  if (actionData.ignoreCallGraph !== undefined)
+    parameters.ignoreCallGraph = actionData.ignoreCallGraph
 
   return prisma.action.create({
     data: {

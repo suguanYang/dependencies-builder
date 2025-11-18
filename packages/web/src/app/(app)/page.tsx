@@ -26,9 +26,11 @@ function HomeContent() {
   const { data: standaloneNodesResponse } = useSWR('dashboard-standalone-nodes', () =>
     getNodes({ standalone: true, limit: 1 }),
   )
-  const { data: reportsesponse } = useSWR('dashboard-actions', () => getActions({
-    type: 'report'
-  }))
+  const { data: reportsesponse } = useSWR('dashboard-actions', () =>
+    getActions({
+      type: 'report',
+    }),
+  )
 
   const nodes = nodesResponse?.data || []
   const connections = connectionsResponse?.data || []

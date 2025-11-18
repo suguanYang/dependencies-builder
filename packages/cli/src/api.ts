@@ -8,7 +8,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   const headers: Record<string, string> = {
     ...(!!options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>),
-    "dms-key": CLI_KEY || 'null'
+    'dms-key': CLI_KEY || 'null',
   }
 
   const response = await fetch(url, {
@@ -23,7 +23,9 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
-      errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+      errorData.error ||
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 
@@ -36,7 +38,7 @@ export const getProjectByName = async (name: string) => {
       entries: { name: string; path: string }[]
       type: 'Lib' | 'App'
     }>(`projects/name/${encodeURIComponent(name)}`, {
-      method: 'GET'
+      method: 'GET',
     })
 
     return project
@@ -73,7 +75,7 @@ export const getAnyNodeByVersion = async (version: string) => {
 export const updateAction = async (actionId: string, update: unknown) => {
   return apiRequest(`actions/${actionId}`, {
     method: 'PUT',
-    body: JSON.stringify(update)
+    body: JSON.stringify(update),
   })
 }
 
@@ -82,7 +84,10 @@ export const getConnectionsByToNode = async (node: {
   projectName: string
   type: string
 }) => {
-  return apiRequest(`connections?toNodeName=${node.name}&toNodeProjectName=${node.projectName}&toNodeType=${node.type}`, {
-    method: 'GET',
-  })
+  return apiRequest(
+    `connections?toNodeName=${node.name}&toNodeProjectName=${node.projectName}&toNodeType=${node.type}`,
+    {
+      method: 'GET',
+    },
+  )
 }

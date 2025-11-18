@@ -10,7 +10,7 @@ function createRequestFromFastify(request: FastifyRequest): Request {
   const headers = new Headers()
   for (const [key, value] of Object.entries(request.headers)) {
     if (Array.isArray(value)) {
-      value.forEach(v => headers.append(key, v))
+      value.forEach((v) => headers.append(key, v))
     } else if (value) {
       headers.set(key, value)
     }
@@ -40,14 +40,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const authRequest = createRequestFromFastify(request)
       const response = await auth.handler(authRequest)
 
-      reply.status(response.status);
-      response.headers.forEach((value, key) => reply.header(key, value));
-      reply.send(response.body ? await response.text() : null);
+      reply.status(response.status)
+      response.headers.forEach((value, key) => reply.header(key, value))
+      reply.send(response.body ? await response.text() : null)
     } catch (error) {
       console.error('Auth API error:', error)
       reply.status(500).send({
         error: 'Internal Server Error',
-        message: 'Authentication service error'
+        message: 'Authentication service error',
       })
     }
   })
@@ -58,28 +58,32 @@ export default async function authRoutes(fastify: FastifyInstance) {
       resource: string
       action: string
     }
-  }>('/auth/has-permission', {
-    preHandler: [authenticate]
-  }, async (request: AuthenticatedRequest, reply: FastifyReply) => {
-    try {
-      const body = request.body as { resource: string; action: string }
-      const { resource, action } = body
+  }>(
+    '/auth/has-permission',
+    {
+      preHandler: [authenticate],
+    },
+    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+      try {
+        const body = request.body as { resource: string; action: string }
+        const { resource, action } = body
 
-      // For now, we'll use role-based checking instead of the permission API
-      // This is simpler and more reliable
-      const hasPermission = request.user?.role === 'admin' || action === 'read'
+        // For now, we'll use role-based checking instead of the permission API
+        // This is simpler and more reliable
+        const hasPermission = request.user?.role === 'admin' || action === 'read'
 
-      return {
-        hasPermission
+        return {
+          hasPermission,
+        }
+      } catch (error) {
+        console.error('Permission check error:', error)
+        reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to check permission',
+        })
       }
-    } catch (error) {
-      console.error('Permission check error:', error)
-      reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to check permission'
-      })
-    }
-  })
+    },
+  )
 
   // Admin-only: Create user (for initial admin setup)
   fastify.post<{
@@ -89,52 +93,61 @@ export default async function authRoutes(fastify: FastifyInstance) {
       name?: string
       role?: string
     }
-  }>('/auth/create-user', {
-    preHandler: [authenticate]
-  }, async (request: AuthenticatedRequest, reply: FastifyReply) => {
-    // Only allow admins to create users
-    if (request.user?.role !== 'admin') {
-      return reply.status(403).send({
-        error: 'Forbidden',
-        message: 'Admin role required'
-      })
-    }
-
-    try {
-      const body = request.body as { email: string; password: string; name?: string; role?: string }
-      const { email, password, name } = body
-
-      const result = await auth.api.signUpEmail({
-        body: {
-          email,
-          password,
-          name: name || ''
-        }
-      })
-
-      // Check if there was an error in the response
-      if (!result.user) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'Failed to create user'
+  }>(
+    '/auth/create-user',
+    {
+      preHandler: [authenticate],
+    },
+    async (request: AuthenticatedRequest, reply: FastifyReply) => {
+      // Only allow admins to create users
+      if (request.user?.role !== 'admin') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'Admin role required',
         })
       }
 
-      // For now, we'll return basic user info without role
-      // The role will be set to 'user' by default in the database
-      return {
-        user: {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name
+      try {
+        const body = request.body as {
+          email: string
+          password: string
+          name?: string
+          role?: string
         }
+        const { email, password, name } = body
+
+        const result = await auth.api.signUpEmail({
+          body: {
+            email,
+            password,
+            name: name || '',
+          },
+        })
+
+        // Check if there was an error in the response
+        if (!result.user) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message: 'Failed to create user',
+          })
+        }
+
+        // For now, we'll return basic user info without role
+        // The role will be set to 'user' by default in the database
+        return {
+          user: {
+            id: result.user.id,
+            email: result.user.email,
+            name: result.user.name,
+          },
+        }
+      } catch (error) {
+        console.error('Create user error:', error)
+        reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to create user',
+        })
       }
-    } catch (error) {
-      console.error('Create user error:', error)
-      reply.status(500).send({
-        error: 'Internal Server Error',
-        message: 'Failed to create user'
-      })
-    }
-  })
+    },
+  )
 }

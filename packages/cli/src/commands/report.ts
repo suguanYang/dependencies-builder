@@ -49,7 +49,9 @@ export async function generateReport(): Promise<void> {
       affectedToNodes,
       version: ctx.getVersion()!,
       targetVersion: results.version,
-      affecatedConnections: (await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))).flat()
+      affecatedConnections: (
+        await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))
+      ).flat(),
     }
 
     await uploadReport(reportResult)

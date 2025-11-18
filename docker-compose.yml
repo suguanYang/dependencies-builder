@@ -7,7 +7,7 @@ services:
     init: true
     container_name: dms-server
     ports:
-      - "0.0.0.0:3001:3001"
+      - '0.0.0.0:3001:3001'
     env_file:
       - packages/server/.env.prod
     volumes:
@@ -15,7 +15,7 @@ services:
       - dms_logs:/var/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -30,7 +30,7 @@ services:
       - .:/app
     command: npx prisma studio --port 3333 --browser none
     ports:
-      - "0.0.0.0:3333:3333"
+      - '0.0.0.0:3333:3333'
     depends_on:
       dms-server:
         condition: service_started

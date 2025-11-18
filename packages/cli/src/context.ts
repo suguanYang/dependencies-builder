@@ -1,7 +1,7 @@
+import crypto from 'node:crypto'
 import os, { homedir } from 'node:os'
 import path, { join } from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import crypto from 'node:crypto';
 
 import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -208,7 +208,7 @@ class Context {
       localDirectory: this.getLocalDirectory(),
       version: this.getVersion(),
       entries: this.getEntries(),
-      workingDir: this.getWorkingDirectory()
+      workingDir: this.getWorkingDirectory(),
     })
   }
 

@@ -48,7 +48,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 
@@ -219,15 +219,17 @@ const parseEventOnQuery = (queryResultDir: string) => {
     const eventOnResult = JSON.parse(
       readFileSync(path.join(queryResultDir, 'event.json'), 'utf-8'),
     ) as EventQuery
-    return eventOnResult['#select'].tuples.filter((tuple: [string, string, string]) => tuple[1] === 'eventOn').map((tuple: [string, string, string]) => ({
-      projectName,
-      branch: ctx.getBranch(),
-      type: NodeType.EventOn,
-      name: tuple[0], // eventName
-      ...parseLoc(tuple[2]),
-      version: ctx.getVersion(),
-      meta: {},
-    }))
+    return eventOnResult['#select'].tuples
+      .filter((tuple: [string, string, string]) => tuple[1] === 'eventOn')
+      .map((tuple: [string, string, string]) => ({
+        projectName,
+        branch: ctx.getBranch(),
+        type: NodeType.EventOn,
+        name: tuple[0], // eventName
+        ...parseLoc(tuple[2]),
+        version: ctx.getVersion(),
+        meta: {},
+      }))
   } catch (error) {
     console.warn('Failed to parse event on query result:', error)
     return []
@@ -241,15 +243,17 @@ const parseEventEmitQuery = (queryResultDir: string) => {
     const eventOnResult = JSON.parse(
       readFileSync(path.join(queryResultDir, 'event.json'), 'utf-8'),
     ) as EventQuery
-    return eventOnResult['#select'].tuples.filter((tuple: [string, string, string]) => tuple[1] === 'eventEmit').map((tuple: [string, string, string]) => ({
-      projectName,
-      branch: ctx.getBranch(),
-      type: NodeType.EventEmit,
-      name: tuple[0], // eventName
-      ...parseLoc(tuple[2]),
-      version: ctx.getVersion(),
-      meta: {},
-    }))
+    return eventOnResult['#select'].tuples
+      .filter((tuple: [string, string, string]) => tuple[1] === 'eventEmit')
+      .map((tuple: [string, string, string]) => ({
+        projectName,
+        branch: ctx.getBranch(),
+        type: NodeType.EventEmit,
+        name: tuple[0], // eventName
+        ...parseLoc(tuple[2]),
+        version: ctx.getVersion(),
+        meta: {},
+      }))
   } catch (error) {
     console.warn('Failed to parse event on query result:', error)
     return []

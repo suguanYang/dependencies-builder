@@ -1,8 +1,8 @@
 paths-ignore:
   - node_modules
-  - "**/node_modules"
+  - '**/node_modules'
   - __test__
   - __tests__
-  - "**/__test__"
-  - "**/__tests__"
-  - "**/*.test.*"
+  - '**/__test__'
+  - '**/__tests__'
+  - '**/*.test.*'

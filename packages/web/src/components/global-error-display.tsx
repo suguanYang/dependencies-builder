@@ -18,9 +18,7 @@ export function GlobalErrorDisplay() {
       {errors.map((error) => (
         <Alert key={error.id} variant="destructive" className="shadow-lg">
           <div className="flex items-start justify-between">
-            <AlertDescription className="flex-1 pr-4">
-              {error.message}
-            </AlertDescription>
+            <AlertDescription className="flex-1 pr-4">{error.message}</AlertDescription>
             <Button
               variant="ghost"
               size="sm"

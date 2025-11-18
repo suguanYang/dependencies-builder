@@ -37,7 +37,6 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
 
     const { key, id: keyId } = await getAdminUserKey(actionId)
 
-
     // Execute CLI command
     const [cmd, ...args] = cliCommand
     const childProcess = spawn(cmd, args, {
@@ -45,7 +44,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       env: {
         ...process.env,
         DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
-        DMS_SERVER_CLI_KEY: key
+        DMS_SERVER_CLI_KEY: key,
       },
     })
 
@@ -132,7 +131,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
             }
             await repository.updateAction(actionId, {
               status: 'failed',
-              error: 'stopped'
+              error: 'stopped',
             })
             resolve()
           })
@@ -148,7 +147,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
     error(err)
     await repository.updateAction(actionId, {
       status: 'failed',
-      error: `Failed to excute cli: ${err instanceof Error ? err.message : err}`
+      error: `Failed to excute cli: ${err instanceof Error ? err.message : err}`,
     })
     throw error
   }
@@ -170,7 +169,7 @@ function getCLICommand(actionId: string, actionData: ActionData): string[] {
         actionData.branch,
         '--name',
         actionData.projectName,
-        "--action-id",
+        '--action-id',
         actionId,
         '--verbose',
       ]
@@ -193,7 +192,7 @@ function getCLICommand(actionId: string, actionData: ActionData): string[] {
         actionData.targetBranch!,
         '--name',
         actionData.projectName,
-        "--action-id",
+        '--action-id',
         actionId,
         '--verbose',
       ]

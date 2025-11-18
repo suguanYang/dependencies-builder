@@ -5,16 +5,18 @@ import useSWR from 'swr'
 import { KeyIcon, PlusIcon, TrashIcon, CopyIcon, ArrowLeftIcon, ClockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
 import { SWRConfig } from 'swr'
 import Link from 'next/link'
-import {
-  generateApiKey,
-  listApiKeys,
-  revokeApiKey,
-} from '@/lib/api'
+import { generateApiKey, listApiKeys, revokeApiKey } from '@/lib/api'
 
 function ApiKeysContent() {
   const [newKeyName, setNewKeyName] = useState<string>('')
@@ -24,13 +26,9 @@ function ApiKeysContent() {
   const [isRevokingKey, setIsRevokingKey] = useState<string | null>(null)
 
   // Fetch API keys
-  const { data: apiKeysData, mutate: mutateApiKeys } = useSWR(
-    'api-keys',
-    listApiKeys,
-    {
-      revalidateOnFocus: false,
-    }
-  )
+  const { data: apiKeysData, mutate: mutateApiKeys } = useSWR('api-keys', listApiKeys, {
+    revalidateOnFocus: false,
+  })
 
   const handleGenerateApiKey = async () => {
     if (!newKeyName.trim()) return
@@ -41,7 +39,7 @@ function ApiKeysContent() {
 
       const response = await generateApiKey({
         keyName: newKeyName.trim(),
-        expiresIn
+        expiresIn,
       })
 
       if (response.success) {
@@ -119,7 +117,8 @@ function ApiKeysContent() {
           <DialogHeader>
             <DialogTitle>API Key Generated</DialogTitle>
             <DialogDescription>
-              Your API key has been generated successfully. Copy it now as you won't be able to see it again.
+              Your API key has been generated successfully. Copy it now as you won't be able to see
+              it again.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -135,9 +134,7 @@ function ApiKeysContent() {
                 <CopyIcon className="h-4 w-4" />
                 Copy Key
               </Button>
-              <Button onClick={() => setGeneratedKey(null)}>
-                Close
-              </Button>
+              <Button onClick={() => setGeneratedKey(null)}>Close</Button>
             </div>
           </div>
         </DialogContent>
@@ -170,13 +167,13 @@ function ApiKeysContent() {
                 <PlusIcon className="h-5 w-5" />
                 Generate New Key
               </CardTitle>
-              <CardDescription>
-                Create a new API key with custom expiration
-              </CardDescription>
+              <CardDescription>Create a new API key with custom expiration</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label htmlFor="key-name" className="block text-sm font-medium mb-1">Key Name</label>
+                <label htmlFor="key-name" className="block text-sm font-medium mb-1">
+                  Key Name
+                </label>
                 <Input
                   id="key-name"
                   placeholder="Enter key name..."
@@ -187,7 +184,9 @@ function ApiKeysContent() {
               </div>
 
               <div>
-                <label htmlFor="expiration" className="block text-sm font-medium mb-1">Expiration</label>
+                <label htmlFor="expiration" className="block text-sm font-medium mb-1">
+                  Expiration
+                </label>
                 <select
                   id="expiration"
                   value={expirationDays}
@@ -221,8 +220,13 @@ function ApiKeysContent() {
             </CardHeader>
             <CardContent className="text-sm text-gray-600 space-y-2">
               <p>• Use API keys for programmatic access to admin operations</p>
-              <p>• Include the key in the header as: <code className="bg-gray-100 px-1 rounded">dms-key: YOUR_API_KEY</code></p>
-              <p>• Keys with expiration will automatically become invalid after the specified time</p>
+              <p>
+                • Include the key in the header as:{' '}
+                <code className="bg-gray-100 px-1 rounded">dms-key: YOUR_API_KEY</code>
+              </p>
+              <p>
+                • Keys with expiration will automatically become invalid after the specified time
+              </p>
               <p>• You can revoke keys at any time</p>
             </CardContent>
           </Card>
@@ -237,7 +241,9 @@ function ApiKeysContent() {
                 Existing API Keys
               </CardTitle>
               <CardDescription>
-                {apiKeysData?.success ? `${apiKeysData.apiKeys.length} keys found` : 'Loading keys...'}
+                {apiKeysData?.success
+                  ? `${apiKeysData.apiKeys.length} keys found`
+                  : 'Loading keys...'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -258,7 +264,9 @@ function ApiKeysContent() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-lg">{apiKey.name}</h3>
-                              <span className={`text-xs px-2 py-1 rounded-full ${status.color} bg-opacity-10`}>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${status.color} bg-opacity-10`}
+                              >
                                 {status.text}
                               </span>
                             </div>
@@ -326,16 +334,18 @@ function ApiKeysContent() {
 export default function ApiKeysPage() {
   return (
     <SWRConfig value={swrConfig}>
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-50 p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <KeyIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">Loading API Key Management...</p>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-gray-50 p-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <KeyIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">Loading API Key Management...</p>
+              </div>
             </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <ApiKeysContent />
       </Suspense>
     </SWRConfig>

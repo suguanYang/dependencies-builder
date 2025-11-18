@@ -20,13 +20,7 @@ import {
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useDebounce from '@/hooks/use-debounce-value'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from '@/components/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -242,7 +236,7 @@ function ConnectionsContent() {
             />
             <div className="flex-1">
               <div className="text-sm font-medium text-blue-800">
-                {(currentAction.status === 'running' || currentAction.status === 'pending')
+                {currentAction.status === 'running' || currentAction.status === 'pending'
                   ? 'Auto-creation in progress...'
                   : currentAction.status === 'completed'
                     ? 'Auto-creation completed'
@@ -300,9 +294,7 @@ function ConnectionsContent() {
                 <Input
                   placeholder="Partial match to node ID"
                   value={searchFilters.toId}
-                  onChange={(e) =>
-                    setSearchFilters((prev) => ({ ...prev, toId: e.target.value }))
-                  }
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, toId: e.target.value }))}
                 />
               </div>
               <div>
@@ -500,11 +492,7 @@ function ConnectionsContent() {
                 },
               ]}
               actions={(connection: Connection) => (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(connection.id)}
-                >
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(connection.id)}>
                   <TrashIcon className="h-4 w-4" />
                 </Button>
               )}
@@ -534,12 +522,7 @@ function ConnectionsContent() {
                       name="fromId"
                       control={createControl}
                       render={({ field }) => (
-                        <Input
-                          id="create-from-id"
-                          {...field}
-                          placeholder="From node ID"
-                          required
-                        />
+                        <Input id="create-from-id" {...field} placeholder="From node ID" required />
                       )}
                     />
                     <FieldError>{createErrors.fromId?.message}</FieldError>
@@ -551,12 +534,7 @@ function ConnectionsContent() {
                       name="toId"
                       control={createControl}
                       render={({ field }) => (
-                        <Input
-                          id="create-to-id"
-                          {...field}
-                          placeholder="To node ID"
-                          required
-                        />
+                        <Input id="create-to-id" {...field} placeholder="To node ID" required />
                       )}
                     />
                     <FieldError>{createErrors.toId?.message}</FieldError>

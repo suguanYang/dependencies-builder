@@ -69,7 +69,6 @@ export async function uploadResults(results: any): Promise<UploadResult> {
   }
 }
 
-
 export async function uploadReport(report: any) {
   const id = getContext().getActionId()
 
@@ -78,6 +77,6 @@ export async function uploadReport(report: any) {
   }
 
   return updateAction(id, {
-    result: report
+    result: report,
   })
 }

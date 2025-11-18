@@ -9,7 +9,15 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, NodeType, getNodes, deleteNode, createNode, updateNode, type Project } from '@/lib/api'
+import {
+  type Node,
+  NodeType,
+  getNodes,
+  deleteNode,
+  createNode,
+  updateNode,
+  type Project,
+} from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProjectSelector } from '@/components/project-selector'
@@ -25,7 +33,6 @@ import {
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-
 
 // Zod schema for Node validation
 const nodeSchema = z.object({
@@ -105,7 +112,6 @@ function NodesContent() {
       handlePageChange(1)
     }
   }, [debouncedSearchFilters])
-
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -333,7 +339,9 @@ function NodesContent() {
                   width: '200',
                   render: (node: Node) => (
                     <div className="text-sm text-gray-500 truncate">
-                      {node.relativePath && node.startLine !== undefined && node.startColumn !== undefined
+                      {node.relativePath &&
+                      node.startLine !== undefined &&
+                      node.startColumn !== undefined
                         ? `${node.relativePath}:${node.startLine}:${node.startColumn}`
                         : 'N/A'}
                     </div>
@@ -345,9 +353,7 @@ function NodesContent() {
                   width: '160',
                   render: (node: Node) => (
                     <div className="text-sm text-gray-500 truncate">
-                      {node.createdAt
-                        ? new Date(node.createdAt).toLocaleString()
-                        : 'N/A'}
+                      {node.createdAt ? new Date(node.createdAt).toLocaleString() : 'N/A'}
                     </div>
                   ),
                 },
@@ -389,7 +395,7 @@ function NodesContent() {
                       onValueChange={(project) => {
                         if (project) {
                           setValue('projectName', project.name)
-                        }else {
+                        } else {
                           resetField('projectName')
                         }
 
@@ -406,12 +412,7 @@ function NodesContent() {
                       name="branch"
                       control={createControl}
                       render={({ field }) => (
-                        <Input
-                          id="create-branch"
-                          {...field}
-                          placeholder="Branch name"
-                          required
-                        />
+                        <Input id="create-branch" {...field} placeholder="Branch name" required />
                       )}
                     />
                     <FieldError>{createErrors.branch?.message}</FieldError>
@@ -430,7 +431,9 @@ function NodesContent() {
                         >
                           <option value={NodeType.NamedExport}>NamedExport</option>
                           <option value={NodeType.NamedImport}>NamedImport</option>
-                          <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                          <option value={NodeType.RuntimeDynamicImport}>
+                            RuntimeDynamicImport
+                          </option>
                           <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
                           <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
                           <option value={NodeType.WebStorageRead}>WebStorageRead</option>
@@ -451,12 +454,7 @@ function NodesContent() {
                       name="name"
                       control={createControl}
                       render={({ field }) => (
-                        <Input
-                          id="create-name"
-                          {...field}
-                          placeholder="Node name"
-                          required
-                        />
+                        <Input id="create-name" {...field} placeholder="Node name" required />
                       )}
                     />
                     <FieldError>{createErrors.name?.message}</FieldError>
@@ -567,12 +565,7 @@ function NodesContent() {
                       name="version"
                       control={createControl}
                       render={({ field }) => (
-                        <Input
-                          id="create-version"
-                          {...field}
-                          placeholder="1.0.0"
-                          required
-                        />
+                        <Input id="create-version" {...field} placeholder="1.0.0" required />
                       )}
                     />
                   </Field>
@@ -633,12 +626,7 @@ function NodesContent() {
                       name="branch"
                       control={editControl}
                       render={({ field }) => (
-                        <Input
-                          id="edit-branch"
-                          {...field}
-                          placeholder="Branch name"
-                          required
-                        />
+                        <Input id="edit-branch" {...field} placeholder="Branch name" required />
                       )}
                     />
                     <FieldError>{editErrors.branch?.message}</FieldError>
@@ -657,7 +645,9 @@ function NodesContent() {
                         >
                           <option value={NodeType.NamedExport}>NamedExport</option>
                           <option value={NodeType.NamedImport}>NamedImport</option>
-                          <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
+                          <option value={NodeType.RuntimeDynamicImport}>
+                            RuntimeDynamicImport
+                          </option>
                           <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
                           <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
                           <option value={NodeType.WebStorageRead}>WebStorageRead</option>
@@ -678,12 +668,7 @@ function NodesContent() {
                       name="name"
                       control={editControl}
                       render={({ field }) => (
-                        <Input
-                          id="edit-name"
-                          {...field}
-                          placeholder="Node name"
-                          required
-                        />
+                        <Input id="edit-name" {...field} placeholder="Node name" required />
                       )}
                     />
                     <FieldError>{editErrors.name?.message}</FieldError>
@@ -794,12 +779,7 @@ function NodesContent() {
                       name="version"
                       control={editControl}
                       render={({ field }) => (
-                        <Input
-                          id="edit-version"
-                          {...field}
-                          placeholder="1.0.0"
-                          required
-                        />
+                        <Input id="edit-version" {...field} placeholder="1.0.0" required />
                       )}
                     />
                   </Field>

@@ -72,74 +72,86 @@ function projectsRoutes(fastify: FastifyInstance) {
   })
 
   // POST /projects - Create a new project
-  fastify.post('/projects', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const projectData = request.body as ProjectCreationBody
-      const project = await repository.createProject(projectData)
-      reply.code(201).send(project)
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        reply.code(409).send({ error: error.message })
-      } else {
-        reply.code(500).send({
-          error: 'Failed to create project',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
+  fastify.post(
+    '/projects',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const projectData = request.body as ProjectCreationBody
+        const project = await repository.createProject(projectData)
+        reply.code(201).send(project)
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('already exists')) {
+          reply.code(409).send({ error: error.message })
+        } else {
+          reply.code(500).send({
+            error: 'Failed to create project',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          })
+        }
       }
-    }
-  })
+    },
+  )
 
   // PUT /projects/:id - Update a project
-  fastify.put('/projects/:id', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string }
-      const updates = request.body as ProjectUpdateBody
+  fastify.put(
+    '/projects/:id',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string }
+        const updates = request.body as ProjectUpdateBody
 
-      const updatedProject = await repository.updateProject(id, updates)
+        const updatedProject = await repository.updateProject(id, updates)
 
-      if (!updatedProject) {
-        reply.code(404).send({ error: 'Project not found' })
-        return
+        if (!updatedProject) {
+          reply.code(404).send({ error: 'Project not found' })
+          return
+        }
+
+        return updatedProject
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('already exists')) {
+          reply.code(409).send({ error: error.message })
+        } else {
+          reply.code(500).send({
+            error: 'Failed to update project',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          })
+        }
       }
+    },
+  )
 
-      return updatedProject
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        reply.code(409).send({ error: error.message })
-      } else {
+  // DELETE /projects/:id - Delete a project
+  fastify.delete(
+    '/projects/:id',
+    {
+      preHandler: [authenticate, requireAdmin],
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string }
+        const success = await repository.deleteProject(id)
+
+        if (!success) {
+          reply.code(404).send({ error: 'Project not found' })
+          return
+        }
+
+        return { success: true, message: 'Project deleted successfully' }
+      } catch (error) {
         reply.code(500).send({
-          error: 'Failed to update project',
+          error: 'Failed to delete project',
           details: error instanceof Error ? error.message : 'Unknown error',
         })
       }
-    }
-  })
-
-  // DELETE /projects/:id - Delete a project
-  fastify.delete('/projects/:id', {
-    preHandler: [authenticate, requireAdmin]
-  }, async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string }
-      const success = await repository.deleteProject(id)
-
-      if (!success) {
-        reply.code(404).send({ error: 'Project not found' })
-        return
-      }
-
-      return { success: true, message: 'Project deleted successfully' }
-    } catch (error) {
-      reply.code(500).send({
-        error: 'Failed to delete project',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-  })
+    },
+  )
 }
 
 export default projectsRoutes

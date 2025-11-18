@@ -25,7 +25,7 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
         name: true,
         projectName: true,
         meta: true,
-        branch: true
+        branch: true,
       },
     })
 
@@ -172,9 +172,11 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
     for (const onNode of eventOns) {
       const onEventName = onNode.name
       const matchingEmits = eventEmits.filter((emitNode) => {
-        return emitNode?.name === onEventName &&
+        return (
+          emitNode?.name === onEventName &&
           emitNode.branch === onNode.branch &&
           emitNode.projectName !== onNode.projectName
+        )
       })
 
       for (const emitNode of matchingEmits) {

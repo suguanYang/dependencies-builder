@@ -18,12 +18,10 @@ export default function LoginPage() {
   const { login, signup, isAuthenticated } = useAuth()
   const router = useRouter()
 
-
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/')
     }
-
   }, [isAuthenticated])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,9 +30,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = isSignup
-        ? await signup(email, password, name)
-        : await login(email, password)
+      const result = isSignup ? await signup(email, password, name) : await login(email, password)
 
       if (result.success) {
         router.push('/')
@@ -53,19 +49,15 @@ export default function LoginPage() {
     return null
   }
 
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">
-            {isSignup ? 'Create Account' : 'Welcome Back'}
-          </CardTitle>
+          <CardTitle className="text-2xl">{isSignup ? 'Create Account' : 'Welcome Back'}</CardTitle>
           <CardDescription>
             {isSignup
               ? 'Create your account to access the dependency management system'
-              : 'Sign in to your account to continue'
-            }
+              : 'Sign in to your account to continue'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -115,17 +107,11 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                {error}
-              </div>
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Sign In')}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Please wait...' : isSignup ? 'Create Account' : 'Sign In'}
             </Button>
 
             <div className="text-center text-sm">
@@ -134,10 +120,7 @@ export default function LoginPage() {
                 className="text-primary hover:underline"
                 onClick={() => setIsSignup(!isSignup)}
               >
-                {isSignup
-                  ? 'Already have an account? Sign in'
-                  : "Don't have an account? Sign up"
-                }
+                {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </button>
             </div>
           </form>

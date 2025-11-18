@@ -20,7 +20,7 @@ import {
 } from '@/lib/api'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { TooltipProvider} from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import useDebounce from '@/hooks/use-debounce-value'
 import {
   Field,
@@ -103,7 +103,6 @@ function ProjectsContent() {
       handlePageChange(1)
     }
   }, [debouncedSearchFilters])
-
 
   // Function to update URL with pagination parameters
   const updatePaginationParams = (page: number, size: number) => {
@@ -554,7 +553,9 @@ function ProjectsContent() {
                                         </label>
                                         <Input
                                           value={entry.name}
-                                          onChange={(e) => updateEntry(index, 'name', e.target.value)}
+                                          onChange={(e) =>
+                                            updateEntry(index, 'name', e.target.value)
+                                          }
                                           placeholder="Entry name"
                                           className="w-full"
                                         />
@@ -565,7 +566,9 @@ function ProjectsContent() {
                                         </label>
                                         <Input
                                           value={entry.path}
-                                          onChange={(e) => updateEntry(index, 'path', e.target.value)}
+                                          onChange={(e) =>
+                                            updateEntry(index, 'path', e.target.value)
+                                          }
                                           placeholder="/path/to/entry"
                                           className="w-full"
                                         />
@@ -729,7 +732,9 @@ function ProjectsContent() {
                                         </label>
                                         <Input
                                           value={entry.name}
-                                          onChange={(e) => updateEditingEntry(index, 'name', e.target.value)}
+                                          onChange={(e) =>
+                                            updateEditingEntry(index, 'name', e.target.value)
+                                          }
                                           placeholder="Entry name"
                                           className="w-full"
                                         />
@@ -740,7 +745,9 @@ function ProjectsContent() {
                                         </label>
                                         <Input
                                           value={entry.path}
-                                          onChange={(e) => updateEditingEntry(index, 'path', e.target.value)}
+                                          onChange={(e) =>
+                                            updateEditingEntry(index, 'path', e.target.value)
+                                          }
                                           placeholder="/path/to/entry"
                                           className="w-full"
                                         />

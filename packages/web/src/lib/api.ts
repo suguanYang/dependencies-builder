@@ -105,7 +105,8 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
       }
 
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      const errorMessage =
+        errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
 
       throw new Error(errorMessage)
     }
@@ -256,7 +257,9 @@ export interface ActionFilters {
   offset?: number
 }
 
-export async function getActions(filters?: ActionFilters): Promise<{ data: Action[]; total: number }> {
+export async function getActions(
+  filters?: ActionFilters,
+): Promise<{ data: Action[]; total: number }> {
   const params = new URLSearchParams()
 
   if (filters?.type) params.append('type', filters.type)
@@ -515,7 +518,9 @@ interface RevokeApiKeyResponse {
   message: string
 }
 
-export async function generateApiKey(request: GenerateApiKeyRequest): Promise<GenerateApiKeyResponse> {
+export async function generateApiKey(
+  request: GenerateApiKeyRequest,
+): Promise<GenerateApiKeyResponse> {
   return apiRequest('/database-admin/api-keys', {
     method: 'POST',
     body: JSON.stringify(request),

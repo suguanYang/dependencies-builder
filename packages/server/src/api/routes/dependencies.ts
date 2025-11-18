@@ -54,30 +54,34 @@ function dependenciesRoutes(fastify: FastifyInstance) {
   })
 
   // POST /dependencies/validate - Validate edge creation
-  fastify.post('/dependencies/validate', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const { fromId, toId } = request.body as { fromId: string; toId: string }
+  fastify.post(
+    '/dependencies/validate',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { fromId, toId } = request.body as { fromId: string; toId: string }
 
-      const fromNode = await repository.getNodeById(fromId)
-      const toNode = await repository.getNodeById(toId)
+        const fromNode = await repository.getNodeById(fromId)
+        const toNode = await repository.getNodeById(toId)
 
-      if (!fromNode || !toNode) {
-        reply.code(404).send({ error: 'One or both nodes not found' })
-        return
+        if (!fromNode || !toNode) {
+          reply.code(404).send({ error: 'One or both nodes not found' })
+          return
+        }
+
+        const isValid = dependencyManager.validateEdgeCreation(fromNode, toNode)
+
+        return { valid: isValid }
+      } catch (error) {
+        reply.code(500).send({
+          error: 'Failed to validate dependency',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
       }
-
-      const isValid = dependencyManager.validateEdgeCreation(fromNode, toNode)
-
-      return { valid: isValid }
-    } catch (error) {
-      reply.code(500).send({
-        error: 'Failed to validate dependency',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-  })
+    },
+  )
 }
 
 export default dependenciesRoutes

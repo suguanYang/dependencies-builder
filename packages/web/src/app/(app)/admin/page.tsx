@@ -13,14 +13,14 @@ function AdminContent() {
       description: 'Execute raw SQL queries and explore database schema',
       icon: DatabaseIcon,
       href: '/admin/database',
-      color: 'bg-blue-50 text-blue-600'
+      color: 'bg-blue-50 text-blue-600',
     },
     {
       title: 'API Key Management',
       description: 'Generate and manage API keys for admin operations',
       icon: KeyIcon,
       href: '/admin/api-keys',
-      color: 'bg-green-50 text-green-600'
+      color: 'bg-green-50 text-green-600',
     },
     {
       title: 'User Management',
@@ -28,7 +28,7 @@ function AdminContent() {
       icon: UsersIcon,
       href: '#',
       color: 'bg-purple-50 text-purple-600',
-      disabled: true
+      disabled: true,
     },
     {
       title: 'System Settings',
@@ -36,7 +36,7 @@ function AdminContent() {
       icon: SettingsIcon,
       href: '#',
       color: 'bg-orange-50 text-orange-600',
-      disabled: true
+      disabled: true,
     },
     {
       title: 'Security & Audit',
@@ -44,8 +44,8 @@ function AdminContent() {
       icon: ShieldIcon,
       href: '#',
       color: 'bg-red-50 text-red-600',
-      disabled: true
-    }
+      disabled: true,
+    },
   ]
 
   return (
@@ -65,7 +65,9 @@ function AdminContent() {
           <Card
             key={feature.title}
             className={`transition-all hover:shadow-md ${
-              feature.disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-gray-300'
+              feature.disabled
+                ? 'opacity-60 cursor-not-allowed'
+                : 'cursor-pointer hover:border-gray-300'
             }`}
           >
             <CardHeader className="pb-3">
@@ -142,16 +144,18 @@ function AdminContent() {
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <ShieldIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Loading Admin Dashboard...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <ShieldIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500">Loading Admin Dashboard...</p>
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <AdminContent />
     </Suspense>
   )

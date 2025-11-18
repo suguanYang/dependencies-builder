@@ -27,7 +27,7 @@ yargs(hideBin(process.argv))
         })
         .option('action-id', {
           describe: 'the server side action id',
-          type: 'string'
+          type: 'string',
         })
         .option('name', {
           describe: 'Project name for monorepo analysis',
@@ -57,7 +57,7 @@ yargs(hideBin(process.argv))
           name: argv.name,
           type: argv.type as any,
           actionId: argv.actionId,
-          ignoreCallGraph: argv.ignoreCallGraph
+          ignoreCallGraph: argv.ignoreCallGraph,
         },
         analyzeProject,
       )
@@ -94,7 +94,7 @@ yargs(hideBin(process.argv))
         })
         .option('action-id', {
           describe: 'the server side action id',
-          type: 'string'
+          type: 'string',
         })
         .option('ignore-call-graph', {
           describe: 'Skip call graph generation to speed up analysis',
@@ -122,7 +122,7 @@ yargs(hideBin(process.argv))
           name: argv.name,
           type: argv.type as any,
           actionId: argv.actionId,
-          ignoreCallGraph: argv.ignoreCallGraph
+          ignoreCallGraph: argv.ignoreCallGraph,
         },
         () => generateReport(),
       )

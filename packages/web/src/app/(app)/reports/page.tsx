@@ -24,9 +24,11 @@ function ReportsContent() {
     connections: any[]
   } | null>(null)
 
-  const { data: actionsResponse, isLoading } = useSWR('reports-actions', () => getActions({
-    type: 'report'
-  }))
+  const { data: actionsResponse, isLoading } = useSWR('reports-actions', () =>
+    getActions({
+      type: 'report',
+    }),
+  )
 
   const actions = actionsResponse?.data || []
   const reportActions = actions.filter(
@@ -253,11 +255,12 @@ function ReportsContent() {
                           <div className="flex justify-between items-center">
                             <div>
                               <div className="font-medium">
-                                {connection.fromNode?.projectName} → {connection.toNode?.projectName}
+                                {connection.fromNode?.projectName} →{' '}
+                                {connection.toNode?.projectName}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {connection.fromNode?.name || 'Unknown'}({connection.fromNode?.type}) →
-                                {connection.toNode?.name || 'Unknown'}({connection.toNode?.type})
+                                {connection.fromNode?.name || 'Unknown'}({connection.fromNode?.type}
+                                ) →{connection.toNode?.name || 'Unknown'}({connection.toNode?.type})
                               </div>
                             </div>
                           </div>
