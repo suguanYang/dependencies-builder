@@ -114,7 +114,7 @@ function HomeContent() {
           </div>
           <Link href="/docs/getting-started">
             <Button variant="outline" size="sm">
-              Getting Started (Docs)
+              Documentation
             </Button>
           </Link>
         </div>

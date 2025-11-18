@@ -28,6 +28,16 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
               >
                 快速开始
               </Link>
+
+              <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                项目规划
+              </div>
+              <Link
+                href="/docs/road-map"
+                className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 py-1"
+              >
+                项目规划
+              </Link>
             </nav>
           </div>
 
