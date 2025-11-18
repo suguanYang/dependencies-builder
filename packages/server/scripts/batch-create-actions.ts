@@ -5,13 +5,14 @@
  *
  * This script fetches all projects from the server and creates static analysis actions
  * for each project with branch parameter set to user-specified value. It respects the
- * server's rate limit of 10 concurrent running actions by waiting for batches to complete.
+ * server's rate limit of 10 concurrent running actions by continuously feeding new
+ * actions as slots become available.
  */
 
 // Configuration
 const SERVER_URL = process.env.DMS_SERVER_URL || 'http://10.101.64.161:3001'
-const BATCH_SIZE = 4 // Maximum concurrent actions allowed
-const POLL_INTERVAL = 5000 // 5 seconds between status checks
+const MAX_CONCURRENT_ACTIONS = 10 // Maximum concurrent actions allowed by server
+const POLL_INTERVAL = 2000 // 2 seconds between status checks (reduced for better responsiveness)
 const ACTION_TYPE = 'static_analysis' as const
 
 interface Project {
@@ -127,64 +128,48 @@ async function countRunningActions(): Promise<number> {
 }
 
 /**
- * Wait for running actions to complete
+ * Wait for available action slots
  */
-async function waitForRunningActions(): Promise<void> {
+async function waitForAvailableSlots(): Promise<void> {
   let runningCount = await countRunningActions()
 
-  while (runningCount > 0) {
-    console.log(`Waiting for ${runningCount} running actions to complete...`)
+  while (runningCount >= MAX_CONCURRENT_ACTIONS) {
+    console.log(`Waiting for available slots (${runningCount}/${MAX_CONCURRENT_ACTIONS} running)...`)
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
     runningCount = await countRunningActions()
   }
-
-  console.log('All running actions completed')
 }
 
 /**
- * Process projects in batches respecting rate limits
+ * Process projects continuously respecting rate limits
  */
-async function processProjectsInBatches(projects: Project[], branch: string): Promise<void> {
+async function processProjectsContinuously(projects: Project[], branch: string): Promise<void> {
   const totalProjects = projects.length
   let processedCount = 0
   let failedCount = 0
 
-  console.log(`Starting batch processing of ${totalProjects} projects (branch: ${branch})`)
+  console.log(`Starting continuous processing of ${totalProjects} projects (branch: ${branch})`)
+  console.log(`Maximum concurrent actions: ${MAX_CONCURRENT_ACTIONS}`)
 
-  for (let i = 0; i < projects.length; i += BATCH_SIZE) {
-    const batch = projects.slice(i, i + BATCH_SIZE)
-    const batchNumber = Math.floor(i / BATCH_SIZE) + 1
-    const totalBatches = Math.ceil(totalProjects / BATCH_SIZE)
+  // Process all projects with continuous pipeline
+  for (const project of projects) {
+    // Wait for available slots before creating new action
+    await waitForAvailableSlots()
 
-    console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} projects)`)
-
-    // Wait for previous batch to complete if needed
-    await waitForRunningActions()
-
-    // Create actions for current batch
-    const batchPromises = batch.map(async (project) => {
-      try {
-        await createAction(project, branch)
-        processedCount++
-        console.log(
-          `Progress: ${processedCount}/${totalProjects} (${Math.round((processedCount / totalProjects) * 100)}%)`,
-        )
-      } catch (err) {
-        failedCount++
-        console.error(`Failed to create action for project ${project.name}: ${err}`)
-      }
-    })
-
-    await Promise.all(batchPromises)
-
-    // If this is not the last batch, wait for current batch to start processing
-    if (i + BATCH_SIZE < projects.length) {
-      console.log('Waiting for current batch to start processing...')
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
+    // Create action for current project
+    try {
+      await createAction(project, branch)
+      processedCount++
+      console.log(
+        `Progress: ${processedCount}/${totalProjects} (${Math.round((processedCount / totalProjects) * 100)}%)`,
+      )
+    } catch (err) {
+      failedCount++
+      console.error(`Failed to create action for project ${project.name}: ${err}`)
     }
   }
 
-  console.log(`Batch processing completed: ${processedCount} successful, ${failedCount} failed`)
+  console.log(`Continuous processing completed: ${processedCount} successful, ${failedCount} failed`)
 }
 
 /**
@@ -196,9 +181,9 @@ async function main(branch: string): Promise<void> {
 
     // Check if there are any running actions
     const runningCount = await countRunningActions()
-    if (runningCount > 0) {
-      console.warn(`Found ${runningCount} running actions. Waiting for them to complete...`)
-      await waitForRunningActions()
+    if (runningCount >= MAX_CONCURRENT_ACTIONS) {
+      console.warn(`Found ${runningCount} running actions (max: ${MAX_CONCURRENT_ACTIONS}). Waiting for available slots...`)
+      await waitForAvailableSlots()
     }
 
     // Fetch all projects
@@ -209,8 +194,8 @@ async function main(branch: string): Promise<void> {
       return
     }
 
-    // Process projects in batches
-    await processProjectsInBatches(projects, branch)
+    // Process projects continuously
+    await processProjectsContinuously(projects, branch)
 
     console.log('Batch action creation completed successfully')
   } catch (err) {
