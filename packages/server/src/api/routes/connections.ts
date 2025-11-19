@@ -1,21 +1,62 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import type { ConnectionQuery } from '../types'
-import type { Connection } from '../../generated/prisma/client'
+import type { Connection, Prisma } from '../../generated/prisma/client'
 import { formatStringToNumber } from '../request_parameter'
-import { authenticate, requireAdmin } from '../../auth/middleware'
+import { authenticate } from '../../auth/middleware'
+import { onlyQuery } from '../../utils'
 
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
-      const query = formatStringToNumber(request.query as ConnectionQuery)
-      const result = await repository.getConnections(query)
+      const { take, skip, ...filters } = formatStringToNumber(request.query as ConnectionQuery)
+
+      // Build the where clause with node field filters
+      const where: Prisma.ConnectionFindManyArgs['where'] = onlyQuery(filters, ['fromId', 'toId'])
+
+      // Build AND conditions for node field filters
+      const andConditions: Prisma.ConnectionWhereInput[] = []
+
+      // From node filters
+      if (filters?.fromNodeName || filters?.fromNodeProjectName || filters.fromNodeType) {
+        const fromNodeCondition: Prisma.NodeWhereInput = {}
+        if (filters.fromNodeName) fromNodeCondition.name = { contains: filters.fromNodeName }
+        if (filters.fromNodeProjectName)
+          fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
+        if (filters.fromNodeType) {
+          fromNodeCondition.type = { equals: filters.fromNodeType as any }
+        }
+        andConditions.push({ fromNode: fromNodeCondition })
+      }
+
+      // To node filters
+      if (filters.toNodeName || filters.toNodeProjectName || filters.toNodeType) {
+        const toNodeCondition: Prisma.NodeWhereInput = {}
+        if (filters.toNodeName) toNodeCondition.name = { contains: filters.toNodeName }
+        if (filters.toNodeProjectName)
+          toNodeCondition.projectName = { contains: filters.toNodeProjectName }
+        if (filters.toNodeType) {
+          toNodeCondition.type = { equals: filters.toNodeType as any }
+        }
+        andConditions.push({ toNode: toNodeCondition })
+      }
+
+      // Add AND conditions if any exist
+      if (andConditions.length > 0) {
+        where.AND = andConditions
+      }
+
+      const result = await repository.getConnections({
+        where,
+        take,
+        skip,
+      })
       return {
         data: result.data,
         total: result.total,
-        limit: query.limit,
-        offset: query.offset,
+        limit: take,
+        offset: skip,
       }
     } catch (error) {
       reply.code(500).send({

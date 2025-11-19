@@ -7,3 +7,16 @@ export const queryContains = (query: Record<string, any>, fields: string[]) => {
     }
   }
 }
+
+export const onlyQuery = <T extends Record<string, any>, F extends keyof T>(
+  query: T,
+  fields: F[],
+) => {
+  const newQuery: Pick<T, F> = {} as any
+
+  for (const field of fields) {
+    newQuery[field] = query[field]
+  }
+
+  return newQuery
+}

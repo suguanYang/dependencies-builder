@@ -11,8 +11,8 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       // Currently returns full graph - could be enhanced to filter by nodeId
 
       // Get all nodes and edges for the graph
-      const nodesResult = await repository.getNodes({ take: 0 })
-      const connectionsResult = await repository.getConnections({ take: 0 })
+      const nodesResult = await repository.getNodes({})
+      const connectionsResult = await repository.getConnections({})
 
       const graph = dependencyManager.getFullDependencyGraph(
         nodesResult.data,
@@ -34,8 +34,8 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { projectName, branch } = request.params as { projectName: string; branch: string }
 
       // Get all nodes and edges
-      const nodesResult = await repository.getNodes({ take: 0 })
-      const connectionsResult = await repository.getConnections({ take: 0 })
+      const nodesResult = await repository.getNodes({})
+      const connectionsResult = await repository.getConnections({})
 
       const graph = dependencyManager.getProjectDependencyGraph(
         projectName,

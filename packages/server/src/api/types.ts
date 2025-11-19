@@ -5,7 +5,7 @@ export interface NodeQuery {
   branch?: string
   type?: NodeType
   name?: string
-  standalone?: boolean
+  standalone?: boolean | string
   limit?: number
   offset?: number
 }
@@ -66,4 +66,11 @@ export interface PaginatedResponse<T> {
   limit: number
   offset: number
   hasMore: boolean
+}
+
+export interface ActionQuery {
+  type?: 'static_analysis' | 'report' | 'connection_auto_create'
+  status?: 'pending' | 'running' | 'completed' | 'failed'
+  limit?: number
+  offset?: number
 }

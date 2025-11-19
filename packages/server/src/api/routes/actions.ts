@@ -2,21 +2,30 @@ import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import { formatStringToNumber } from '../request_parameter'
 import { ActionData, executeCLI, getActiveExecution } from '../../services/cli-service'
-import { error as logError, info } from '../../logging'
+import { error as logError } from '../../logging'
 import { connectionWorkerPool } from '../../workers/worker-pool'
-import { authenticate, requireAdmin } from '../../auth/middleware'
+import { authenticate } from '../../auth/middleware'
+import { ActionQuery } from '../types'
+import { onlyQuery } from '../../utils'
 
 function actionsRoutes(fastify: FastifyInstance) {
   // GET /actions - Get actions with query parameters
   fastify.get('/actions', async (request, reply) => {
     try {
-      const query = formatStringToNumber(request.query as repository.ActionQuery)
-      const result = await repository.getActions(query)
+      const { take, skip, ...filters } = formatStringToNumber(request.query as ActionQuery)
+
+      const where = onlyQuery(filters, ['status', 'type'])
+
+      const result = await repository.getActions({
+        where,
+        take,
+        skip,
+      })
       return {
         data: result.data,
         total: result.total,
-        limit: query.limit,
-        offset: query.offset,
+        limit: take,
+        offset: skip,
       }
     } catch (error) {
       reply.code(500).send({

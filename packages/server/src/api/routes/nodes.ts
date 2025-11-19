@@ -1,28 +1,55 @@
 import { FastifyInstance } from 'fastify'
-import { queryContains } from '../../utils'
+import { onlyQuery, queryContains } from '../../utils'
 import * as repository from '../../database/repository'
 import type { NodeQuery, NodeCreationBody } from '../types'
 import { formatStringToNumber } from '../request_parameter'
-import { authenticate, requireAdmin } from '../../auth/middleware'
+import { authenticate } from '../../auth/middleware'
+import { Prisma } from '../../generated/prisma/client'
 
 function nodesRoutes(fastify: FastifyInstance) {
   // GET /nodes - Get nodes with query parameters
   fastify.get('/nodes', async (request, reply) => {
     try {
-      const { limit, offset, ...where } = formatStringToNumber(request.query as NodeQuery)
+      const { take, skip, ...filters } = formatStringToNumber(request.query as NodeQuery)
 
-      queryContains(where, ['name', 'branch', 'projectName'])
+      queryContains(filters, ['name', 'branch', 'projectName'])
+
+      const where: Prisma.NodeFindManyArgs['where'] = onlyQuery(filters, [
+        'branch',
+        'name',
+        'projectName',
+        'type',
+      ])
+
+      // Handle standalone filter - nodes that don't have any connections
+      const { standalone } = filters
+      const extraQuery: Prisma.NodeFindManyArgs['where'] = {}
+      if (standalone !== undefined) {
+        // Convert string "true" to boolean true
+        const standaloneBool = standalone === true || standalone === 'true'
+
+        if (standaloneBool === true) {
+          // Find nodes that don't have any connections (neither fromConnections nor toConnections)
+          where.AND = {
+            fromConnections: { none: {} },
+            toConnections: { none: {} },
+          }
+        } else if (standaloneBool === false) {
+          // Find nodes that have at least one connection
+          where.OR = [{ fromConnections: { some: {} } }, { toConnections: { some: {} } }]
+        }
+      }
 
       const result = await repository.getNodes({
         where,
-        take: limit,
-        skip: offset,
+        take,
+        skip,
       })
       return {
         data: result.data,
         total: result.total,
-        limit,
-        offset,
+        limit: take,
+        offset: skip,
       }
     } catch (error) {
       reply.code(500).send({

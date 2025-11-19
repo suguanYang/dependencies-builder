@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 
-import { queryContains } from '../../utils'
+import { onlyQuery, queryContains } from '../../utils'
 import * as repository from '../../database/repository'
 import type { ProjectQuery, ProjectCreationBody, ProjectUpdateBody } from '../types'
 import { formatStringToNumber } from '../request_parameter'
@@ -10,18 +10,21 @@ function projectsRoutes(fastify: FastifyInstance) {
   // GET /projects - Get projects with query parameters
   fastify.get('/projects', async (request, reply) => {
     try {
-      const { limit, offset, ...where } = formatStringToNumber(request.query as ProjectQuery)
-      queryContains(where, ['name', 'addr'])
+      const { skip, take, ...filters } = formatStringToNumber(request.query as ProjectQuery)
+      queryContains(filters, ['name', 'addr'])
+
+      const where = onlyQuery(filters, ['addr', 'name', 'type'])
+
       const result = await repository.getProjects({
         where,
-        take: limit,
-        skip: offset,
+        take,
+        skip,
       })
       return {
         data: result.data,
         total: result.total,
-        limit,
-        offset,
+        limit: take,
+        offset: skip,
       }
     } catch (error) {
       reply.code(500).send({

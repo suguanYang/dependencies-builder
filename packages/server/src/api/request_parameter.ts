@@ -1,5 +1,5 @@
 // string to number
-export const formatStringToNumber = (params: Record<string, any>) => {
+export const formatStringToNumber = <T extends Record<string, any>>(params: T) => {
   // validate first
   if (params.limit && isNaN(parseInt(params.limit))) {
     throw new Error('Limit must be a number')
@@ -10,7 +10,7 @@ export const formatStringToNumber = (params: Record<string, any>) => {
 
   return {
     ...params,
-    limit: params.limit ? parseInt(params.limit) : 100,
-    offset: params.offset ? parseInt(params.offset) : 0,
+    take: params.limit ? parseInt(params.limit) : 100,
+    skip: params.offset ? parseInt(params.offset) : 0,
   }
 }

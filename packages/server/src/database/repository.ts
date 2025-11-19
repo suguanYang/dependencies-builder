@@ -1,69 +1,17 @@
 import { prisma } from './prisma'
 import { Prisma } from '../generated/prisma/client'
-import { ConnectionQuery } from '../api/types'
 
-// Valid NodeType values from Prisma schema
-const VALID_NODE_TYPES = [
-  'NamedExport',
-  'NamedImport',
-  'RuntimeDynamicImport',
-  'GlobalVarRead',
-  'GlobalVarWrite',
-  'WebStorageRead',
-  'WebStorageWrite',
-  'EventOn',
-  'EventEmit',
-  'DynamicModuleFederationReference',
-] as const
-
-function isValidNodeType(type: string): boolean {
-  return VALID_NODE_TYPES.includes(type as any)
-}
-
-export async function getNodes(query: Prisma.NodeFindManyArgs & { where?: any }, all?: boolean) {
+export async function getNodes(query: Prisma.NodeFindManyArgs) {
   const { where, take, skip } = query
-
-  // Handle standalone filter - nodes that don't have any connections
-  let finalWhere = where
-  if (where?.standalone !== undefined) {
-    const { standalone, ...otherWhere } = where
-
-    // Convert string "true" to boolean true
-    const standaloneBool = standalone === true || standalone === 'true'
-
-    if (standaloneBool === true) {
-      // Find nodes that don't have any connections (neither fromConnections nor toConnections)
-      finalWhere = {
-        ...otherWhere,
-        AND: [
-          ...(otherWhere.AND || []),
-          {
-            fromConnections: { none: {} },
-            toConnections: { none: {} },
-          },
-        ],
-      }
-    } else if (standaloneBool === false) {
-      // Find nodes that have at least one connection
-      finalWhere = {
-        ...otherWhere,
-        OR: [
-          ...(otherWhere.OR || []),
-          { fromConnections: { some: {} } },
-          { toConnections: { some: {} } },
-        ],
-      }
-    }
-  }
 
   const [data, total] = await Promise.all([
     prisma.node.findMany({
-      where: finalWhere,
+      where,
       orderBy: { updatedAt: 'desc' },
-      take: all ? undefined : (take ?? 100),
-      skip: all ? undefined : (skip ?? 0),
+      take,
+      skip,
     }),
-    prisma.node.count({ where: finalWhere }),
+    prisma.node.count({ where }),
   ])
 
   return {
@@ -179,60 +127,21 @@ export async function deleteNode(id: string) {
   }
 }
 
-export async function getConnections(query: ConnectionQuery & { take?: number; skip?: number }) {
-  const { take, skip, ...filters } = query
-
-  // Build the where clause with node field filters
-  const prismaWhere: Prisma.ConnectionWhereInput = {}
-
-  // Add direct connection filters
-  if (filters.fromId) prismaWhere.fromId = filters.fromId
-  if (filters.toId) prismaWhere.toId = filters.toId
-
-  // Build AND conditions for node field filters
-  const andConditions: Prisma.ConnectionWhereInput[] = []
-
-  // From node filters
-  if (filters.fromNodeName || filters.fromNodeProjectName || filters.fromNodeType) {
-    const fromNodeCondition: Prisma.NodeWhereInput = {}
-    if (filters.fromNodeName) fromNodeCondition.name = { contains: filters.fromNodeName }
-    if (filters.fromNodeProjectName)
-      fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
-    if (filters.fromNodeType && isValidNodeType(filters.fromNodeType)) {
-      fromNodeCondition.type = { equals: filters.fromNodeType as any }
-    }
-    andConditions.push({ fromNode: fromNodeCondition })
-  }
-
-  // To node filters
-  if (filters.toNodeName || filters.toNodeProjectName || filters.toNodeType) {
-    const toNodeCondition: Prisma.NodeWhereInput = {}
-    if (filters.toNodeName) toNodeCondition.name = { contains: filters.toNodeName }
-    if (filters.toNodeProjectName)
-      toNodeCondition.projectName = { contains: filters.toNodeProjectName }
-    if (filters.toNodeType && isValidNodeType(filters.toNodeType)) {
-      toNodeCondition.type = { equals: filters.toNodeType as any }
-    }
-    andConditions.push({ toNode: toNodeCondition })
-  }
-
-  // Add AND conditions if any exist
-  if (andConditions.length > 0) {
-    prismaWhere.AND = andConditions
-  }
+export async function getConnections(query: Prisma.ConnectionFindManyArgs) {
+  const { take, skip, where } = query
 
   const [data, total] = await Promise.all([
     prisma.connection.findMany({
-      where: prismaWhere,
+      where,
       orderBy: { createdAt: 'desc' },
-      take: take ?? 100,
-      skip: skip ?? 0,
+      take,
+      skip,
       include: {
         fromNode: true,
         toNode: true,
       },
     }),
-    prisma.connection.count({ where: prismaWhere }),
+    prisma.connection.count({ where }),
   ])
 
   return {
@@ -290,15 +199,15 @@ export async function deleteConnectionsByFrom(fromId: string) {
 }
 
 // Project repository functions
-export async function getProjects(query: Prisma.ProjectFindManyArgs & { where?: any }) {
+export async function getProjects(query: Prisma.ProjectFindManyArgs) {
   const { where, take, skip } = query
 
   const [data, total] = await Promise.all([
     prisma.project.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      take: take ?? 100,
-      skip: skip ?? 0,
+      take,
+      skip,
     }),
     prisma.project.count({ where }),
   ])
@@ -378,22 +287,15 @@ export interface UpdateActionData {
   error?: string
 }
 
-export interface ActionQuery {
-  type?: 'static_analysis' | 'report' | 'connection_auto_create'
-  status?: 'pending' | 'running' | 'completed' | 'failed'
-  limit?: number
-  offset?: number
-}
-
-export async function getActions(query: ActionQuery = {}) {
-  const { limit = 100, offset = 0, ...where } = query
+export async function getActions(query: Prisma.ActionFindManyArgs) {
+  const { take, skip, where } = query
 
   const [data, total] = await Promise.all([
     prisma.action.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      take: limit,
-      skip: offset,
+      take,
+      skip,
     }),
     prisma.action.count({
       where,
