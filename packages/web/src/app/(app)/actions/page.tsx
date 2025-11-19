@@ -54,19 +54,7 @@ function ActionsContent() {
 
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
-  const [viewingResult, setViewingResult] = useState<{
-    actionId: string
-    result: {
-      actionId: string
-      projectName?: string
-      projectAddr?: string
-      branch?: string
-      type: string
-      result: any
-      error?: string
-      status: string
-    }
-  } | null>(null)
+  const [viewingDetail, setViewingResult] = useState<Action | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
 
   // Get pagination from URL query parameters
@@ -228,17 +216,8 @@ function ActionsContent() {
   const handleViewResult = async (actionId: string) => {
     try {
       const response = await getActionById(actionId)
-      const result = {
-        actionId,
-        projectAddr: response.parameters.projectAddr,
-        projectName: response.parameters.projectName,
-        branch: response.parameters.branch,
-        type: response.type,
-        result: response.result,
-        error: response.error,
-        status: response.status,
-      }
-      setViewingResult({ actionId, result })
+
+      setViewingResult({ actionId, detail: response })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch action result')
     }
@@ -451,9 +430,19 @@ function ActionsContent() {
                   ),
                 },
                 {
+                  key: 'project',
+                  header: 'Project',
+                  width: '100',
+                  render: (action: Action) => (
+                    <div className="font-mono truncate" title={action.parameters.projectName}>
+                      {action.parameters.projectName || '---'}
+                    </div>
+                  ),
+                },
+                {
                   key: 'createdAt',
                   header: 'Created',
-                  width: '160',
+                  width: '120',
                   render: (action: Action) => (
                     <div className="text-sm text-gray-500 whitespace-nowrap">
                       {new Date(action.createdAt).toLocaleString()}
@@ -658,7 +647,7 @@ function ActionsContent() {
       )}
 
       {/* View Result Modal */}
-      {viewingResult && (
+      {viewingDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
@@ -671,31 +660,29 @@ function ActionsContent() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="mb-4">
                 <h4 className="font-medium">Action Details</h4>
-                <p className="text-sm text-gray-600">ID: {viewingResult.result.actionId}</p>
+                <p className="text-sm text-gray-600">ID: {viewingDetail.id}</p>
                 <p className="text-sm text-gray-600">
-                  ProjectName: {viewingResult.result.projectName}
+                  ProjectName: {viewingDetail.parameters.projectName}
                 </p>
                 <p className="text-sm text-gray-600">
-                  ProjectAddr: {viewingResult.result.projectAddr}
+                  ProjectAddr: {viewingDetail.parameters.projectAddr}
                 </p>
-                <p className="text-sm text-gray-600">Branch: {viewingResult.result.branch}</p>
-                <p className="text-sm text-gray-600">Type: {viewingResult.result.type}</p>
-                <p className="text-sm text-gray-600">Status: {viewingResult.result.status}</p>
+                <p className="text-sm text-gray-600">Branch: {viewingDetail.parameters.branch}</p>
+                <p className="text-sm text-gray-600">Type: {viewingDetail.type}</p>
+                <p className="text-sm text-gray-600">Status: {viewingDetail.status}</p>
+                <p className="text-sm text-gray-600">
+                  Duration: {calculateDuration(viewingDetail.createdAt, viewingDetail.updatedAt)}
+                </p>
               </div>
 
-              {viewingResult.result.error && (
+              {viewingDetail.error && (
                 <div className="mb-4">
                   <h4 className="font-medium mb-2 text-red-600">Error</h4>
                   <pre className="text-sm overflow-auto bg-red-50 p-4 rounded border border-red-200 text-red-700">
-                    {viewingResult.result.error}
+                    {viewingDetail.error}
                   </pre>
                 </div>
               )}
-
-              <h4 className="font-medium mb-2">Result Data</h4>
-              <pre className="text-sm overflow-auto bg-white p-4 rounded border">
-                {JSON.stringify(viewingResult.result.result, null, 2)}
-              </pre>
             </div>
           </div>
         </div>
@@ -712,4 +699,23 @@ export default function ActionsPage() {
       </Suspense>
     </SWRConfig>
   )
+}
+
+// Utility function to calculate duration between two dates
+function calculateDuration(createdAt: string, updatedAt: string): string {
+  const created = new Date(createdAt)
+  const updated = new Date(updatedAt)
+  const diffMs = updated.getTime() - created.getTime()
+
+  if (diffMs < 0) return 'Invalid'
+
+  const seconds = Math.floor(diffMs / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ${hours % 24}h`
+  if (hours > 0) return `${hours}h ${minutes % 60}m`
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`
+  return `${seconds}s`
 }
