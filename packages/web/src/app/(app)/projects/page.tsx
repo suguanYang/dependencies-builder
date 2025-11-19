@@ -440,7 +440,7 @@ function ProjectsContent() {
 
         {/* Create Project Modal */}
         {isCreating && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Create New Project</h3>
 
@@ -619,7 +619,7 @@ function ProjectsContent() {
 
         {/* Edit Project Modal */}
         {editingProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
               <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
 
