@@ -77,6 +77,16 @@ function ReportsContent() {
     return connections.length
   }
 
+  const hasVersionMismatch = (result: any) => {
+    if (!result?.affectedToNodes || !result.targetVersion) {
+      return false
+    }
+
+    return result.affectedToNodes.some((node: any) =>
+      node.version && node.version !== result.targetVersion
+    )
+  }
+
   return (
     <div className="pt-6 px-6">
       {error && (
@@ -161,6 +171,19 @@ function ReportsContent() {
                 </Button>
               </div>
             </div>
+
+            {/* Version Mismatch Warning */}
+            {viewingReport.result && hasVersionMismatch(viewingReport.result) && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertTitle>Version Mismatch Warning</AlertTitle>
+                <AlertDescription>
+                  Affected nodes have versions that do not match the target branch version ({viewingReport.result.targetVersion}).
+                  This indicate that the analysis was performed on outdated code. The Report may not accurate! You should run a
+                  new Static Analysis on the target branch before run the same Report again.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Report Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
