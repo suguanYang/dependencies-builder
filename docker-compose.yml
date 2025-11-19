@@ -40,3 +40,10 @@ volumes:
     driver: local
   dms_logs:
     driver: local
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.20.0.0/16" # prevent private IP confiliction
