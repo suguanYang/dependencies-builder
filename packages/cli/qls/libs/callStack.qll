@@ -3,11 +3,6 @@ import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.DataFlow
 private import semmle.javascript.dataflow.internal.PreCallGraphStep
 
-/**
- * Gets the maximum path depth to explore.
- */
-private int getCallStackDepthLimit() { result = 20 }
-
 class LazyComponent extends CallExpr {
   LazyComponent() {
     this.getCallee().(VarAccess).getName() = "lazyHoc" or
@@ -176,36 +171,6 @@ cached predicate calls(CallAbleNode parent, CallAbleNode child) {
   exists(JsxLazyElement jx |
     jx.getEnclosingFunction*() = getFunction(parent) and
     jx.getUnderlying() = child
-  )
-}
-
-/**
- * Internal recursive predicate for building the call stack with a depth limit.
- */
-private predicate callStackRec(CallAbleNode parent, CallAbleNode child, string path, int len) {
-  // base edge
-  calls(parent, child) and
-  path = parent.getId() + "->" + child.getId() and
-  len = 1
-  or
-  // recursive extension
-  exists(CallAbleNode mid, string parentPath, int parentLen |
-    callStackRec(parent, mid, parentPath, parentLen) and
-    calls(mid, child) and
-    // *** PERFORMANCE FIX ***
-    // not parentPath.matches("%" + child.getId() + "%") and
-    len = parentLen + 1 and
-    len <= getCallStackDepthLimit() and // *** CRASH PREVENTION ***
-    path = parentPath + "->" + child.getId()
-  )
-}
-
-/**
- * Recursively builds the render path from a starting component to an ending component.
- */
-predicate callStack(CallAbleNode parent, CallAbleNode child, string path) {
-  exists(int len |
-    callStackRec(parent, child, path, len)
   )
 }
 

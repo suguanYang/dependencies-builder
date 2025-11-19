@@ -7,55 +7,17 @@
  */
 
 import javascript
-import semmle.javascript.ES2015Modules
-import semmle.javascript.dataflow.DataFlow
 import libs.location
 
-private predicate getAnImportedMemberUsage(
-  ImportDeclaration imp, string memberName, DataFlow::Node usage
-) {
-  // Case 1: Default import -> import xxx from '...'
-  exists(ImportDefaultSpecifier spec | spec.getImportDeclaration() = imp |
-    memberName = "default" and
-    (
-      // Direct usage of the imported variable
-      usage.(DataFlow::ValueNode).asExpr().(VarAccess).getName() = spec.getLocal().getName()
-      or
-      // Data flow through local steps
-      DataFlow::valueNode(spec.getLocal()).getASuccessor+() = usage
-    )
-  )
-  or
-  // Case 2: Named import -> import { yyy } from '...'
-  exists(NamedImportSpecifier spec | spec.getImportDeclaration() = imp |
-    memberName = spec.getImportedName() and
-    (
-      // Direct usage of the imported variable
-      usage.(DataFlow::ValueNode).asExpr().(VarAccess).getName() = spec.getLocal().getName()
-      or
-      // Data flow through local steps
-      DataFlow::valueNode(spec.getLocal()).getASuccessor+() = usage
-    )
-  )
-  or
-  // Case 3: Namespace import -> import * as a from '...'; a.zzz()
-  exists(ImportNamespaceSpecifier spec | spec.getImportDeclaration() = imp |
-    exists(PropAccess memberExpr | 
-      memberExpr.getBase().(VarAccess).getName() = spec.getLocal().getName() and
-      memberName = memberExpr.getPropertyName() and
-      usage = DataFlow::valueNode(memberExpr)
-    )
-  )
-}
-
-from ImportDeclaration imp, string packageName, string importedName, DataFlow::Node usage, string usageLocation
+from string packageName, string importedMember, DataFlow::Node usage
 where
-  // Filter for @seeyon/* packages
-  imp.getImportedPathString().matches("@seeyon/%") and
-  packageName = imp.getImportedPathString()
-  and
-  getAnImportedMemberUsage(imp, importedName, usage)
-  and
-  usageLocation = getLocation(usage.getAstNode())
+  // 1. Filter for packages matching @seeyon/%
+  packageName.matches("@seeyon/%") and
 
-select packageName, importedName, usageLocation
+  // 2. Use API Graphs to find the import and specific member
+  // This handles 'import { X }', 'import X' (default), and 'import * as N; N.X' automatically.
+  exists(API::Node pkg | 
+    pkg = API::moduleImport(packageName) and
+    usage = pkg.getMember(importedMember).getAValueReachableFromSource()
+  )
+select packageName, importedMember, getLocation(usage.getAstNode())
