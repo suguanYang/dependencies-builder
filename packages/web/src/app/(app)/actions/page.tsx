@@ -54,7 +54,7 @@ function ActionsContent() {
 
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
-  const [viewingDetail, setViewingResult] = useState<Action | null>(null)
+  const [viewingDetail, setViewingDetail] = useState<Action | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
 
   // Get pagination from URL query parameters
@@ -217,7 +217,7 @@ function ActionsContent() {
     try {
       const response = await getActionById(actionId)
 
-      setViewingResult({ actionId, detail: response })
+      setViewingDetail(response)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch action result')
     }
@@ -652,7 +652,7 @@ function ActionsContent() {
           <div className="bg-white p-6 rounded-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Action Result</h3>
-              <Button variant="outline" onClick={() => setViewingResult(null)}>
+              <Button variant="outline" onClick={() => setViewingDetail(null)}>
                 Close
               </Button>
             </div>
