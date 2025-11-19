@@ -24,8 +24,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error ||
-        errorData.message ||
-        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+      errorData.message ||
+      `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 
@@ -56,12 +56,12 @@ export const batchCreateNodes = async (nodes: any[]) => {
   return response
 }
 
-export const getAnyNodeByVersion = async (version: string) => {
+export const getAnyNodeByProjectBranchVersion = async (projectName: string, branch: string, version: string) => {
   const res = await apiRequest<{
     data: {
       nodes: unknown[]
     }
-  }>(`nodes?version=${version}&limit=1`, {
+  }>(`nodes?version=${version}&projectName=${projectName}&branch=${branch}&limit=1`, {
     method: 'GET',
   })
 

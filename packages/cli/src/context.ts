@@ -140,6 +140,10 @@ class Context {
     return this.options.actionId
   }
 
+  getProjectName() {
+    return this.options.name
+  }
+
   getIgnoreCallGraph() {
     return this.options.ignoreCallGraph || false
   }
