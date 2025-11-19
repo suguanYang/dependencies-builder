@@ -133,13 +133,11 @@ function nodesRoutes(fastify: FastifyInstance) {
           return
         }
 
-        const createdNodes = await repository.createProjectBranchNodes(
+        const createdNodes = await repository.createSequenceNodes(
           nodesData.map((node) => ({
             ...node,
             projectId: project.id,
           })),
-          project.id,
-          nodesData[0].branch,
         )
 
         reply.code(201).send({

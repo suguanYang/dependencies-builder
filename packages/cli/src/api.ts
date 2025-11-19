@@ -1,3 +1,5 @@
+import debug from "./utils/debug"
+
 const API_BASE = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
 
 const CLI_KEY = process.env.DMS_SERVER_CLI_KEY
@@ -11,6 +13,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     'dms-key': CLI_KEY || 'null',
   }
 
+  debug(`request to ${url}`)
   const response = await fetch(url, {
     ...options,
     headers,
@@ -58,9 +61,7 @@ export const batchCreateNodes = async (nodes: any[]) => {
 
 export const getAnyNodeByProjectBranchVersion = async (projectName: string, branch: string, version: string) => {
   const res = await apiRequest<{
-    data: {
-      nodes: unknown[]
-    }
+    data: unknown[]
   }>(`nodes?version=${version}&projectName=${projectName}&branch=${branch}&limit=1`, {
     method: 'GET',
   })
@@ -69,7 +70,7 @@ export const getAnyNodeByProjectBranchVersion = async (projectName: string, bran
     throw new Error('can not parse nodes data')
   }
 
-  return res.data.nodes?.[0]
+  return res.data?.[0]
 }
 
 export const updateAction = async (actionId: string, update: unknown) => {

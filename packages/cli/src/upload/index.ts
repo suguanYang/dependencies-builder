@@ -1,4 +1,5 @@
 import { batchCreateNodes, updateAction } from '../api'
+import type { RunCodeQLResult } from '../codeql'
 import { getContext } from '../context'
 import debug, { error as errLog } from '../utils/debug'
 
@@ -9,7 +10,7 @@ export interface UploadResult {
   errors?: string[]
 }
 
-export async function uploadResults(results: any): Promise<UploadResult> {
+export async function uploadResults(results: RunCodeQLResult): Promise<UploadResult> {
   debug('Uploading results to server')
 
   try {

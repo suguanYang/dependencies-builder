@@ -144,16 +144,21 @@ export async function updateNode(
   return updatedNode
 }
 
-export async function createProjectBranchNodes(
-  nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
-  projectId: string,
-  branch: string,
+export async function createSequenceNodes(
+  nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]
 ) {
+  const node = nodes[0]
   const [_, createdNodes] = await prisma.$transaction([
     prisma.node.deleteMany({
       where: {
-        branch,
-        projectId,
+        branch: node.branch,
+        projectName: node.projectName,
+        version: {
+          not: node.version,
+        },
+        NOT: {
+          version: ''
+        }
       },
     }),
     prisma.node.createMany({

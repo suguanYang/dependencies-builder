@@ -38,6 +38,7 @@ export const runCodeQL = async () => {
     version: ctx.getVersion(),
   }
 }
+export type RunCodeQLResult = Awaited<ReturnType<typeof runCodeQL>>
 
 const postRun = async () => {
   const ctx = getContext()
@@ -72,9 +73,9 @@ const postRun = async () => {
     resolveFullPaths: false,
     output: {
       verbose: true,
-      debug: () => {},
-      clear: () => {},
-      assert: () => {},
+      debug: () => { },
+      clear: () => { },
+      assert: () => { },
       info: debug,
       error: error,
     },
