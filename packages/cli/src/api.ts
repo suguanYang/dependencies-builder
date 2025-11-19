@@ -1,4 +1,4 @@
-import debug from "./utils/debug"
+import debug from './utils/debug'
 
 const API_BASE = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
 
@@ -27,8 +27,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error ||
-      errorData.message ||
-      `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 
@@ -59,7 +59,11 @@ export const batchCreateNodes = async (nodes: any[]) => {
   return response
 }
 
-export const getAnyNodeByProjectBranchVersion = async (projectName: string, branch: string, version: string) => {
+export const getAnyNodeByProjectBranchVersion = async (
+  projectName: string,
+  branch: string,
+  version: string,
+) => {
   const res = await apiRequest<{
     data: unknown[]
   }>(`nodes?version=${version}&projectName=${projectName}&branch=${branch}&limit=1`, {

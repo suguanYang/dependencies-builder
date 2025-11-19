@@ -73,9 +73,9 @@ const postRun = async () => {
     resolveFullPaths: false,
     output: {
       verbose: true,
-      debug: () => { },
-      clear: () => { },
-      assert: () => { },
+      debug: () => {},
+      clear: () => {},
+      assert: () => {},
       info: debug,
       error: error,
     },

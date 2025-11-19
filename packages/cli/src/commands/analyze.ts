@@ -18,7 +18,11 @@ export async function analyzeProject(): Promise<void> {
 
     debug('Repository checked out')
 
-    const node = await getAnyNodeByProjectBranchVersion(ctx.getProjectName(), ctx.getBranch(), ctx.getVersion()!)
+    const node = await getAnyNodeByProjectBranchVersion(
+      ctx.getProjectName(),
+      ctx.getBranch(),
+      ctx.getVersion()!,
+    )
 
     if (node) {
       debug(`already existing nodes for version: ${ctx.getVersion()}`)

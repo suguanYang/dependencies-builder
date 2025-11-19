@@ -145,7 +145,7 @@ export async function updateNode(
 }
 
 export async function createSequenceNodes(
-  nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[]
+  nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
 ) {
   const node = nodes[0]
   const [_, createdNodes] = await prisma.$transaction([
@@ -157,8 +157,8 @@ export async function createSequenceNodes(
           not: node.version,
         },
         NOT: {
-          version: ''
-        }
+          version: '',
+        },
       },
     }),
     prisma.node.createMany({
