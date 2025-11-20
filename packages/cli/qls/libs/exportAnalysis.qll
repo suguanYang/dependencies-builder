@@ -6,7 +6,6 @@
 import location
 import callStack
 import javascript
-import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.TaintTracking
 
 /**
@@ -72,62 +71,51 @@ predicate isMinimalOriginForExport(ExportSourceNode origin, ExportDeclaration ex
  * This handles local exports, re-exports from internal modules, and re-exports from external modules.
  */
 predicate getExportOrigin(ExportDeclaration exportDecl, string name, AstNode origin, string location) {
-  exists(ExportSourceNode sourceNode |
-    (
-      // Handle export specifiers (both local and re-exports)
-      exists(ExportSpecifier spec |
-        spec.getExportDeclaration() = exportDecl and
-        name = spec.getExportedName()
-      )
-      or
-      // Handle bulk re-exports
-      (
-        exportDecl instanceof BulkReExportDeclaration and
-        exportDecl.exportsAs(_, name)
-      )
-      or
-      // handle namead export declaration
-      (
-        exportDecl instanceof ExportNamedDeclaration and
-        exportDecl.(ExportNamedDeclaration).getAnExportedDecl().getName() = name
-      )
-      or
-      // handle default export declaration
-      (
-        exportDecl instanceof ExportDefaultDeclaration and
-        "default" = name
-      )
+  (
+    // Handle export specifiers (both local and re-exports)
+    exists(ExportSpecifier spec |
+      spec.getExportDeclaration() = exportDecl and
+      name = spec.getExportedName()
     )
-    and
+    or
+    // Handle bulk re-exports
     (
-      // Case 1: Export has a resolvable source node (local exports or internal re-exports)
-      if exists(exportDecl.getSourceNode(name).getAstNode()) then (
+      exportDecl instanceof BulkReExportDeclaration and
+      exportDecl.exportsAs(_, name)
+    )
+    or
+    // handle namead export declaration
+    (
+      exportDecl instanceof ExportNamedDeclaration and
+      exportDecl.(ExportNamedDeclaration).getAnExportedDecl().getName() = name
+    )
+    or
+    // handle default export declaration
+    (
+      exportDecl instanceof ExportDefaultDeclaration and
+      "default" = name
+    )
+  )
+  and
+  (
+    // Case 1: Export has a resolvable source node (local exports or internal re-exports)
+    if exists(exportDecl.getSourceNode(name).getAstNode()) then (
+      exists(ExportSourceNode sourceNode |
         isMinimalOriginForExport(sourceNode, exportDecl, name) and
         origin = sourceNode
       )
-      // Case 2: Re-export from external module (source node not resolvable)
-      else if exportDecl instanceof ReExportDeclaration then (
-        exists(ExportSpecifier spec2, ExportNamedDeclaration namedDecl |
-          spec2.getExportDeclaration().getEnclosingModule() = exportDecl.(ReExportDeclaration).getReExportedES2015Module() and
-          namedDecl = spec2.getExportDeclaration() and
-          name = spec2.getExportedName() and
-          sourceNode = spec2 and
-          origin = spec2
-        )
-      )
-      // Case 3: Fallback to the export declaration itself
-      else (
-        sourceNode = exportDecl and
-        origin = exportDecl
-      )
     )
-    and
-    // Generate location string, handling LazyComponent specially
-    if origin instanceof LazyComponent and exists(origin.(LazyComponent).getUnderlyingNode()) then
-      location = getLocation(origin.(LazyComponent).getUnderlyingNode())
-    else
-      location = getLocation(origin)
+    // Case 2: Fallback to the export declaration itself, the exported may comes from external modules or a type declartion
+    else (
+      origin = exportDecl.getChild(0)
+    )
   )
+  and
+  // Generate location string, handling LazyComponent specially
+  if origin instanceof LazyComponent and exists(origin.(LazyComponent).getUnderlyingNode()) then
+    location = getLocation(origin.(LazyComponent).getUnderlyingNode())
+  else
+    location = getLocation(origin)
 }
 
 /**
