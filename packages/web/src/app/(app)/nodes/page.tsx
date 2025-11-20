@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense, useEffect } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { PlusIcon, TrashIcon, EditIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, EditIcon, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
@@ -313,12 +313,19 @@ function NodesContent() {
                   header: 'Name',
                   width: '200',
                   render: (node: Node) => (
-                    <Link
-                      href={`/node-detail?id=${node.id}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
-                    >
-                      {node.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/dependencies?nodeId=${node.id}&mode=node`}>
+                        <span title="View dependency graph">
+                          <GitBranch className="h-4 w-4 text-gray-500 hover:text-blue-600 cursor-pointer" />
+                        </span>
+                      </Link>
+                      <Link
+                        href={`/node-detail?id=${node.id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                      >
+                        {node.name}
+                      </Link>
+                    </div>
                   ),
                 },
                 {

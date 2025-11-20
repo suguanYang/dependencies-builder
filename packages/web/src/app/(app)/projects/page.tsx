@@ -2,8 +2,9 @@
 
 import React, { useState, Suspense, useEffect } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { PlusIcon, TrashIcon, EditIcon, XIcon } from 'lucide-react'
+import { PlusIcon, TrashIcon, EditIcon, XIcon, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
@@ -374,7 +375,14 @@ function ProjectsContent() {
                     header: 'Name',
                     width: '180',
                     render: (project: Project) => (
-                      <div className="font-medium text-blue-600 truncate">{project.name}</div>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/dependencies?projectId=${project.id}&mode=project`}>
+                          <span title="View dependency graph">
+                            <GitBranch className="h-4 w-4 text-gray-500 hover:text-blue-600 cursor-pointer" />
+                          </span>
+                        </Link>
+                        <div className="font-medium text-blue-600 truncate">{project.name}</div>
+                      </div>
                     ),
                   },
                   {

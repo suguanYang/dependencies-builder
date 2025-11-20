@@ -1,7 +1,22 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import * as dependencyManager from '../../dependency'
+import { GraphNode } from '../../dependency/types'
 import { authenticate } from '../../auth/middleware'
+
+// Custom error class for not found errors
+class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NotFoundError'
+  }
+}
+
+// Helper function to check if error is a not found error
+const isNotFoundError = (error: unknown): error is NotFoundError => {
+  return error instanceof Error &&
+    (error.name === 'NotFoundError' || error.message.includes('not found'))
+}
 
 function dependenciesRoutes(fastify: FastifyInstance) {
   // GET /dependencies/nodes/:nodeId - Get dependency graph for a specific node (recursive)
@@ -13,9 +28,9 @@ function dependenciesRoutes(fastify: FastifyInstance) {
 
       return graph
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (isNotFoundError(error)) {
         reply.code(404).send({
-          error: 'Node not found',
+          error: 'No dependency found',
           details: error.message,
         })
       } else {
@@ -36,9 +51,9 @@ function dependenciesRoutes(fastify: FastifyInstance) {
 
       return graph
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (isNotFoundError(error)) {
         reply.code(404).send({
-          error: 'Project not found',
+          error: 'No dependency found',
           details: error.message,
         })
       } else {
@@ -55,9 +70,21 @@ function dependenciesRoutes(fastify: FastifyInstance) {
     try {
       const { projectName, branch } = request.params as { projectName: string; branch: string }
 
-      // Get all nodes and edges
-      const nodesResult = await repository.getNodes({})
-      const connectionsResult = await repository.getConnections({})
+      // Get nodes and connections for the specific project and branch
+      const nodesResult = await repository.getNodes({
+        where: { projectName, branch }
+      })
+
+      // Get connections involving these nodes
+      const nodeIds = nodesResult.data.map(node => node.id)
+      const connectionsResult = await repository.getConnections({
+        where: {
+          OR: [
+            { fromId: { in: nodeIds } },
+            { toId: { in: nodeIds } }
+          ]
+        }
+      })
 
       const graph = dependencyManager.getProjectDependencyGraph(
         projectName,
@@ -68,10 +95,17 @@ function dependenciesRoutes(fastify: FastifyInstance) {
 
       return graph
     } catch (error) {
-      reply.code(500).send({
-        error: 'Failed to fetch project dependency graph',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
+      if (isNotFoundError(error)) {
+        reply.code(404).send({
+          error: 'Project not found',
+          details: error.message,
+        })
+      } else {
+        reply.code(500).send({
+          error: 'Failed to fetch project dependency graph',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
     }
   })
 
@@ -93,7 +127,19 @@ function dependenciesRoutes(fastify: FastifyInstance) {
           return
         }
 
-        const isValid = dependencyManager.validateEdgeCreation(fromNode, toNode)
+        // Convert to GraphNode format
+        const fromGraphNode: GraphNode = {
+          ...fromNode,
+          createdAt: fromNode.createdAt.toISOString(),
+          updatedAt: fromNode.updatedAt.toISOString(),
+        }
+        const toGraphNode: GraphNode = {
+          ...toNode,
+          createdAt: toNode.createdAt.toISOString(),
+          updatedAt: toNode.updatedAt.toISOString(),
+        }
+
+        const isValid = dependencyManager.validateEdgeCreation(fromGraphNode, toGraphNode)
 
         return { valid: isValid }
       } catch (error) {

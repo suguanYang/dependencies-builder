@@ -13,6 +13,7 @@ import {
   ShieldIcon,
   LogOut,
   User,
+  GitBranch,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -50,6 +51,12 @@ const navigationItems: NavigationItem[] = [
     href: '/connections',
     icon: NetworkIcon,
     description: 'Manage dependency connections',
+  },
+  {
+    name: 'Dependencies',
+    href: '/dependencies',
+    icon: GitBranch,
+    description: 'Visualize dependency graphs',
   },
   {
     name: 'Actions',

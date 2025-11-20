@@ -2,29 +2,12 @@ import { GraphNode, GraphConnection, DependencyGraph } from './types'
 import { buildDependencyGraph } from './graph'
 import * as repository from '../database/repository'
 
-export const getFullDependencyGraph = (
-  nodes: any[],
-  connections: any[],
-): DependencyGraph => {
-  // Convert nodes to GraphNode format
-  const graphNodes: GraphNode[] = nodes.map(node => ({
-    id: node.id,
-    name: node.name,
-    type: node.type,
-    projectName: node.projectName,
-    projectId: node.projectId,
-    branch: node.branch,
-  }))
-
-  // Convert connections to GraphConnection format
-  const graphConnections: GraphConnection[] = connections.map(conn => ({
-    id: conn.id,
-    fromId: conn.fromId,
-    toId: conn.toId,
-  }))
-
-  const graph = buildDependencyGraph(graphNodes, graphConnections)
-  return graph
+// Custom error class for not found errors
+class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NotFoundError'
+  }
 }
 
 export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): boolean => {
@@ -68,6 +51,10 @@ export const getProjectDependencyGraph = (
     (node) => node.projectName === projectName && node.branch === branch,
   )
 
+  if (projectNodes.length === 0) {
+    throw new NotFoundError(`No nodes found for project '${projectName}' on branch '${branch}'`)
+  }
+
   // Get all connections involving these nodes
   const projectConnections = graphConnections.filter((conn) =>
     projectNodes.some((node) => node.id === conn.fromId || node.id === conn.toId),
@@ -84,17 +71,14 @@ export const getNodeDependencyGraph = async (
   // Step 1: Get the starting node
   const startNode = await repository.getNodeById(nodeId)
   if (!startNode) {
-    throw new Error(`Node with ID ${nodeId} not found`)
+    throw new NotFoundError(`Node with ID ${nodeId} not found`)
   }
 
   // Convert to GraphNode format
   const startGraphNode: GraphNode = {
-    id: startNode.id,
-    name: startNode.name,
-    type: startNode.type,
-    projectName: startNode.projectName,
-    projectId: startNode.projectId,
-    branch: startNode.branch,
+    ...startNode,
+    createdAt: startNode.createdAt.toISOString(),
+    updatedAt: startNode.updatedAt.toISOString(),
   }
 
   const visitedNodes = new Map<string, GraphNode>()
@@ -137,9 +121,6 @@ export const getNodeDependencyGraph = async (
         continue
       }
 
-      // Add the connection
-      allConnections.push(connection)
-
       // Process target node (the one we haven't visited yet)
       const targetNodeId = visitedNodes.has(conn.fromId) ? conn.toId : conn.fromId
       if (!visitedNodes.has(targetNodeId)) {
@@ -151,12 +132,9 @@ export const getNodeDependencyGraph = async (
 
         // Convert to GraphNode format
         const targetGraphNode: GraphNode = {
-          id: targetNode.id,
-          name: targetNode.name,
-          type: targetNode.type,
-          projectName: targetNode.projectName,
-          projectId: targetNode.projectId,
-          branch: targetNode.branch,
+          ...targetNode,
+          createdAt: targetNode.createdAt.toISOString(),
+          updatedAt: targetNode.updatedAt.toISOString(),
         }
 
         visitedNodes.set(targetNodeId, targetGraphNode)
@@ -179,7 +157,7 @@ export const getProjectLevelDependencyGraph = async (
   // Step 1: Get project information
   const project = await repository.getProjectById(projectId)
   if (!project) {
-    throw new Error(`Project with ID ${projectId} not found`)
+    throw new NotFoundError(`Project with ID ${projectId} not found`)
   }
 
   // Step 2: Get all nodes for this project
@@ -188,7 +166,7 @@ export const getProjectLevelDependencyGraph = async (
   })
 
   if (projectNodes.data.length === 0) {
-    throw new Error(`No nodes found for project ID ${projectId}`)
+    throw new NotFoundError(`No nodes found for project ID ${projectId}`)
   }
 
   const visitedProjects = new Map<string, { name: string; branch: string }>()
@@ -275,15 +253,26 @@ export const getProjectLevelDependencyGraph = async (
     }
   }
 
-  // Create project-level nodes
-  const projectLevelNodes: GraphNode[] = Array.from(visitedProjects.entries()).map(([id, info]) => ({
-    id,
-    name: info.name,
-    type: 'NamedExport' as any, // Using a placeholder type for projects
-    projectName: info.name,
-    projectId: id,
-    branch: info.branch,
-  }))
+  // Create project-level nodes using actual project entities
+  const projectLevelNodes: GraphNode[] = []
+
+  for (const [projectId, info] of visitedProjects.entries()) {
+    // Fetch the actual project entity to get its proper type
+    const project = await repository.getProjectById(projectId)
+    if (project) {
+      projectLevelNodes.push({
+        id: project.id,
+        name: project.name,
+        type: project.type, // This is AppType (Lib or App)
+        projectName: project.name,
+        projectId: project.id,
+        branch: info.branch,
+        addr: project.addr,
+        createdAt: project.createdAt.toISOString(),
+        updatedAt: project.updatedAt.toISOString(),
+      })
+    }
+  }
 
   return buildDependencyGraph(projectLevelNodes, projectConnections)
 }

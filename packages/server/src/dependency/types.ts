@@ -1,13 +1,20 @@
-import { NodeType } from '../generated/prisma/client'
+import { NodeType, AppType } from '../generated/prisma/client'
 
 // For dependency layer - only graph-related properties
 export interface GraphNode {
   id: string
   name: string
-  type: NodeType
-  projectName: string
-  projectId: string
+  type: NodeType | AppType // Can be either NodeType or AppType
+  projectName?: string
+  projectId?: string
   branch: string
+  relativePath?: string
+  startLine?: number
+  startColumn?: number
+  // Optional fields for project entities
+  addr?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface GraphConnection {
