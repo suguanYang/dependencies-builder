@@ -53,8 +53,6 @@ where
     )
     or
     exists(ReExportDeclaration exportDecl |
-      not exportDecl.isTypeOnly()
-      and
       exportDecl.getImportedPath().getStringValue() = packageName
       and
       locationNode = exportDecl

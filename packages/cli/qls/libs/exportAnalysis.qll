@@ -146,7 +146,6 @@ predicate getFileExports(string filePath, string exportName, string location) {
   exists(ExportDeclaration exportDecl, File f, AstNode origin |
     exportDecl.getEnclosingModule().getFile() = f and
     isTargetFile(f, filePath) and
-    not exportDecl.isTypeOnly() and
     getExportOrigin(exportDecl, exportName, origin, location)
   )
 }
