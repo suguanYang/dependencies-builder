@@ -9,15 +9,7 @@ function dependenciesRoutes(fastify: FastifyInstance) {
     try {
       const { nodeId } = request.params as { nodeId: string }
 
-      // Get all nodes and edges for the graph
-      const nodesResult = await repository.getNodes({})
-      const connectionsResult = await repository.getConnections({})
-
-      const graph = dependencyManager.getNodeDependencyGraph(
-        nodeId,
-        nodesResult.data,
-        connectionsResult.data,
-      )
+      const graph = await dependencyManager.getNodeDependencyGraph(nodeId)
 
       return graph
     } catch (error) {
@@ -40,19 +32,11 @@ function dependenciesRoutes(fastify: FastifyInstance) {
     try {
       const { projectId } = request.params as { projectId: string }
 
-      // Get all nodes and edges
-      const nodesResult = await repository.getNodes({})
-      const connectionsResult = await repository.getConnections({})
-
-      const graph = dependencyManager.getProjectLevelDependencyGraph(
-        projectId,
-        nodesResult.data,
-        connectionsResult.data,
-      )
+      const graph = await dependencyManager.getProjectLevelDependencyGraph(projectId)
 
       return graph
     } catch (error) {
-      if (error instanceof Error && error.message.includes('No nodes found')) {
+      if (error instanceof Error && error.message.includes('not found')) {
         reply.code(404).send({
           error: 'Project not found',
           details: error.message,
