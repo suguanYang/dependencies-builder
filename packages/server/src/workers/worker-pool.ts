@@ -7,6 +7,9 @@ import * as repository from '../database/repository'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+let connectionWorkerPool: ConnectionWorkerPool | null = null;
+
+
 /**
  * Worker pool for connection auto-creation tasks
  * Uses piscina to manage worker threads efficiently
@@ -99,7 +102,14 @@ export class ConnectionWorkerPool {
       this.pool = null
     }
   }
+
+  static getPool() {
+    if (!connectionWorkerPool) {
+      connectionWorkerPool = new ConnectionWorkerPool()
+    }
+
+    return connectionWorkerPool
+  }
 }
 
 // Singleton instance
-export const connectionWorkerPool = new ConnectionWorkerPool()

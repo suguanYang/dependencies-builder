@@ -3,7 +3,7 @@ import * as repository from '../../database/repository'
 import { formatStringToNumber } from '../request_parameter'
 import { ActionData, executeCLI, getActiveExecution } from '../../services/cli-service'
 import { error as logError } from '../../logging'
-import { connectionWorkerPool } from '../../workers/worker-pool'
+import { ConnectionWorkerPool } from '../../workers/worker-pool'
 import { authenticate } from '../../auth/middleware'
 import { ActionQuery } from '../types'
 import { onlyQuery } from '../../utils'
@@ -79,7 +79,7 @@ function actionsRoutes(fastify: FastifyInstance) {
         const action = await repository.createAction(actionData)
 
         if (actionData.type === 'connection_auto_create') {
-          connectionWorkerPool.executeConnectionAutoCreation(action.id)
+          ConnectionWorkerPool.getPool().executeConnectionAutoCreation(action.id)
         } else if (actionData.type === 'static_analysis' || actionData.type === 'report') {
           executeCLI(action.id, actionData).catch((error) => {
             repository.updateAction(action.id, { status: 'failed' })
@@ -174,7 +174,7 @@ function actionsRoutes(fastify: FastifyInstance) {
         }
 
         if (action.type === 'connection_auto_create') {
-          const success = connectionWorkerPool.stopExecution(id)
+          const success = ConnectionWorkerPool.getPool().stopExecution(id)
           if (!success) {
             reply.code(404).send({ error: 'Connection auto-creation not found' })
             return
@@ -223,7 +223,7 @@ function actionsRoutes(fastify: FastifyInstance) {
         })
 
         // Trigger connection auto-creation in worker thread
-        const result = await connectionWorkerPool.executeConnectionAutoCreation(action.id)
+        const result = await ConnectionWorkerPool.getPool().executeConnectionAutoCreation(action.id)
         if (!result.success) {
           repository.updateAction(action.id, {
             status: 'failed',
