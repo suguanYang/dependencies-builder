@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { VirtualTable } from '@/components/virtual-table'
 import { swrConfig } from '@/lib/swr-config'
+import { DeleteButton } from '@/components/delete-button'
 import {
   type Action,
   type CreateActionData,
@@ -183,15 +184,6 @@ function ActionsContent() {
     }
   }, [selectedProject, setValue])
 
-  const handleDelete = async (actionId: string) => {
-    try {
-      await deleteAction(actionId)
-      // Refresh the actions data
-      mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete action')
-    }
-  }
 
   const handleCreate = async (data: ActionFormData) => {
     try {
@@ -488,15 +480,18 @@ function ActionsContent() {
                       >
                         <RotateCcwIcon className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(action.id)}
+                      <DeleteButton
+                        item={action}
+                        getDisplayName={(action) => `Action ${action.id}`}
+                        onDelete={async (action) => {
+                          await deleteAction(action.id)
+                          // Refresh the actions data
+                          mutate(['actions', debouncedSearchFilters, currentPage, pageSize])
+                        }}
                         disabled={action.status === 'running'}
                         title="Delete Action"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
+                        description="Are you sure you want to delete this action? This action cannot be undone."
+                      />
                     </div>
                   ),
                 },
@@ -687,6 +682,7 @@ function ActionsContent() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

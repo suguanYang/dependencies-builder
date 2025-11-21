@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
 import {
   type Project,
   type ProjectQuery,
@@ -57,6 +58,8 @@ function ProjectsContent() {
   const [error, setError] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [searchFilters, setSearchFilters] = useState<ProjectQuery>({
     name: '',
     addr: '',
@@ -185,13 +188,23 @@ function ProjectsContent() {
   const projects = projectsResponse?.data || []
   const totalCount = projectsResponse?.total || 0
 
-  const handleDelete = async (projectId: string) => {
+  const handleDelete = async (project: Project) => {
+    setDeletingProject(project)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingProject) return
+
+    setDeleteLoading(true)
     try {
-      await deleteProject(projectId)
+      await deleteProject(deletingProject.id)
       // Refresh the projects data
       mutate(['projects', searchFilters, currentPage, pageSize])
+      setDeletingProject(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete project')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -428,7 +441,7 @@ function ProjectsContent() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDelete(project.id)}
+                      onClick={() => handleDelete(project)}
                     >
                       <TrashIcon className="h-4 w-4" />
                     </Button>
@@ -800,6 +813,16 @@ function ProjectsContent() {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationModal
+          open={!!deletingProject}
+          onOpenChange={() => setDeletingProject(null)}
+          title="Confirm Delete"
+          description={`Are you sure you want to delete the project "${deletingProject?.name}"? This action cannot be undone.`}
+          loading={deleteLoading}
+          onConfirm={confirmDelete}
+        />
       </div>
     </TooltipProvider>
   )

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
 import {
   type Node,
   NodeType,
@@ -59,6 +60,8 @@ function NodesContent() {
   const [isCreating, setIsCreating] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project>()
+  const [deletingNode, setDeletingNode] = useState<Node | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // React Hook Form for create node
   const {
@@ -147,13 +150,23 @@ function NodesContent() {
   const nodes = nodesResponse?.data || []
   const totalCount = nodesResponse?.total || 0
 
-  const handleDelete = async (nodeId: string) => {
+  const handleDelete = async (node: Node) => {
+    setDeletingNode(node)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingNode) return
+
+    setDeleteLoading(true)
     try {
-      await deleteNode(nodeId)
+      await deleteNode(deletingNode.id)
       // Refresh the nodes data
       mutate(['nodes', searchFilters, currentPage, pageSize])
+      setDeletingNode(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete node')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -370,7 +383,7 @@ function NodesContent() {
                   <Button variant="outline" size="sm" onClick={() => setEditingNode(node)}>
                     <EditIcon className="h-4 w-4" />
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(node.id)}>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(node)}>
                     <TrashIcon className="h-4 w-4" />
                   </Button>
                 </div>
@@ -810,6 +823,16 @@ function NodesContent() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationModal
+        open={!!deletingNode}
+        onOpenChange={() => setDeletingNode(null)}
+        title="Confirm Delete"
+        description={`Are you sure you want to delete the node "${deletingNode?.name}"? This action cannot be undone.`}
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

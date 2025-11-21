@@ -536,3 +536,39 @@ export async function revokeApiKey(id: string): Promise<RevokeApiKeyResponse> {
     method: 'DELETE',
   })
 }
+
+// Dependencies API
+export interface DependencyGraph {
+  vertices: {
+    data: {
+      id: string
+      name: string
+      type: NodeType | AppType
+      projectName: string
+      projectId: string
+      branch: string
+      addr?: string
+    }
+    firstIn: number
+    firstOut: number
+  }[]
+  edges: {
+    data: {
+      id: string
+      fromId: string
+      toId: string
+    }
+    tailvertex: number
+    headvertex: number
+    headnext: number
+    tailnext: number
+  }[]
+}
+
+export async function getProjectDependencies(projectId: string): Promise<DependencyGraph> {
+  return apiRequest(`/dependencies/projects/${projectId}`)
+}
+
+export async function getNodeDependencies(nodeId: string): Promise<DependencyGraph> {
+  return apiRequest(`/dependencies/nodes/${nodeId}`)
+}

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
+import { DeleteButton } from '@/components/delete-button'
 import {
   type Connection,
   getConnectionsList,
@@ -151,14 +152,6 @@ function ConnectionsContent() {
   const connections = connectionsResponse?.data || []
   const totalCount = connectionsResponse?.total || 0
 
-  const handleDelete = async (connectionId: string) => {
-    try {
-      await deleteConnection(connectionId)
-      mutateConnections()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete connection')
-    }
-  }
 
   const handleCreate = async (data: ConnectionFormData) => {
     try {
@@ -492,9 +485,18 @@ function ConnectionsContent() {
                 },
               ]}
               actions={(connection: Connection) => (
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(connection.id)}>
-                  <TrashIcon className="h-4 w-4" />
-                </Button>
+                <DeleteButton
+                  item={connection}
+                  getDisplayName={(connection) =>
+                    `${connection.fromNode?.name || 'Unknown'} → ${connection.toNode?.name || 'Unknown'}`
+                  }
+                  onDelete={async (connection) => {
+                    await deleteConnection(connection.id)
+                    mutateConnections()
+                  }}
+                  title="Delete Connection"
+                  description="Are you sure you want to delete this connection? This action cannot be undone."
+                />
               )}
               pagination={{
                 pageSize,
@@ -562,6 +564,7 @@ function ConnectionsContent() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

@@ -1,26 +1,50 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import useSWR, { SWRConfig } from 'swr'
 import { GitBranch, Folder, AlertCircle } from 'lucide-react'
 import DependencyGraphVisualizer from '@/components/dependency-visualizer/graph'
 import NodePanel from '@/components/dependency-visualizer/panel'
 import { ProjectSelector } from '@/components/project-selector'
 import { NodeIdInput } from '@/components/node-id-input'
 import { DependencyGraph, D3Node } from '@/components/types'
-import { Project, getProjectById } from '@/lib/api'
+import { Project, getProjectById, getProjectDependencies, getNodeDependencies } from '@/lib/api'
+import { swrConfig } from '@/lib/swr-config'
 
-export default function DependenciesPage() {
+function DependenciesContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
   const [selectedNode, setSelectedNode] = useState<D3Node | null>(null)
-  const [graphData, setGraphData] = useState<DependencyGraph | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined)
   const [nodeId, setNodeId] = useState<string>('')
   const [viewMode, setViewMode] = useState<'project' | 'node'>('project')
+
+  // Project dependencies SWR
+  const { data: projectGraphData, error: projectError, isLoading: projectLoading } = useSWR(
+    selectedProject ? ['project-dependencies', selectedProject.id] : null,
+    () => getProjectDependencies(selectedProject!.id),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  )
+
+  // Node dependencies SWR
+  const { data: nodeGraphData, error: nodeError, isLoading: nodeLoading } = useSWR(
+    nodeId ? ['node-dependencies', nodeId] : null,
+    () => getNodeDependencies(nodeId),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  )
+
+  // Determine which data to use based on view mode
+  const graphData = viewMode === 'project' ? projectGraphData : nodeGraphData
+  const error = viewMode === 'project' ? projectError : nodeError
+  const loading = viewMode === 'project' ? projectLoading : nodeLoading
 
   // Initialize from query parameters
   useEffect(() => {
@@ -35,17 +59,14 @@ export default function DependenciesPage() {
         try {
           const project = await getProjectById(projectId)
           setSelectedProject(project)
-          fetchProjectDependencies(projectId)
         } catch (error) {
           console.error('Failed to fetch project:', error)
-          setError('Failed to load project')
         }
       }
       fetchProject()
     } else if (nodeIdParam) {
       setViewMode('node')
       setNodeId(nodeIdParam)
-      fetchNodeDependencies(nodeIdParam)
     } else if (mode) {
       setViewMode(mode)
     }
@@ -53,85 +74,32 @@ export default function DependenciesPage() {
 
   // Reset graph data when switching between views
   useEffect(() => {
-    setGraphData(null)
     setSelectedProject(undefined)
     setNodeId('')
     setSelectedNode(null)
-    setError(null)
   }, [viewMode])
 
-  const fetchProjectDependencies = async (projectId: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch(`/api/dependencies/projects/${projectId}`)
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch project dependencies')
-      }
-      const data = await response.json()
-      setGraphData(data)
-    } catch (err) {
-      console.error('Error fetching project dependencies:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load dependencies')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchNodeDependencies = async (nodeId: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch(`/api/dependencies/nodes/${nodeId}`)
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch node dependencies')
-      }
-      const data = await response.json()
-      setGraphData(data)
-    } catch (err) {
-      console.error('Error fetching node dependencies:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load dependencies')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleProjectChange = (project: Project | undefined) => {
     setSelectedProject(project)
+    // Update URL with projectId parameter
+    const params = new URLSearchParams()
     if (project) {
-      fetchProjectDependencies(project.id)
-      // Update URL with projectId parameter
-      const params = new URLSearchParams()
       params.set('projectId', project.id)
-      params.set('mode', 'project')
-      router.replace(`/dependencies?${params.toString()}`, { scroll: false })
-    } else {
-      setGraphData(null)
-      // Remove projectId parameter from URL
-      const params = new URLSearchParams()
-      params.set('mode', 'project')
-      router.replace(`/dependencies?${params.toString()}`, { scroll: false })
     }
+    params.set('mode', 'project')
+    router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
   const handleNodeIdChange = (newNodeId: string | undefined) => {
     setNodeId(newNodeId || '')
+    // Update URL with nodeId parameter
+    const params = new URLSearchParams()
     if (newNodeId) {
-      fetchNodeDependencies(newNodeId)
-      // Update URL with nodeId parameter
-      const params = new URLSearchParams()
       params.set('nodeId', newNodeId)
-      params.set('mode', 'node')
-      router.replace(`/dependencies?${params.toString()}`, { scroll: false })
-    } else {
-      setGraphData(null)
-      // Remove nodeId parameter from URL
-      const params = new URLSearchParams()
-      params.set('mode', 'node')
-      router.replace(`/dependencies?${params.toString()}`, { scroll: false })
     }
+    params.set('mode', 'node')
+    router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
   const handleViewModeChange = (newMode: 'project' | 'node') => {
@@ -281,5 +249,17 @@ export default function DependenciesPage() {
       {/* Node Panel */}
       <NodePanel node={selectedNode} onClose={handleClosePanel} />
     </div>
+  )
+}
+
+export default function DependenciesPage() {
+  return (
+    <SWRConfig value={swrConfig}>
+      <Suspense
+        fallback={<div className="min-h-screen bg-gray-50 p-6">Loading dependencies...</div>}
+      >
+        <DependenciesContent />
+      </Suspense>
+    </SWRConfig>
   )
 }

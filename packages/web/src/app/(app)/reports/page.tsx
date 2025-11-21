@@ -1,19 +1,21 @@
 'use client'
 
-import React, { useState } from 'react'
-import useSWR, { SWRConfig } from 'swr'
-import { EyeIcon, AlertCircleIcon } from 'lucide-react'
+import { useState } from 'react'
+import useSWR, { SWRConfig, mutate } from 'swr'
+import { EyeIcon, AlertCircleIcon, Trash2Icon, AlertTriangleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
+import { DeleteButton } from '@/components/delete-button'
 import {
   type Action,
   getActions,
   getActionById,
   getConnectionsList,
   getNodes,
+  deleteAction,
   Node,
 } from '@/lib/api'
 function ReportsContent() {
@@ -69,6 +71,8 @@ function ReportsContent() {
     }
   }
 
+
+
   const getAffectedNodesCount = (result: any) => {
     return result?.affectedToNodes?.length || 0
   }
@@ -119,40 +123,67 @@ function ReportsContent() {
 
       {!isLoading && reportActions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reportActions.map((action: Action) => (
-            <Card key={action.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-sm">{action.parameters.projectName}</CardTitle>
-                <CardDescription>
-                  Branch: {action.parameters.branch}
-                  <br />
-                  Created: {new Date(action.createdAt).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Status:</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium text-green-600 bg-green-100">
-                      {action.status}
-                    </span>
-                  </div>
+          {reportActions.map((action: Action) => {
+            // Check if this report has affected nodes or connections
+            const hasNodes = action.result?.affectedToNodes?.length > 0
+            const hasConnections = action.result?.connections?.length > 0
+            const hasWarnings = hasNodes || hasConnections
 
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleViewReport(action.id)}
-                    >
-                      <EyeIcon className="h-4 w-4 mr-2" />
-                      View Report
-                    </Button>
+            return (
+              <Card key={action.id} className="hover:shadow-lg transition-shadow relative">
+                {/* Warning indicator for reports with affected nodes or connections */}
+                {hasWarnings && (
+                  <div className="absolute top-2 right-2">
+                    <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                )}
+
+                <CardHeader>
+                  <CardTitle className="text-sm">{action.parameters.projectName}</CardTitle>
+                  <CardDescription>
+                    Branch: {action.parameters.branch}
+                    <br />
+                    Created: {new Date(action.createdAt).toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium text-green-600 bg-green-100">
+                        {action.status}
+                      </span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewReport(action.id)}
+                      >
+                        <EyeIcon className="h-4 w-4 mr-2" />
+                        View Report
+                      </Button>
+                      <DeleteButton
+                        item={action}
+                        getDisplayName={(action) => `Report for ${action.parameters.projectName}`}
+                        onDelete={async (action) => {
+                          await deleteAction(action.id)
+                          // Refresh the reports list
+                          mutate('reports-actions')
+                        }}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Delete Report"
+                        description="Are you sure you want to delete this report? This action cannot be undone."
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -321,6 +352,7 @@ function ReportsContent() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
