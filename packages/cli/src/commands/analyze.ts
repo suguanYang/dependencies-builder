@@ -24,8 +24,8 @@ export async function analyzeProject(): Promise<void> {
       ctx.getVersion()!,
     )
 
-    if (node) {
-      debug(`already existing nodes for version: ${ctx.getVersion()}`)
+    if (node && node?.meta?.qlsVersion === ctx.getQlsVersion()) {
+      debug(`already existing nodes for version: ${ctx.getVersion()}, qls: ${ctx.getQlsVersion()}`)
       process.exit(0)
     }
 

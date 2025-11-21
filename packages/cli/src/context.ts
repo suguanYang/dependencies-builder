@@ -6,6 +6,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper'
 import { readFileSync, readdirSync } from 'node:fs'
 import { getProjectByName } from './api'
+import { parse } from 'yaml'
 
 const path2name = (path: string) => {
   return path.replaceAll('/', '_')
@@ -45,6 +46,7 @@ class Context {
   private localDirectory?: string
   private workDirectory?: string
   private version?: string
+  private qlsVersion?: string
 
   constructor(options: AnalyzeOptions) {
     this.options = options
@@ -67,6 +69,14 @@ class Context {
       return this.tmpDir
     }
     return this.options.repository
+  }
+
+  getQlsVersion(): string {
+    if (!this.qlsVersion) {
+      throw new Error('can not get qls version!')
+    }
+
+    return this.qlsVersion
   }
 
   getRepository(): string {
@@ -235,6 +245,11 @@ class Context {
       path2name(this.options.name),
     )
     ensureDirectoryExistsSync(this.localDirectory)
+
+    const qlsYmlFile = readFileSync('./file.yml', 'utf8')
+    const qlsYml: { version: string } = parse(qlsYmlFile)
+
+    this.qlsVersion = qlsYml.version
 
     if (this.options.type) {
       this.type = this.options.type
