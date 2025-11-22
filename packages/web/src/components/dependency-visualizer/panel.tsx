@@ -100,6 +100,13 @@ const NodePanel: React.FC<NodePanelProps> = ({ node, onClose }) => {
             </div>
 
             <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Degree</label>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                {node.degree}
+              </div>
+            </div>
+
+            <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Branch</label>
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 {node.branch}
@@ -133,6 +140,13 @@ const NodePanel: React.FC<NodePanelProps> = ({ node, onClose }) => {
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Project</label>
               <p className="text-sm font-medium text-slate-700 truncate" title={node.projectName}>{node.projectName}</p>
+            </div>
+
+                        <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Degree</label>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                {node.degree}
+              </div>
             </div>
 
             <div className="space-y-1">

@@ -15,9 +15,9 @@ interface DependencyGraphVisualizerProps {
 
 // Increased base radius to ensure Abbr text fits inside
 const getNodeRadius = (node: D3Node) => {
-  const baseRadius = 20; // Minimum size to fit text
+  const baseRadius = 16; // Minimum size to fit text
   const degree = node.degree || 0;
-  return baseRadius + Math.sqrt(degree) * 2;
+  return baseRadius + Math.sqrt(degree) * 1.4;
 };
 
 const getNodeColor = (type: EntityType) => {
@@ -69,6 +69,11 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
   const nodesRef = useRef<D3Node[]>([]);
 
   // Main Effect: Init & Render Loop
+// ... imports and interfaces remain the same
+
+  // Inside DependencyGraphVisualizer component:
+  
+  // Main Effect: Init & Render Loop
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !data) return;
 
@@ -106,28 +111,27 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
         })
       )
       .force("charge", d3.forceManyBody().strength((d: any) => -400 - (d.degree * 20)))
-      .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05)) // Gentle centering
+      .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05))
       .force("collide", d3.forceCollide().radius((d: any) => getNodeRadius(d) + 20).iterations(2));
 
     simulationRef.current = simulation;
 
     // --- Helper: Find Node ---
-    // Optimizes hit detection for Drag, Click, and Hover
     const findNodeAt = (x: number, y: number) => {
+      // 1. Get current zoom transform
       const transform = transformRef.current;
-      // Convert screen coordinate to simulation coordinate
+      // 2. Invert screen coord to world coord
       const [simX, simY] = transform.invert([x, y]);
       
       let closest: D3Node | null = null;
       let minDst = Infinity;
 
-      // Simple loop is fast enough for < 2000 nodes. Use Quadtree if > 2000.
       for (const node of nodes) {
         if (node.x === undefined || node.y === undefined) continue;
         const dist = Math.hypot(simX - node.x, simY - node.y);
         const radius = getNodeRadius(node);
         
-        // Hit area is radius + margin
+        // Strict hit area (radius + 5px buffer)
         if (dist < radius + 5 && dist < minDst) {
           minDst = dist;
           closest = node;
@@ -146,101 +150,68 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
 
       // A. Draw Links
       context.lineWidth = 1.5;
-      context.strokeStyle = '#e5e7eb'; // gray-200
+      context.strokeStyle = '#e5e7eb';
       context.beginPath();
       links.forEach(link => {
         const source = link.source as D3Node;
         const target = link.target as D3Node;
-        context.moveTo(source.x!, source.y!);
-        context.lineTo(target.x!, target.y!);
+        if (source.x !== undefined && source.y !== undefined && target.x !== undefined && target.y !== undefined) {
+            context.moveTo(source.x, source.y);
+            context.lineTo(target.x, target.y);
+        }
       });
       context.stroke();
 
-      // B. Draw Arrows (Only when zoomed in a bit)
-      if (transformRef.current.k > 0.4) {
-          context.beginPath();
-          context.fillStyle = '#94a3b8'; // slate-400
-          links.forEach(link => {
-            const s = link.source as D3Node;
-            const t = link.target as D3Node;
-            const dx = t.x! - s.x!;
-            const dy = t.y! - s.y!;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 40) return; // Don't draw arrows on very short links
-            
-            // Calculate arrow position (60% down the line)
-            const ratio = 0.6;
-            const mx = s.x! + dx * ratio;
-            const my = s.y! + dy * ratio;
-            
-            // Arrow geometry
-            const len = 6 / transformRef.current.k; // Scale arrow by zoom so it doesn't get huge
-            const w = 3 / transformRef.current.k;
-            const angle = Math.atan2(dy, dx);
-            
-            context.save();
-            context.translate(mx, my);
-            context.rotate(angle);
-            context.moveTo(len, 0);
-            context.lineTo(-len, w);
-            context.lineTo(-len, -w);
-            context.fill();
-            context.restore();
-          });
-      }
-
-      // C. Draw Nodes
+      // B. Draw Nodes
       nodes.forEach(node => {
+        if (node.x === undefined || node.y === undefined) return;
         const radius = getNodeRadius(node);
         const isFocused = focusNodeId === node.id;
         
-        // 1. Focus Glow
+        // Focus Glow
         if (isFocused) {
            context.beginPath();
            context.fillStyle = 'rgba(59, 130, 246, 0.3)';
-           context.arc(node.x!, node.y!, radius + 8, 0, 2 * Math.PI);
+           context.arc(node.x, node.y, radius + 8, 0, 2 * Math.PI);
            context.fill();
         }
 
-        // 2. Node Circle
+        // Node Circle
         context.beginPath();
         context.fillStyle = getNodeColor(node.type);
-        context.arc(node.x!, node.y!, radius, 0, 2 * Math.PI);
+        context.arc(node.x, node.y, radius, 0, 2 * Math.PI);
         context.fill();
         context.strokeStyle = isFocused ? '#1d4ed8' : '#ffffff';
         context.lineWidth = isFocused ? 3 : 1.5;
         context.stroke();
 
-        // 3. Abbreviation Text (Inside Node)
-        // Only draw if zoom isn't extremely far out
+        // Abbreviation Text
         if (transformRef.current.k > 0.15) {
             const abbr = getNodeAbbreviation(node.type);
-            context.fillStyle = '#ffffff'; // White text
-            // Scale font size based on radius, ensuring it fits
+            context.fillStyle = '#ffffff';
             const fontSize = Math.min(radius, 14); 
             context.font = `700 ${fontSize}px sans-serif`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
-            context.fillText(abbr, node.x!, node.y! + 1); // +1 for visual centering
+            context.fillText(abbr, node.x, node.y + 1);
         }
       });
 
-      // D. Draw External Labels (Name below node)
-      // Only draw when zoomed in or hovering/hot
+      // C. Draw Labels (Optional: Only when zoomed in)
       if (transformRef.current.k > 0.6) {
         context.textAlign = 'center';
         context.textBaseline = 'top';
         nodes.forEach(node => {
-           if ((node.degree || 0) < 5 && transformRef.current.k < 1.2) return; // Optimize: skip unimportant nodes when zoomed mid-way
+           if ((node.degree || 0) < 5 && transformRef.current.k < 1.2) return;
+           if (node.x === undefined || node.y === undefined) return;
            
            const radius = getNodeRadius(node);
-           context.fillStyle = '#1e293b'; // slate-800
+           context.fillStyle = '#1e293b';
            context.font = '10px sans-serif';
-           // Draw simplified background for text readability
            context.strokeStyle = 'rgba(255,255,255,0.8)';
            context.lineWidth = 3;
-           context.strokeText(node.name, node.x!, node.y! + radius + 4);
-           context.fillText(node.name, node.x!, node.y! + radius + 4);
+           context.strokeText(node.name, node.x, node.y + radius + 4);
+           context.fillText(node.name, node.x, node.y + radius + 4);
         });
       }
 
@@ -252,39 +223,31 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
     // 5. Interactions
     const canvasSelection = d3.select(canvas);
 
-    // -- Zoom --
-    const zoom = d3.zoom<HTMLCanvasElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on("zoom", (e) => {
-        transformRef.current = e.transform;
-        render();
-      });
-    zoomBehaviorRef.current = zoom;
-    canvasSelection.call(zoom);
-
-    // -- Drag --
+    // --- Drag Behavior (Define BEFORE Zoom) ---
     const drag = d3.drag<HTMLCanvasElement, unknown>()
       .container(canvas)
       .subject((event) => {
-        // Use container mouse coordinates directly
-        return findNodeAt(event.x, event.y); 
+        // FIX: Use d3.pointer to get [x,y] relative to the canvas
+        const [x, y] = d3.pointer(event, canvas);
+        // Find node at those coordinates
+        return findNodeAt(x, y);
       })
       .on("start", (event) => {
+        // If subject returned null, this event never fires
         if (!event.active) simulation.alphaTarget(0.3).restart();
+        
         const node = event.subject as D3Node;
-        // Lock node position
         node.fx = node.x;
         node.fy = node.y;
+        
         canvas.style.cursor = 'grabbing';
       })
       .on("drag", (event) => {
         const node = event.subject as D3Node;
-        // We must map the drag event (screen) back to simulation (world) coords
-        const transform = transformRef.current;
-        const [x, y] = transform.invert([event.x, event.y]);
-        
-        node.fx = x;
-        node.fy = y;
+        // event.x/y are automatically transformed by d3-drag 
+        // to match the subject's coordinate system (world coordinates)
+        node.fx = event.x;
+        node.fy = event.y;
       })
       .on("end", (event) => {
         if (!event.active) simulation.alphaTarget(0);
@@ -294,36 +257,49 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
         canvas.style.cursor = 'grab';
       });
 
-    canvasSelection.call(drag);
+    // --- Zoom Behavior ---
+    const zoom = d3.zoom<HTMLCanvasElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on("zoom", (e) => {
+        transformRef.current = e.transform;
+        render();
+      });
 
-    // -- Click --
+    zoomBehaviorRef.current = zoom;
+
+    // Apply Drag FIRST, then Zoom
+    // If Drag.subject returns a node, Drag consumes the event.
+    // If Drag.subject returns null, the event passes to Zoom.
+    canvasSelection.call(drag).call(zoom);
+
+    // --- Click Handling ---
     canvasSelection.on("click", (event) => {
-       // Prevent click if it was a drag operation (simple check)
-       if (event.defaultPrevented) return; 
+       // Ignore clicks that happened during a drag gesture
+       if (event.defaultPrevented) return;
        
-       const [x, y] = d3.pointer(event);
+       const [x, y] = d3.pointer(event, canvas);
        const node = findNodeAt(x, y);
        if (node && onNodeClick) {
          onNodeClick(node);
        }
     });
 
-    // -- Mouse Move (Hover Cursor) --
+    // --- Mouse Move (Cursor) ---
     canvasSelection.on("mousemove", (event) => {
-       // If dragging, ignore hover logic
+       // Don't update cursor while dragging
        if (event.buttons === 1) return;
 
-       const [x, y] = d3.pointer(event);
+       const [x, y] = d3.pointer(event, canvas);
        const node = findNodeAt(x, y);
-       canvas.style.cursor = node ? 'pointer' : 'move'; // 'move' implies panning
+       canvas.style.cursor = node ? 'pointer' : 'move';
     });
 
     return () => {
       simulation.stop();
       zoom.on("zoom", null);
+      drag.on("start", null).on("drag", null).on("end", null);
     };
-  }, [data, onNodeClick]); // FocusNodeId intentionally omitted (handled below)
-
+  }, [data, onNodeClick]);
   // --- Focus Animation Effect ---
   useEffect(() => {
     if (!focusNodeId || !canvasRef.current || !zoomBehaviorRef.current) return;
