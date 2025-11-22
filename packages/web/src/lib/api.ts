@@ -551,6 +551,8 @@ export interface DependencyGraph {
     }
     firstIn: number
     firstOut: number
+    outDegree: number
+    inDegree: number
   }[]
   edges: {
     data: {
@@ -565,10 +567,14 @@ export interface DependencyGraph {
   }[]
 }
 
-export async function getProjectDependencies(projectId: string): Promise<DependencyGraph> {
-  return apiRequest(`/dependencies/projects/${projectId}`)
+export async function getProjectDependencies(projectId: string, depth: number = 2, branch: string = 'test'): Promise<DependencyGraph> {
+  const params = new URLSearchParams()
+  params.append('depth', depth.toString())
+  return apiRequest(`/dependencies/projects/${projectId}/${branch}?${params.toString()}`)
 }
 
-export async function getNodeDependencies(nodeId: string): Promise<DependencyGraph> {
-  return apiRequest(`/dependencies/nodes/${nodeId}`)
+export async function getNodeDependencies(nodeId: string, depth: number = 2): Promise<DependencyGraph> {
+  const params = new URLSearchParams()
+  params.append('depth', depth.toString())
+  return apiRequest(`/dependencies/nodes/${nodeId}?${params.toString()}`)
 }

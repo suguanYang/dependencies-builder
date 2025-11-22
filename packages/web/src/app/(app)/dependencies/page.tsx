@@ -9,7 +9,7 @@ import NodePanel from '@/components/dependency-visualizer/panel'
 import { ProjectSelector } from '@/components/project-selector'
 import { NodeIdInput } from '@/components/node-id-input'
 import { DependencyGraph, D3Node } from '@/components/types'
-import { Project, getProjectById, getProjectDependencies, getNodeDependencies } from '@/lib/api'
+import { Project, getProjectById, getProjectDependencies, getNodeDependencies, getNodeById } from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
 
 function DependenciesContent() {
@@ -20,11 +20,13 @@ function DependenciesContent() {
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined)
   const [nodeId, setNodeId] = useState<string>('')
   const [viewMode, setViewMode] = useState<'project' | 'node'>('project')
+  const [depth, setDepth] = useState<number>(2)
+  const [branch, setBranch] = useState<string>('test')
 
   // Project dependencies SWR
   const { data: projectGraphData, error: projectError, isLoading: projectLoading } = useSWR(
-    selectedProject ? ['project-dependencies', selectedProject.id] : null,
-    () => getProjectDependencies(selectedProject!.id),
+    selectedProject ? ['project-dependencies', selectedProject.id, depth, branch] : null,
+    () => getProjectDependencies(selectedProject!.id, depth, branch),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -33,8 +35,8 @@ function DependenciesContent() {
 
   // Node dependencies SWR
   const { data: nodeGraphData, error: nodeError, isLoading: nodeLoading } = useSWR(
-    nodeId ? ['node-dependencies', nodeId] : null,
-    () => getNodeDependencies(nodeId),
+    nodeId ? ['node-dependencies', nodeId, depth] : null,
+    () => getNodeDependencies(nodeId, depth),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -51,34 +53,32 @@ function DependenciesContent() {
     const projectId = searchParams.get('projectId')
     const nodeIdParam = searchParams.get('nodeId')
     const mode = searchParams.get('mode') as 'project' | 'node' | null
+    const depthParam = searchParams.get('depth')
+    const branchParam = searchParams.get('branch')
 
     if (projectId) {
       setViewMode('project')
       // Fetch the project by ID and set it in the selector
-      const fetchProject = async () => {
-        try {
-          const project = await getProjectById(projectId)
-          setSelectedProject(project)
-        } catch (error) {
-          console.error('Failed to fetch project:', error)
-        }
-      }
-      fetchProject()
+      getProjectById(projectId).then(setSelectedProject)
     } else if (nodeIdParam) {
       setViewMode('node')
       setNodeId(nodeIdParam)
+      // getNodeById(nodeIdParam).then(setSelectedNode)
     } else if (mode) {
       setViewMode(mode)
     }
+
+    if (depthParam) {
+      const depthValue = parseInt(depthParam, 10)
+      if (!isNaN(depthValue) && depthValue >= 1 && depthValue <= 10) {
+        setDepth(depthValue)
+      }
+    }
+
+    if (branchParam) {
+      setBranch(branchParam)
+    }
   }, [searchParams])
-
-  // Reset graph data when switching between views
-  useEffect(() => {
-    setSelectedProject(undefined)
-    setNodeId('')
-    setSelectedNode(null)
-  }, [viewMode])
-
 
   const handleProjectChange = (project: Project | undefined) => {
     setSelectedProject(project)
@@ -88,6 +88,8 @@ function DependenciesContent() {
       params.set('projectId', project.id)
     }
     params.set('mode', 'project')
+    params.set('depth', depth.toString())
+    params.set('branch', branch)
     router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
@@ -99,19 +101,61 @@ function DependenciesContent() {
       params.set('nodeId', newNodeId)
     }
     params.set('mode', 'node')
+    params.set('depth', depth.toString())
+    params.set('branch', branch)
     router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
   const handleViewModeChange = (newMode: 'project' | 'node') => {
     setViewMode(newMode)
+    setSelectedNode(null)
+    setSelectedProject(undefined)
     // Update URL with mode parameter and clear projectId/nodeId when switching modes
     const params = new URLSearchParams()
     params.set('mode', newMode)
+    params.set('depth', depth.toString())
+    params.set('branch', branch)
 
     // Keep the current selection if switching to the same mode
     if (newMode === 'project' && selectedProject) {
       params.set('projectId', selectedProject.id)
     } else if (newMode === 'node' && nodeId) {
+      params.set('nodeId', nodeId)
+    }
+
+    router.replace(`/dependencies?${params.toString()}`, { scroll: false })
+  }
+
+  const handleDepthChange = (newDepth: number) => {
+    setDepth(newDepth)
+    // Update URL with depth parameter
+    const params = new URLSearchParams()
+    params.set('mode', viewMode)
+    params.set('depth', newDepth.toString())
+    params.set('branch', branch)
+
+    // Keep current selection
+    if (viewMode === 'project' && selectedProject) {
+      params.set('projectId', selectedProject.id)
+    } else if (viewMode === 'node' && nodeId) {
+      params.set('nodeId', nodeId)
+    }
+
+    router.replace(`/dependencies?${params.toString()}`, { scroll: false })
+  }
+
+  const handleBranchChange = (newBranch: string) => {
+    setBranch(newBranch)
+    // Update URL with branch parameter
+    const params = new URLSearchParams()
+    params.set('mode', viewMode)
+    params.set('depth', depth.toString())
+    params.set('branch', newBranch)
+
+    // Keep current selection
+    if (viewMode === 'project' && selectedProject) {
+      params.set('projectId', selectedProject.id)
+    } else if (viewMode === 'node' && nodeId) {
       params.set('nodeId', nodeId)
     }
 
@@ -170,6 +214,35 @@ function DependenciesContent() {
               </div>
             </button>
           </div>
+
+          {/* Depth and Branch Inputs */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Depth:
+              </label>
+              <input
+                type="number"
+                value={depth}
+                onChange={(e) => handleDepthChange(parseInt(e.target.value, 10))}
+                min="1"
+                max="10"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Branch:
+              </label>
+              <input
+                type="text"
+                value={branch}
+                onChange={(e) => handleBranchChange(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter branch..."
+              />
+            </div>
+          </div>
         </div>
 
         {/* Project Selection */}
@@ -217,7 +290,7 @@ function DependenciesContent() {
       )}
 
       {/* Graph Visualization */}
-      <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white relative">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

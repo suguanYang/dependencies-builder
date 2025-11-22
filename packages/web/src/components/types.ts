@@ -12,8 +12,11 @@ export interface D3Node {
   projectName?: string;
   projectId?: string;
   branch: string;
+  degree: number;
   x?: number;
   y?: number;
+  vx?: number;
+  vy?: number;
   fx?: number | null;
   fy?: number | null;
   // Project-specific fields
@@ -47,10 +50,11 @@ export interface DependencyGraph {
       projectId: string;
       branch: string;
       addr?: string;
-
     };
     firstIn: number;
     firstOut: number;
+    inDegree: number;
+    outDegree: number;
   }[];
   edges: {
     data: {

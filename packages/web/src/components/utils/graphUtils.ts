@@ -13,7 +13,8 @@ export function parseDependencyGraph(graph: DependencyGraph): { nodes: D3Node[];
   // Parse vertices into D3 nodes
   graph.vertices.forEach(vertex => {
     const node: D3Node = {
-      ...vertex.data
+      ...vertex.data,
+      degree: (vertex.inDegree + vertex.outDegree) || 0
     };
     nodes.push(node);
     nodeMap.set(vertex.data.id, node);
@@ -54,6 +55,8 @@ export function generateMockDependencyGraph(): DependencyGraph {
         },
         firstIn: 0,
         firstOut: 0,
+        inDegree: 0,
+        outDegree: 2,
       },
       {
         data: {
@@ -66,6 +69,8 @@ export function generateMockDependencyGraph(): DependencyGraph {
         },
         firstIn: 1,
         firstOut: 1,
+        inDegree: 1,
+        outDegree: 0,
       },
       {
         data: {
@@ -78,6 +83,8 @@ export function generateMockDependencyGraph(): DependencyGraph {
         },
         firstIn: 2,
         firstOut: 2,
+        inDegree: 1,
+        outDegree: 0,
       },
     ],
     edges: [
