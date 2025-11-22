@@ -1,273 +1,247 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import * as d3 from 'd3';
 import { DependencyGraph, D3Node, D3Link, EntityType } from '../types';
 import { parseDependencyGraph } from '../utils/graphUtils';
-import { ZoomIn, ZoomOut, Maximize, RefreshCw } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { AppType, NodeType } from '@/lib/api';
 
 interface DependencyGraphVisualizerProps {
   data: DependencyGraph;
   onNodeClick?: (node: D3Node) => void;
+  focusNodeId: string;
 }
 
-// Visual Constants
-const NODE_RADIUS = 25;
+// --- Visual Constants & Helpers ---
 
-// Dynamic radius based on connection count (degree)
+// Increased base radius to ensure Abbr text fits inside
 const getNodeRadius = (node: D3Node) => {
-  const baseRadius = 4
-  const degree = node.degree
-  // Logarithmic scale prevents massive nodes from taking over screen, but allows growth
-  // sqrt(degree) is also good: 100 connections = 10 * factor
-  return baseRadius + Math.sqrt(degree) * 1.5
+  const baseRadius = 20; // Minimum size to fit text
+  const degree = node.degree || 0;
+  return baseRadius + Math.sqrt(degree) * 2;
 };
 
-// Node type colors
 const getNodeColor = (type: EntityType) => {
-  // Handle AppType first
-  if (type === AppType.App) return '#3b82f6'; // blue-500 for App
-  if (type === AppType.Lib) return '#8b5cf6'; // violet-500 for Lib
+  if (type === AppType.App) return '#3b82f6';
+  if (type === AppType.Lib) return '#8b5cf6';
 
-  // Handle NodeType
   switch (type) {
-    case NodeType.NamedExport: return '#3b82f6'; // blue-500
-    case NodeType.NamedImport: return '#eab308'; // yellow-500
-    case NodeType.RuntimeDynamicImport: return '#ec4899'; // pink-500
-    case NodeType.GlobalVarRead: return '#8b5cf6'; // violet-500
-    case NodeType.GlobalVarWrite: return '#10b981'; // emerald-500
-    case NodeType.WebStorageRead: return '#f97316'; // orange-500
-    case NodeType.WebStorageWrite: return '#22c55e'; // green-500
-    case NodeType.EventOn: return '#06b6d4'; // cyan-500
-    case NodeType.EventEmit: return '#ef4444'; // red-500
-    case NodeType.DynamicModuleFederationReference: return '#8b5cf6'; // violet-500
-    default: return '#6b7280'; // gray-500
+    case NodeType.NamedExport: return '#3b82f6';
+    case NodeType.NamedImport: return '#eab308';
+    case NodeType.RuntimeDynamicImport: return '#ec4899';
+    case NodeType.GlobalVarRead: return '#8b5cf6';
+    case NodeType.GlobalVarWrite: return '#10b981';
+    case NodeType.WebStorageRead: return '#f97316';
+    case NodeType.WebStorageWrite: return '#22c55e';
+    case NodeType.EventOn: return '#06b6d4';
+    case NodeType.EventEmit: return '#ef4444';
+    case NodeType.DynamicModuleFederationReference: return '#8b5cf6';
+    default: return '#6b7280';
   }
 };
 
-
-// Node type abbreviations
 const getNodeAbbreviation = (type: EntityType) => {
-  // Handle AppType first
-  if (type === AppType.App) return 'A';
-  if (type === AppType.Lib) return 'L';
+  if (type === AppType.App) return 'APP';
+  if (type === AppType.Lib) return 'LIB';
 
-  // Handle NodeType
   switch (type) {
     case NodeType.NamedExport: return 'NE';
     case NodeType.NamedImport: return 'NI';
     case NodeType.RuntimeDynamicImport: return 'RDI';
-    case NodeType.GlobalVarRead: return 'GVR';
-    case NodeType.GlobalVarWrite: return 'GVW';
-    case NodeType.WebStorageRead: return 'WSR';
-    case NodeType.WebStorageWrite: return 'WSW';
+    case NodeType.GlobalVarRead: return 'GR';
+    case NodeType.GlobalVarWrite: return 'GW';
+    case NodeType.WebStorageRead: return 'WR';
+    case NodeType.WebStorageWrite: return 'WW';
     case NodeType.EventOn: return 'EO';
     case NodeType.EventEmit: return 'EE';
     case NodeType.DynamicModuleFederationReference: return 'DMF';
-    default: return 'N/A';
+    default: return '?';
   }
 };
 
-
-
-const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ data, onNodeClick }) => {
+const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ data, onNodeClick, focusNodeId }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Refs to keep track of simulation state across renders without triggering re-renders
+  // Refs for D3 state
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<HTMLCanvasElement, unknown> | null>(null);
   const nodesRef = useRef<D3Node[]>([]);
-  
-  // Initialize Graph
+
+  // Main Effect: Init & Render Loop
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !data) return;
 
+    // 1. Parse Data
     const { nodes, links } = parseDependencyGraph(data);
     nodesRef.current = nodes;
 
-    const container = containerRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
+    const container = containerRef.current;
     if (!context) return;
 
+    // 2. Setup Canvas DPI
     const width = container.clientWidth;
     const height = container.clientHeight;
-
-    // Handle High DPI Screens
     const dpr = window.devicePixelRatio || 1;
+    
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.scale(dpr, dpr);
 
-    // Cleanup old simulation
+    // 3. Stop previous simulation
     if (simulationRef.current) simulationRef.current.stop();
 
-    // Initialize Force Simulation
+    // 4. Force Simulation
     const simulation = d3.forceSimulation<D3Node, D3Link>(nodes)
       .force("link", d3.forceLink<D3Node, D3Link>(links)
         .id(d => d.id)
         .distance((d) => {
-            // Dynamic link distance: Hot nodes need longer links to fan out their neighbors
-            const source = d.source as D3Node;
-            const target = d.target as D3Node;
-            const sourceDeg = source.degree;
-            const targetDeg = target.degree;
-            
-            // Base distance 100, add length for busy nodes
-            return 100 + Math.sqrt(Math.max(sourceDeg, targetDeg)) * 10;
+           const sourceDeg = (d.source as D3Node).degree || 1;
+           const targetDeg = (d.target as D3Node).degree || 1;
+           return 80 + Math.sqrt(Math.max(sourceDeg, targetDeg)) * 10;
         })
-      ) 
-      .force("charge", d3.forceManyBody()
-        .strength((d: any) => {
-            const degree = d.degree;
-            // Standard nodes have -400. Hot nodes get much stronger repulsion (up to -2000)
-            // to push the clutter away.
-            return -400 - (degree * 20);
-        })
-        .distanceMax(4000)
-      ) 
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide()
-        .radius((d: any) => {
-            // Collision radius slightly larger than visual radius + text padding
-            return getNodeRadius(d) + 25; 
-        })
-        .iterations(2)
-      );
+      )
+      .force("charge", d3.forceManyBody().strength((d: any) => -400 - (d.degree * 20)))
+      .force("center", d3.forceCenter(width / 2, height / 2).strength(0.05)) // Gentle centering
+      .force("collide", d3.forceCollide().radius((d: any) => getNodeRadius(d) + 20).iterations(2));
 
     simulationRef.current = simulation;
 
-    // Render Function
+    // --- Helper: Find Node ---
+    // Optimizes hit detection for Drag, Click, and Hover
+    const findNodeAt = (x: number, y: number) => {
+      const transform = transformRef.current;
+      // Convert screen coordinate to simulation coordinate
+      const [simX, simY] = transform.invert([x, y]);
+      
+      let closest: D3Node | null = null;
+      let minDst = Infinity;
+
+      // Simple loop is fast enough for < 2000 nodes. Use Quadtree if > 2000.
+      for (const node of nodes) {
+        if (node.x === undefined || node.y === undefined) continue;
+        const dist = Math.hypot(simX - node.x, simY - node.y);
+        const radius = getNodeRadius(node);
+        
+        // Hit area is radius + margin
+        if (dist < radius + 5 && dist < minDst) {
+          minDst = dist;
+          closest = node;
+        }
+      }
+      return closest;
+    };
+
+    // --- Render Function ---
     const render = () => {
       context.save();
       context.clearRect(0, 0, width, height);
       
-      // Apply Zoom Transform
       context.translate(transformRef.current.x, transformRef.current.y);
       context.scale(transformRef.current.k, transformRef.current.k);
 
-      // Draw Links (Batch drawing for performance)
+      // A. Draw Links
+      context.lineWidth = 1.5;
+      context.strokeStyle = '#e5e7eb'; // gray-200
       context.beginPath();
-      context.lineWidth = 1.5; 
-      
       links.forEach(link => {
         const source = link.source as D3Node;
         const target = link.target as D3Node;
-        
-        if (source.x !== undefined && source.y !== undefined && target.x !== undefined && target.y !== undefined) {
-            context.moveTo(source.x, source.y);
-            context.lineTo(target.x, target.y);
-        }
+        context.moveTo(source.x!, source.y!);
+        context.lineTo(target.x!, target.y!);
       });
-      
-      context.strokeStyle = '#e5e7eb'; // gray-200
-      context.globalAlpha = 0.5; // Slightly transparent
       context.stroke();
-      context.globalAlpha = 1;
 
-      // Draw Directional Arrows
-      // Use a higher zoom threshold to keep the view clean when zoomed out
-      if (transformRef.current.k > 0.35) {
+      // B. Draw Arrows (Only when zoomed in a bit)
+      if (transformRef.current.k > 0.4) {
           context.beginPath();
           context.fillStyle = '#94a3b8'; // slate-400
-          
           links.forEach(link => {
-            const source = link.source as D3Node;
-            const target = link.target as D3Node;
-            
-            if (source.x === undefined || source.y === undefined || target.x === undefined || target.y === undefined) return;
-            
-            const dx = target.x - source.x;
-            const dy = target.y - source.y;
+            const s = link.source as D3Node;
+            const t = link.target as D3Node;
+            const dx = t.x! - s.x!;
+            const dy = t.y! - s.y!;
             const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 40) return; // Don't draw arrows on very short links
             
-            // Optimization: Skip arrows on very short links
-            if (dist < 40) return;
-
-            // Place arrow at ~60% of the path (closer to target to indicate direction)
-            // but proportional, so they don't form a hard ring around hot nodes
-            const ratio = 0.6; 
+            // Calculate arrow position (60% down the line)
+            const ratio = 0.6;
+            const mx = s.x! + dx * ratio;
+            const my = s.y! + dy * ratio;
             
-            const arrowX = source.x + dx * ratio;
-            const arrowY = source.y + dy * ratio;
-
-            const arrowLength = 6;
-            const arrowWidth = 2.5;
-
-            // Normalized vector
-            const nx = dx / dist;
-            const ny = dy / dist;
-
-            // Arrow Tip (centered around arrowX/Y for the segment)
-            const tipX = arrowX + nx * (arrowLength / 2);
-            const tipY = arrowY + ny * (arrowLength / 2);
-
-            // Arrow Base
-            const baseX = arrowX - nx * (arrowLength / 2);
-            const baseY = arrowY - ny * (arrowLength / 2);
-
-            // Orthogonal vector for width
-            const px = -ny;
-            const py = nx;
-
-            // Draw triangle
-            context.moveTo(tipX, tipY);
-            context.lineTo(baseX + px * arrowWidth, baseY + py * arrowWidth);
-            context.lineTo(baseX - px * arrowWidth, baseY - py * arrowWidth);
-            context.closePath();
+            // Arrow geometry
+            const len = 6 / transformRef.current.k; // Scale arrow by zoom so it doesn't get huge
+            const w = 3 / transformRef.current.k;
+            const angle = Math.atan2(dy, dx);
+            
+            context.save();
+            context.translate(mx, my);
+            context.rotate(angle);
+            context.moveTo(len, 0);
+            context.lineTo(-len, w);
+            context.lineTo(-len, -w);
+            context.fill();
+            context.restore();
           });
-          context.fill();
       }
 
-      // Draw Nodes
+      // C. Draw Nodes
       nodes.forEach(node => {
-        if (node.x === undefined || node.y === undefined) return;
-        
         const radius = getNodeRadius(node);
+        const isFocused = focusNodeId === node.id;
         
+        // 1. Focus Glow
+        if (isFocused) {
+           context.beginPath();
+           context.fillStyle = 'rgba(59, 130, 246, 0.3)';
+           context.arc(node.x!, node.y!, radius + 8, 0, 2 * Math.PI);
+           context.fill();
+        }
+
+        // 2. Node Circle
         context.beginPath();
         context.fillStyle = getNodeColor(node.type);
-        context.moveTo(node.x + radius, node.y);
-        context.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+        context.arc(node.x!, node.y!, radius, 0, 2 * Math.PI);
         context.fill();
-        
-        // Border
-        context.strokeStyle = '#ffffff';
-        context.lineWidth = (node.degree || 0) > 20 ? 2 : 1.5; // Thicker border for hot nodes
+        context.strokeStyle = isFocused ? '#1d4ed8' : '#ffffff';
+        context.lineWidth = isFocused ? 3 : 1.5;
         context.stroke();
+
+        // 3. Abbreviation Text (Inside Node)
+        // Only draw if zoom isn't extremely far out
+        if (transformRef.current.k > 0.15) {
+            const abbr = getNodeAbbreviation(node.type);
+            context.fillStyle = '#ffffff'; // White text
+            // Scale font size based on radius, ensuring it fits
+            const fontSize = Math.min(radius, 14); 
+            context.font = `700 ${fontSize}px sans-serif`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(abbr, node.x!, node.y! + 1); // +1 for visual centering
+        }
       });
 
-      // Draw Labels
-      // Show labels earlier (zoom > 0.3)
-      if (transformRef.current.k > 0.3) {
-          context.textAlign = 'center';
-          context.textBaseline = 'middle';
-          context.lineJoin = 'round';
-
-          nodes.forEach(node => {
-            if (node.x === undefined || node.y === undefined) return;
-            
-            // Determine font size based on node importance
-            const radius = getNodeRadius(node);
-            const isHot = (node.degree || 0) > 15;
-            const fontSize = isHot ? 14 : 12;
-            const fontWeight = isHot ? 'bold' : 'normal';
-            
-            context.font = `${fontWeight} ${fontSize}px sans-serif`;
-            
-            const labelY = node.y + radius + fontSize;
-
-            // Draw Halo (White Stroke) to clear background behind text
-            context.lineWidth = 3;
-            context.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-            context.strokeText(node.name, node.x, labelY);
-            
-            // Draw Text
-            context.fillStyle = isHot ? '#1e293b' : '#475569'; // Darker for hot nodes
-            context.fillText(node.name, node.x, labelY);
-          });
+      // D. Draw External Labels (Name below node)
+      // Only draw when zoomed in or hovering/hot
+      if (transformRef.current.k > 0.6) {
+        context.textAlign = 'center';
+        context.textBaseline = 'top';
+        nodes.forEach(node => {
+           if ((node.degree || 0) < 5 && transformRef.current.k < 1.2) return; // Optimize: skip unimportant nodes when zoomed mid-way
+           
+           const radius = getNodeRadius(node);
+           context.fillStyle = '#1e293b'; // slate-800
+           context.font = '10px sans-serif';
+           // Draw simplified background for text readability
+           context.strokeStyle = 'rgba(255,255,255,0.8)';
+           context.lineWidth = 3;
+           context.strokeText(node.name, node.x!, node.y! + radius + 4);
+           context.fillText(node.name, node.x!, node.y! + radius + 4);
+        });
       }
 
       context.restore();
@@ -275,159 +249,169 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({ d
 
     simulation.on('tick', render);
 
-    // Setup Zoom Behavior
+    // 5. Interactions
+    const canvasSelection = d3.select(canvas);
+
+    // -- Zoom --
     const zoom = d3.zoom<HTMLCanvasElement, unknown>()
-      .scaleExtent([0.01, 4]) 
-      .on("zoom", (event) => {
-        transformRef.current = event.transform;
+      .scaleExtent([0.1, 4])
+      .on("zoom", (e) => {
+        transformRef.current = e.transform;
         render();
       });
+    zoomBehaviorRef.current = zoom;
+    canvasSelection.call(zoom);
 
-    d3.select(canvas).call(zoom);
-    
-    // Drag Interaction
+    // -- Drag --
     const drag = d3.drag<HTMLCanvasElement, unknown>()
-        .subject((event) => {
-            const [x, y] = transformRef.current.invert(d3.pointer(event, canvas));
-            let closestNode: D3Node | null = null;
-            let minDistance = Infinity;
+      .container(canvas)
+      .subject((event) => {
+        // Use container mouse coordinates directly
+        return findNodeAt(event.x, event.y); 
+      })
+      .on("start", (event) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        const node = event.subject as D3Node;
+        // Lock node position
+        node.fx = node.x;
+        node.fy = node.y;
+        canvas.style.cursor = 'grabbing';
+      })
+      .on("drag", (event) => {
+        const node = event.subject as D3Node;
+        // We must map the drag event (screen) back to simulation (world) coords
+        const transform = transformRef.current;
+        const [x, y] = transform.invert([event.x, event.y]);
+        
+        node.fx = x;
+        node.fy = y;
+      })
+      .on("end", (event) => {
+        if (!event.active) simulation.alphaTarget(0);
+        const node = event.subject as D3Node;
+        node.fx = null;
+        node.fy = null;
+        canvas.style.cursor = 'grab';
+      });
 
-            for (const node of nodes) {
-                if (node.x === undefined || node.y === undefined) continue;
-                const dx = x - node.x;
-                const dy = y - node.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                // Check if click is within node radius + margin
-                const hitRadius = Math.max(30, getNodeRadius(node) + 10);
-                
-                if (dist < hitRadius && dist < minDistance) {
-                    minDistance = dist;
-                    closestNode = node;
-                }
-            }
-            return closestNode;
-        })
-        .on("start", (event) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            event.subject.fx = event.subject.x;
-            event.subject.fy = event.subject.y;
-        })
-        .on("drag", (event) => {
-            event.subject.fx = event.x;
-            event.subject.fy = event.y;
-        })
-        .on("end", (event) => {
-            if (!event.active) simulation.alphaTarget(0);
-            event.subject.fx = null;
-            event.subject.fy = null;
-        });
+    canvasSelection.call(drag);
 
-    d3.select(canvas).call(drag);
-
-    // Click Interaction
-    d3.select(canvas).on("click", (event) => {
-        const [x, y] = transformRef.current.invert(d3.pointer(event, canvas));
-        let clickedNode: D3Node | null = null;
-        let minDistance = Infinity;
-
-        for (const node of nodes) {
-            if (node.x === undefined || node.y === undefined) continue;
-            const dx = x - node.x;
-            const dy = y - node.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            const hitRadius = Math.max(20, getNodeRadius(node) + 5);
-
-            if (dist < hitRadius && dist < minDistance) {
-                minDistance = dist;
-                clickedNode = node;
-            }
-        }
-
-        if (clickedNode && onNodeClick) {
-            onNodeClick(clickedNode);
-        }
+    // -- Click --
+    canvasSelection.on("click", (event) => {
+       // Prevent click if it was a drag operation (simple check)
+       if (event.defaultPrevented) return; 
+       
+       const [x, y] = d3.pointer(event);
+       const node = findNodeAt(x, y);
+       if (node && onNodeClick) {
+         onNodeClick(node);
+       }
     });
 
-    // Mouse Move (Cursor)
-    d3.select(canvas).on("mousemove", (event) => {
-        const [x, y] = transformRef.current.invert(d3.pointer(event, canvas));
-        let isHovering = false;
-        for (const node of nodes) {
-             if (node.x === undefined || node.y === undefined) continue;
-             const dx = x - node.x;
-             const dy = y - node.y;
-             const dist = Math.sqrt(dx*dx + dy*dy);
-             const hitRadius = Math.max(20, getNodeRadius(node) + 5);
-             if (dist < hitRadius) {
-                 isHovering = true;
-                 break;
-             }
-        }
-        canvas.style.cursor = isHovering ? 'pointer' : 'grab';
-    });
+    // -- Mouse Move (Hover Cursor) --
+    canvasSelection.on("mousemove", (event) => {
+       // If dragging, ignore hover logic
+       if (event.buttons === 1) return;
 
+       const [x, y] = d3.pointer(event);
+       const node = findNodeAt(x, y);
+       canvas.style.cursor = node ? 'pointer' : 'move'; // 'move' implies panning
+    });
 
     return () => {
       simulation.stop();
+      zoom.on("zoom", null);
     };
-  }, [data, onNodeClick]);
+  }, [data, onNodeClick]); // FocusNodeId intentionally omitted (handled below)
 
-  // Controls
-  const handleZoom = useCallback((factor: number) => {
-      if (!canvasRef.current) return;
-      const canvas = d3.select(canvasRef.current);
-      canvas.transition().duration(300).call(d3.zoom().scaleBy as any, factor);
-  }, []);
+  // --- Focus Animation Effect ---
+  useEffect(() => {
+    if (!focusNodeId || !canvasRef.current || !zoomBehaviorRef.current) return;
+    const node = nodesRef.current.find(n => n.id === focusNodeId);
+    if (node && node.x && node.y) {
+       const canvas = d3.select(canvasRef.current);
+       const width = containerRef.current?.clientWidth || 800;
+       const height = containerRef.current?.clientHeight || 600;
+       
+       const targetTransform = d3.zoomIdentity
+         .translate(width / 2, height / 2)
+         .scale(1.5)
+         .translate(-node.x, -node.y);
 
-  const handleFit = useCallback(() => {
-     if (!canvasRef.current || !containerRef.current) return;
-     const canvas = d3.select(canvasRef.current);
-     const width = containerRef.current.clientWidth;
-     const height = containerRef.current.clientHeight;
-     canvas.transition().duration(750).call(
-         d3.zoom().transform as any, 
-         d3.zoomIdentity.translate(width/2, height/2).scale(0.15).translate(-width/2, -height/2) 
-    );
-  }, []);
+       canvas.transition().duration(1000)
+         .call(zoomBehaviorRef.current.transform, targetTransform);
+    }
+  }, [focusNodeId]);
+
+  // --- Toolbar Handlers ---
+  const handleZoom = (factor: number) => {
+    if (canvasRef.current && zoomBehaviorRef.current) {
+      d3.select(canvasRef.current)
+        .transition().duration(300)
+        .call(zoomBehaviorRef.current.scaleBy, factor);
+    }
+  };
+
+const handleFit = () => {
+     if (!canvasRef.current || !zoomBehaviorRef.current || nodesRef.current.length === 0) return;
+     
+     // Calculate Bounding Box
+     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+     
+     nodesRef.current.forEach(n => {
+       // FIX: Check BOTH x and y. If either is undefined, skip this node.
+       if (n.x === undefined || n.y === undefined) return;
+
+       if (n.x < minX) minX = n.x;
+       if (n.x > maxX) maxX = n.x;
+       if (n.y < minY) minY = n.y;
+       if (n.y > maxY) maxY = n.y;
+     });
+
+     // If no valid nodes were found (e.g. simulation hasn't ticked yet), exit
+     if (minX === Infinity || minY === Infinity) return;
+
+     const padding = 100;
+     const width = containerRef.current?.clientWidth || 800;
+     const height = containerRef.current?.clientHeight || 600;
+     const dx = maxX - minX;
+     const dy = maxY - minY;
+     const midX = (minX + maxX) / 2;
+     const midY = (minY + maxY) / 2;
+
+     // Calculate scale to fit
+     const scale = Math.max(0.1, Math.min(2, 0.9 / Math.max(dx / width, dy / height)));
+     
+     const transform = d3.zoomIdentity
+        .translate(width / 2, height / 2)
+        .scale(scale)
+        .translate(-midX, -midY);
+
+     d3.select(canvasRef.current)
+       .transition().duration(750)
+       .call(zoomBehaviorRef.current.transform, transform);
+  };
 
   return (
     <div ref={containerRef} className="relative w-full h-full bg-slate-50 overflow-hidden rounded-xl border border-slate-200 shadow-inner">
-      <canvas ref={canvasRef} className="block touch-none" />
+      <canvas ref={canvasRef} className="block w-full h-full touch-none" />
       
+      {/* Controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-         <button 
-          onClick={handleFit}
-          className="p-2 bg-white rounded-lg shadow-md hover:bg-slate-50 text-slate-700 border border-slate-200 transition-colors"
-          title="Fit View"
-        >
-          <Maximize size={20} />
+        <button onClick={handleFit} className="p-2 bg-white rounded-lg shadow hover:bg-slate-50 border border-slate-200">
+           <Maximize size={20} className="text-slate-600"/>
         </button>
-        <div className="flex flex-col bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
-          <button 
-            onClick={() => handleZoom(1.2)}
-            className="p-2 hover:bg-slate-50 text-slate-700 border-b border-slate-100 transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn size={20} />
+        <div className="flex flex-col bg-white rounded-lg shadow border border-slate-200">
+          <button onClick={() => handleZoom(1.2)} className="p-2 hover:bg-slate-50 border-b border-slate-100">
+             <ZoomIn size={20} className="text-slate-600" />
           </button>
-          <button 
-            onClick={() => handleZoom(0.8)}
-            className="p-2 hover:bg-slate-50 text-slate-700 transition-colors"
-            title="Zoom Out"
-          >
-            <ZoomOut size={20} />
+          <button onClick={() => handleZoom(0.8)} className="p-2 hover:bg-slate-50">
+             <ZoomOut size={20} className="text-slate-600" />
           </button>
-        </div>
-      </div>
-      
-      <div className="absolute bottom-4 left-4 pointer-events-none">
-        <div className="bg-white/80 backdrop-blur p-2 rounded-lg border border-slate-200 shadow-sm text-[10px] text-slate-500">
-            Displaying {data.vertices.length} nodes (Canvas Renderer)
         </div>
       </div>
     </div>
   );
 };
+
 export default DependencyGraphVisualizer;

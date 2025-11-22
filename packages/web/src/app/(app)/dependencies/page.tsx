@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import useSWR, { SWRConfig } from 'swr'
 import { GitBranch, Folder, AlertCircle } from 'lucide-react'
@@ -162,9 +162,9 @@ function DependenciesContent() {
     router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
-  const handleNodeClick = (node: D3Node) => {
+  const handleNodeClick = useCallback((node: D3Node) => {
     setSelectedNode(node)
-  }
+  }, [setSelectedNode])
 
   const handleClosePanel = () => {
     setSelectedNode(null)
@@ -302,6 +302,7 @@ function DependenciesContent() {
           <DependencyGraphVisualizer
             data={graphData}
             onNodeClick={handleNodeClick}
+            focusNodeId={viewMode === 'project' ? selectedProject?.id! : nodeId}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
