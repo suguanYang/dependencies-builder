@@ -25,9 +25,10 @@ export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): bo
 }
 
 export const getNodeDependencyGraph = async (
-  nodeId: string
+  nodeId: string,
+  opts?: { depth?: number }
 ): Promise<DependencyGraph> => {
-  const maxDepth = 100
+  const maxDepth = opts?.depth ?? 100;
 
   // State tracking
   const visitedNodeIds = new Set<string>([nodeId])

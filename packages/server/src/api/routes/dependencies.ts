@@ -23,9 +23,12 @@ function dependenciesRoutes(fastify: FastifyInstance) {
   // GET /dependencies/nodes/:nodeId - Get dependency graph for a specific node (recursive)
   fastify.get('/dependencies/nodes/:nodeId', async (request, reply) => {
     try {
-      const { nodeId } = request.params as { nodeId: string; depth?: number }
+      const { nodeId } = request.params as { nodeId: string; }
+      const { depth } = request.query as { depth?: number }
 
-      const graph = await dependencyManager.getNodeDependencyGraph(nodeId)
+      const graph = await dependencyManager.getNodeDependencyGraph(nodeId, {
+        depth
+      })
 
       return graph
     } catch (error) {
