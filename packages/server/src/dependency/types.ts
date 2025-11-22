@@ -13,8 +13,6 @@ export interface GraphNode {
   startColumn?: number
   // Optional fields for project entities
   addr?: string
-  createdAt?: string
-  updatedAt?: string
 }
 
 export interface GraphConnection {
@@ -28,6 +26,8 @@ export interface DependencyGraph {
     data: GraphNode
     firstIn: number
     firstOut: number
+    inDegree: number
+    outDegree: number
   }[]
   edges: {
     data: GraphConnection

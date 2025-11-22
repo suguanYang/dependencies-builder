@@ -1,5 +1,6 @@
 // we are using orthogonnal list to represent the dependency graph
 
+import { info } from '../logging'
 import { DependencyGraph, GraphConnection, GraphNode } from './types'
 
 interface OrthogonalGraph {
@@ -7,6 +8,8 @@ interface OrthogonalGraph {
     data: GraphNode
     firstIn: number
     firstOut: number
+    inDegree: number
+    outDegree: number
   }[]
   edges: {
     data: GraphConnection
@@ -32,6 +35,8 @@ const buildOrthogonalGraph = (
       data: node,
       firstIn: -1,
       firstOut: -1,
+      inDegree: 0,
+      outDegree: 0
     })
   })
 
@@ -54,23 +59,27 @@ const buildOrthogonalGraph = (
     // Link to head vertex's incoming edges
     if (vertices[toIndex].firstIn === -1) {
       vertices[toIndex].firstIn = edgeIndex
+      vertices[toIndex].inDegree++
     } else {
       let currentEdgeIndex = vertices[toIndex].firstIn
       while (edges[currentEdgeIndex].headnext !== -1) {
         currentEdgeIndex = edges[currentEdgeIndex].headnext
       }
       edges[currentEdgeIndex].headnext = edgeIndex
+      vertices[toIndex].inDegree++
     }
 
     // Link to tail vertex's outgoing edges
     if (vertices[fromIndex].firstOut === -1) {
       vertices[fromIndex].firstOut = edgeIndex
+      vertices[fromIndex].outDegree++
     } else {
       let currentEdgeIndex = vertices[fromIndex].firstOut
       while (edges[currentEdgeIndex].tailnext !== -1) {
         currentEdgeIndex = edges[currentEdgeIndex].tailnext
       }
       edges[currentEdgeIndex].tailnext = edgeIndex
+      vertices[fromIndex].outDegree++
     }
 
     edges.push(edge)
@@ -168,7 +177,9 @@ export const buildDependencyGraph = (
   nodes: GraphNode[],
   connections: GraphConnection[],
 ): DependencyGraph => {
+  const start = performance.now()
   const orthogonalGraph = buildOrthogonalGraph(nodes, connections)
+  info(`build dependency graph for ${nodes.length} nodes in ${performance.now() - start} ms`)
 
   return {
     vertices: orthogonalGraph.vertices,

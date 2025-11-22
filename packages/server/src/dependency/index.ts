@@ -1,6 +1,7 @@
 import { GraphNode, GraphConnection, DependencyGraph } from './types'
 import { buildDependencyGraph } from './graph'
 import * as repository from '../database/repository'
+import { Project } from '../generated/prisma/client'
 
 // Custom error class for not found errors
 class NotFoundError extends Error {
@@ -23,68 +24,13 @@ export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): bo
   return allowedTargets ? allowedTargets.includes(toNode.type) : false
 }
 
-export const getProjectDependencyGraph = (
-  projectName: string,
-  branch: string,
-  nodes: any[],
-  connections: any[],
-): DependencyGraph => {
-  // Convert nodes to GraphNode format
-  const graphNodes: GraphNode[] = nodes.map(node => ({
-    id: node.id,
-    name: node.name,
-    type: node.type,
-    projectName: node.projectName,
-    projectId: node.projectId,
-    branch: node.branch,
-  }))
-
-  // Convert connections to GraphConnection format
-  const graphConnections: GraphConnection[] = connections.map(conn => ({
-    id: conn.id,
-    fromId: conn.fromId,
-    toId: conn.toId,
-  }))
-
-  // Filter nodes for the specific project and branch
-  const projectNodes = graphNodes.filter(
-    (node) => node.projectName === projectName && node.branch === branch,
-  )
-
-  if (projectNodes.length === 0) {
-    throw new NotFoundError(`No nodes found for project '${projectName}' on branch '${branch}'`)
-  }
-
-  // Get all connections involving these nodes
-  const projectConnections = graphConnections.filter((conn) =>
-    projectNodes.some((node) => node.id === conn.fromId || node.id === conn.toId),
-  )
-
-  return buildDependencyGraph(projectNodes, projectConnections)
-}
-
 export const getNodeDependencyGraph = async (
   nodeId: string
 ): Promise<DependencyGraph> => {
   const maxDepth = 100
 
-  // Step 1: Get the starting node
-  const startNode = await repository.getNodeById(nodeId)
-  if (!startNode) {
-    throw new NotFoundError(`Node with ID ${nodeId} not found`)
-  }
-
-  // Convert to GraphNode format
-  const startGraphNode: GraphNode = {
-    ...startNode,
-    createdAt: startNode.createdAt.toISOString(),
-    updatedAt: startNode.updatedAt.toISOString(),
-  }
-
   const visitedNodes = new Map<string, GraphNode>()
-  const allConnections: GraphConnection[] = []
-
-  visitedNodes.set(nodeId, startGraphNode)
+  const allConnections = new Map<string, GraphConnection>()
 
   // DFS traversal with incremental database queries
   const stack: { nodeId: string; depth: number }[] = [{ nodeId, depth: 0 }]
@@ -116,8 +62,7 @@ export const getNodeDependencyGraph = async (
       }
 
       // Only add connection if both nodes are in our graph
-      if (visitedNodes.has(conn.fromId) && visitedNodes.has(conn.toId)) {
-        allConnections.push(connection)
+      if (allConnections.has(connection.id)) {
         continue
       }
 
@@ -133,26 +78,30 @@ export const getNodeDependencyGraph = async (
         // Convert to GraphNode format
         const targetGraphNode: GraphNode = {
           ...targetNode,
-          createdAt: targetNode.createdAt.toISOString(),
-          updatedAt: targetNode.updatedAt.toISOString(),
         }
 
         visitedNodes.set(targetNodeId, targetGraphNode)
         stack.push({ nodeId: targetNodeId, depth: current.depth + 1 })
+
+        allConnections.set(connection.id, connection)
       }
     }
   }
 
   // Build the final graph
   const reachableNodes = Array.from(visitedNodes.values())
-  return buildDependencyGraph(reachableNodes, allConnections)
+
+  return buildDependencyGraph(reachableNodes, Array.from(allConnections.values()))
 }
 
 export const getProjectLevelDependencyGraph = async (
-  projectId: string
+  projectId: string,
+  branch: string,
+  opts?: {
+    depth?: number
+  }
 ): Promise<DependencyGraph> => {
-  const maxDepth = 100
-  const batchSize = 1000
+  const maxDepth = opts?.depth ?? 100
 
   // Step 1: Get project information
   const project = await repository.getProjectById(projectId)
@@ -160,23 +109,9 @@ export const getProjectLevelDependencyGraph = async (
     throw new NotFoundError(`Project with ID ${projectId} not found`)
   }
 
-  // Step 2: Get all nodes for this project
-  const projectNodes = await repository.getNodes({
-    where: { projectId }
-  })
-
-  if (projectNodes.data.length === 0) {
-    throw new NotFoundError(`No nodes found for project ID ${projectId}`)
-  }
-
-  const visitedProjects = new Map<string, { name: string; branch: string }>()
-  const projectConnections: GraphConnection[] = []
+  const visitedProjects = new Map<string, { branch: string } & Project>()
+  const projectConnections = new Map<string, GraphConnection>()
   const queue: { projectId: string; depth: number }[] = [{ projectId, depth: 0 }]
-
-  visitedProjects.set(projectId, {
-    name: project.name,
-    branch: projectNodes.data[0].branch
-  })
 
   // BFS traversal for project-level dependencies
   while (queue.length > 0) {
@@ -187,92 +122,94 @@ export const getProjectLevelDependencyGraph = async (
 
     // Get all nodes for current project
     const currentProjectNodes = await repository.getNodes({
-      where: { projectId: current.projectId }
+      where: { projectId: current.projectId, branch },
+      select: {
+        id: true,
+        branch: true
+      }
     })
 
     const currentNodeIds = currentProjectNodes.data.map(node => node.id)
 
-    // Process in batches
-    for (let i = 0; i < currentNodeIds.length; i += batchSize) {
-      const batch = currentNodeIds.slice(i, i + batchSize)
+    const newProjectsToAdd: string[] = []
 
-      // Get connections that cross project boundaries
-      const crossProjectConnectionsResult = await repository.getConnections({
-        where: {
-          OR: [
-            { fromId: { in: batch } },
-            { toId: { in: batch } }
-          ]
-        }
-      })
-
-      for (const conn of crossProjectConnectionsResult.data) {
-        const fromNode = conn.fromNode
-        const toNode = conn.toNode
-
-        // Only consider connections between different projects
-        if (fromNode.projectId !== toNode.projectId) {
-          const sourceProjectId = fromNode.projectId
-          const targetProjectId = toNode.projectId
-
-          // Add the connection
-          const connectionId = `${sourceProjectId}-${targetProjectId}`
-          if (!projectConnections.some(c => c.id === connectionId)) {
-            projectConnections.push({
-              id: connectionId,
-              fromId: sourceProjectId,
-              toId: targetProjectId,
-            })
+    // Get connections that cross project boundaries
+    const crossProjectConnectionsResult = await repository.getConnections({
+      where: {
+        OR: [
+          { fromId: { in: currentNodeIds } },
+          { toId: { in: currentNodeIds } }
+        ]
+      },
+      select: {
+        fromNode: {
+          select: {
+            projectId: true
           }
-
-          // Add new projects to the queue if not visited
-          const projectsToAdd = [sourceProjectId, targetProjectId].filter(
-            pid => !visitedProjects.has(pid) && pid !== current.projectId
-          )
-
-          for (const newProjectId of projectsToAdd) {
-            // Get project info for the new project
-            const newProject = await repository.getProjectById(newProjectId)
-            if (newProject) {
-              // Get a sample node to determine branch
-              const sampleNodes = await repository.getNodes({
-                where: { projectId: newProjectId },
-                take: 1
-              })
-
-              visitedProjects.set(newProjectId, {
-                name: newProject.name,
-                branch: sampleNodes.data[0]?.branch || 'main'
-              })
-
-              queue.push({ projectId: newProjectId, depth: current.depth + 1 })
-            }
+        },
+        toNode: {
+          select: {
+            projectId: true
           }
         }
       }
+    })
+
+    for (const conn of crossProjectConnectionsResult.data) {
+      const fromNode = conn.fromNode
+      const toNode = conn.toNode
+
+      // Only consider connections between different projects
+      if (fromNode.projectId !== toNode.projectId) {
+        const sourceProjectId = fromNode.projectId
+        const targetProjectId = toNode.projectId
+
+        // Add the connection
+        const connectionId = `${sourceProjectId}-${targetProjectId}`
+
+        if (projectConnections.has(connectionId)) {
+          continue
+        }
+
+        newProjectsToAdd.push(...[sourceProjectId, targetProjectId].filter(
+          pid => !visitedProjects.has(pid)
+        ))
+
+        projectConnections.set(connectionId, {
+          id: connectionId,
+          fromId: sourceProjectId,
+          toId: targetProjectId,
+        })
+      }
     }
+
+    const projects = await repository.getProjects({
+      where: {
+        id: {
+          in: newProjectsToAdd
+        }
+      }
+    })
+
+    projects.data.forEach(newProject => {
+      visitedProjects.set(newProject.id, {
+        ...newProject,
+        branch: currentProjectNodes.data[0]?.branch,
+      })
+      queue.push({ projectId: newProject.id, depth: current.depth + 1 })
+    });
+
   }
 
   // Create project-level nodes using actual project entities
   const projectLevelNodes: GraphNode[] = []
 
-  for (const [projectId, info] of visitedProjects.entries()) {
+  for (const [_, info] of visitedProjects.entries()) {
     // Fetch the actual project entity to get its proper type
-    const project = await repository.getProjectById(projectId)
     if (project) {
-      projectLevelNodes.push({
-        id: project.id,
-        name: project.name,
-        type: project.type, // This is AppType (Lib or App)
-        projectName: project.name,
-        projectId: project.id,
-        branch: info.branch,
-        addr: project.addr,
-        createdAt: project.createdAt.toISOString(),
-        updatedAt: project.updatedAt.toISOString(),
-      })
+      projectLevelNodes.push(info)
     }
   }
 
-  return buildDependencyGraph(projectLevelNodes, projectConnections)
+  return buildDependencyGraph(projectLevelNodes, Array.from(projectConnections.values()))
 }
