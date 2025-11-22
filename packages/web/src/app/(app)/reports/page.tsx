@@ -71,8 +71,6 @@ function ReportsContent() {
     }
   }
 
-
-
   const getAffectedNodesCount = (result: any) => {
     return result?.affectedToNodes?.length || 0
   }
@@ -86,8 +84,8 @@ function ReportsContent() {
       return false
     }
 
-    return result.affectedToNodes.some((node: any) =>
-      node.version && node.version !== result.targetVersion
+    return result.affectedToNodes.some(
+      (node: any) => node.version && node.version !== result.targetVersion,
     )
   }
 
@@ -209,9 +207,10 @@ function ReportsContent() {
                 <AlertCircleIcon className="h-4 w-4" />
                 <AlertTitle>Version Mismatch Warning</AlertTitle>
                 <AlertDescription>
-                  Affected nodes have versions that do not match the target branch version ({viewingReport.result.targetVersion}).
-                  This indicate that the analysis was performed on outdated code. The Report may not accurate! You should run a
-                  new Static Analysis on the target branch before run the same Report again.
+                  Affected nodes have versions that do not match the target branch version (
+                  {viewingReport.result.targetVersion}). This indicate that the analysis was
+                  performed on outdated code. The Report may not accurate! You should run a new
+                  Static Analysis on the target branch before run the same Report again.
                 </AlertDescription>
               </Alert>
             )}
@@ -352,7 +351,6 @@ function ReportsContent() {
           </div>
         </div>
       )}
-
     </div>
   )
 }

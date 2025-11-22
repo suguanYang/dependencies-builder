@@ -20,8 +20,8 @@ const nextConfig: NextConfig = {
     ]
   },
   experimental: {
-    proxyTimeout: 120 * 1000
-  }
+    proxyTimeout: 120 * 1000,
+  },
 }
 
 const withMDX = createMDX({

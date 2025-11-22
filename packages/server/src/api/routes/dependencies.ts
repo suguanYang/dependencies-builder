@@ -15,19 +15,21 @@ class NotFoundError extends Error {
 
 // Helper function to check if error is a not found error
 const isNotFoundError = (error: unknown): error is NotFoundError => {
-  return error instanceof Error &&
+  return (
+    error instanceof Error &&
     (error.name === 'NotFoundError' || error.message.includes('not found'))
+  )
 }
 
 function dependenciesRoutes(fastify: FastifyInstance) {
   // GET /dependencies/nodes/:nodeId - Get dependency graph for a specific node (recursive)
   fastify.get('/dependencies/nodes/:nodeId', async (request, reply) => {
     try {
-      const { nodeId } = request.params as { nodeId: string; }
+      const { nodeId } = request.params as { nodeId: string }
       const { depth } = request.query as { depth?: number }
 
       const graph = await dependencyManager.getNodeDependencyGraph(nodeId, {
-        depth
+        depth,
       })
 
       return graph
@@ -53,7 +55,7 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { depth } = request.query as { depth?: number }
 
       const graph = await dependencyManager.getProjectLevelDependencyGraph(projectId, branch, {
-        depth
+        depth,
       })
 
       return graph

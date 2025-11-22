@@ -7,8 +7,7 @@ import * as repository from '../database/repository'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-let connectionWorkerPool: ConnectionWorkerPool | null = null;
-
+let connectionWorkerPool: ConnectionWorkerPool | null = null
 
 /**
  * Worker pool for connection auto-creation tasks

@@ -24,45 +24,45 @@ const buildOrthogonalGraph = (
   nodes: GraphNode[],
   connections: GraphConnection[],
 ): OrthogonalGraph => {
-  const vertices: OrthogonalGraph['vertices'] = [];
-  const edges: OrthogonalGraph['edges'] = [];
-  const nodeIndexMap = new Map<string, number>();
+  const vertices: OrthogonalGraph['vertices'] = []
+  const edges: OrthogonalGraph['edges'] = []
+  const nodeIndexMap = new Map<string, number>()
 
   // 1. Create Vertices
   for (let i = 0; i < nodes.length; i++) {
-    nodeIndexMap.set(nodes[i].id, i);
+    nodeIndexMap.set(nodes[i].id, i)
     vertices.push({
       data: nodes[i],
       firstIn: -1,
       firstOut: -1,
       inDegree: 0,
-      outDegree: 0
-    });
+      outDegree: 0,
+    })
   }
 
   // 2. Create Edges
   for (const connection of connections) {
-    const fromIndex = nodeIndexMap.get(connection.fromId);
-    const toIndex = nodeIndexMap.get(connection.toId);
+    const fromIndex = nodeIndexMap.get(connection.fromId)
+    const toIndex = nodeIndexMap.get(connection.toId)
 
-    if (fromIndex === undefined || toIndex === undefined) continue;
+    if (fromIndex === undefined || toIndex === undefined) continue
 
-    const edgeIndex = edges.length;
+    const edgeIndex = edges.length
 
     // PREPEND to Incoming List (Head Insertion)
     // Point new edge's "next" to the current head
-    const currentFirstIn = vertices[toIndex].firstIn;
+    const currentFirstIn = vertices[toIndex].firstIn
 
     // Update Vertex stats
-    vertices[toIndex].firstIn = edgeIndex;
-    vertices[toIndex].inDegree++;
+    vertices[toIndex].firstIn = edgeIndex
+    vertices[toIndex].inDegree++
 
     // PREPEND to Outgoing List (Head Insertion)
-    const currentFirstOut = vertices[fromIndex].firstOut;
+    const currentFirstOut = vertices[fromIndex].firstOut
 
     // Update Vertex stats
-    vertices[fromIndex].firstOut = edgeIndex;
-    vertices[fromIndex].outDegree++;
+    vertices[fromIndex].firstOut = edgeIndex
+    vertices[fromIndex].outDegree++
 
     // Create the edge record with the pointers
     edges.push({
@@ -70,12 +70,12 @@ const buildOrthogonalGraph = (
       tailvertex: fromIndex,
       headvertex: toIndex,
       headnext: currentFirstIn, // Point to the OLD head
-      tailnext: currentFirstOut // Point to the OLD head
-    });
+      tailnext: currentFirstOut, // Point to the OLD head
+    })
   }
 
-  return { vertices, edges };
-};
+  return { vertices, edges }
+}
 
 const dfsOrthogonal = (
   graph: OrthogonalGraph,

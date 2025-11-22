@@ -1,41 +1,41 @@
-import { DependencyGraph, D3Node, D3Link } from '../types';
+import { DependencyGraph, D3Node, D3Link } from '../types'
 
 /**
  * Parse server-side dependency graph format into D3-compatible format
  */
 export function parseDependencyGraph(graph: DependencyGraph): { nodes: D3Node[]; links: D3Link[] } {
-  const nodes: D3Node[] = [];
-  const links: D3Link[] = [];
+  const nodes: D3Node[] = []
+  const links: D3Link[] = []
 
   // Create node lookup map
-  const nodeMap = new Map<string, D3Node>();
+  const nodeMap = new Map<string, D3Node>()
 
   // Parse vertices into D3 nodes
-  graph.vertices.forEach(vertex => {
+  graph.vertices.forEach((vertex) => {
     const node: D3Node = {
       ...vertex.data,
-      degree: (vertex.inDegree + vertex.outDegree) || 0
-    };
-    nodes.push(node);
-    nodeMap.set(vertex.data.id, node);
-  });
+      degree: vertex.inDegree + vertex.outDegree || 0,
+    }
+    nodes.push(node)
+    nodeMap.set(vertex.data.id, node)
+  })
 
   // Parse edges into D3 links
-  graph.edges.forEach(edge => {
-    const sourceNode = nodeMap.get(edge.data.fromId);
-    const targetNode = nodeMap.get(edge.data.toId);
+  graph.edges.forEach((edge) => {
+    const sourceNode = nodeMap.get(edge.data.fromId)
+    const targetNode = nodeMap.get(edge.data.toId)
 
     if (sourceNode && targetNode) {
       const link: D3Link = {
         source: sourceNode,
         target: targetNode,
         id: edge.data.id,
-      };
-      links.push(link);
+      }
+      links.push(link)
     }
-  });
+  })
 
-  return { nodes, links };
+  return { nodes, links }
 }
 
 /**
@@ -111,5 +111,5 @@ export function generateMockDependencyGraph(): DependencyGraph {
         tailnext: 1,
       },
     ],
-  };
+  }
 }

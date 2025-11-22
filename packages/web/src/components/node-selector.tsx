@@ -38,10 +38,7 @@ export function NodeSelector({
   const [searchQuery, setSearchQuery] = React.useState('')
 
   // SWR infinite loading for nodes
-  const getKey = (
-    pageIndex: number,
-    previousPageData: { data: Node[]; total: number } | null,
-  ) => {
+  const getKey = (pageIndex: number, previousPageData: { data: Node[]; total: number } | null) => {
     // Reached the end
     if (previousPageData && previousPageData.data.length < PAGE_SIZE) return null
 

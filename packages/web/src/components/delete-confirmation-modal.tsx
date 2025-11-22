@@ -40,11 +40,7 @@ export function DeleteConfirmationModal({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             {cancelButtonText}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={loading}>

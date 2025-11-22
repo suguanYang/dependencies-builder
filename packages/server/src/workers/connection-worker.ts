@@ -16,7 +16,6 @@ export default async function connectionWorker({ actionId }: { actionId: string 
   error?: string
 }> {
   try {
-
     // Update action status to running
     await prisma.action.update({
       where: { id: actionId },

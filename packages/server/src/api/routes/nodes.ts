@@ -156,22 +156,26 @@ function nodesRoutes(fastify: FastifyInstance) {
         const projectIds = await repository.getProjects({
           where: {
             name: {
-              in: nodesData.map(n => n.projectName)
-            }
+              in: nodesData.map((n) => n.projectName),
+            },
           },
           select: {
-            id: true, name: true
-          }
+            id: true,
+            name: true,
+          },
         })
 
-        const pIdNameMap = projectIds.data.reduce((acc, cur) => {
-          return {
-            ...acc,
-            [cur.name]: cur
-          }
-        }, {} as {
-          [name: string]: { id: string; name: string }
-        });
+        const pIdNameMap = projectIds.data.reduce(
+          (acc, cur) => {
+            return {
+              ...acc,
+              [cur.name]: cur,
+            }
+          },
+          {} as {
+            [name: string]: { id: string; name: string }
+          },
+        )
 
         const createdNodes = await repository.createSequenceNodes(
           nodesData.map((node) => ({

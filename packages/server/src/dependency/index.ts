@@ -26,9 +26,9 @@ export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): bo
 
 export const getNodeDependencyGraph = async (
   nodeId: string,
-  opts?: { depth?: number }
+  opts?: { depth?: number },
 ): Promise<DependencyGraph> => {
-  const maxDepth = opts?.depth ?? 100;
+  const maxDepth = opts?.depth ?? 100
 
   // State tracking
   const visitedNodeIds = new Set<string>([nodeId])
@@ -48,16 +48,12 @@ export const getNodeDependencyGraph = async (
   let currentDepth = 0
 
   while (currentLevelNodeIds.length > 0 && currentDepth < maxDepth) {
-
     // A. Batch fetch ALL connections for the current layer
     // This replaces N queries with 1 query
     const connectionsResult = await repository.getConnections({
       where: {
-        OR: [
-          { fromId: { in: currentLevelNodeIds } },
-          { toId: { in: currentLevelNodeIds } }
-        ]
-      }
+        OR: [{ fromId: { in: currentLevelNodeIds } }, { toId: { in: currentLevelNodeIds } }],
+      },
     })
 
     const nextLevelNodeIds: string[] = []
@@ -98,11 +94,11 @@ export const getNodeDependencyGraph = async (
     if (newIdsToFetch.size > 0) {
       const newNodes = await repository.getNodes({
         where: {
-          id: { in: Array.from(newIdsToFetch) }
-        }
+          id: { in: Array.from(newIdsToFetch) },
+        },
       })
 
-      newNodes.data.forEach(node => {
+      newNodes.data.forEach((node) => {
         nodesMap.set(node.id, node)
       })
     }
@@ -113,33 +109,30 @@ export const getNodeDependencyGraph = async (
   }
 
   // Build final graph
-  return buildDependencyGraph(
-    Array.from(nodesMap.values()),
-    Array.from(connectionsMap.values())
-  )
+  return buildDependencyGraph(Array.from(nodesMap.values()), Array.from(connectionsMap.values()))
 }
 
 export const getProjectLevelDependencyGraph = async (
   projectId: string,
   branch: string,
-  opts?: { depth?: number }
+  opts?: { depth?: number },
 ): Promise<DependencyGraph> => {
-  const maxDepth = opts?.depth ?? 100;
+  const maxDepth = opts?.depth ?? 100
 
   // Initialize state
-  const visitedProjectIds = new Set<string>([projectId]);
-  const projectInfos = new Map<string, { branch: string } & Project>();
-  const projectConnections = new Map<string, GraphConnection>();
+  const visitedProjectIds = new Set<string>([projectId])
+  const projectInfos = new Map<string, { branch: string } & Project>()
+  const projectConnections = new Map<string, GraphConnection>()
 
   // Get Root Project
-  const rootProject = await repository.getProjectById(projectId);
-  if (!rootProject) throw new NotFoundError(`Project ${projectId} not found`);
+  const rootProject = await repository.getProjectById(projectId)
+  if (!rootProject) throw new NotFoundError(`Project ${projectId} not found`)
 
-  projectInfos.set(projectId, { ...rootProject, branch });
+  projectInfos.set(projectId, { ...rootProject, branch })
 
   // Current Level Queue
-  let currentLevelProjectIds: string[] = [projectId];
-  let currentDepth = 0;
+  let currentLevelProjectIds: string[] = [projectId]
+  let currentDepth = 0
 
   while (currentLevelProjectIds.length > 0 && currentDepth < maxDepth) {
     // Optimization: Parallelize fetching data for ALL projects at this level
@@ -148,44 +141,44 @@ export const getProjectLevelDependencyGraph = async (
       where: {
         OR: [
           { fromNode: { projectId: { in: currentLevelProjectIds }, branch } },
-          { toNode: { projectId: { in: currentLevelProjectIds }, branch } }
-        ]
+          { toNode: { projectId: { in: currentLevelProjectIds }, branch } },
+        ],
       },
       select: {
         fromNode: { select: { projectId: true } },
-        toNode: { select: { projectId: true } }
-      }
-    });
+        toNode: { select: { projectId: true } },
+      },
+    })
 
-    const nextLevelProjectIds = new Set<string>();
-    const newProjectIdsToFetch = new Set<string>();
+    const nextLevelProjectIds = new Set<string>()
+    const newProjectIdsToFetch = new Set<string>()
 
     for (const conn of crossProjectConnectionsResult.data) {
-      const sourcePid = conn.fromNode.projectId;
-      const targetPid = conn.toNode.projectId;
+      const sourcePid = conn.fromNode.projectId
+      const targetPid = conn.toNode.projectId
 
       if (sourcePid === targetPid) {
         throw new Error('exising inner project connection! ' + conn.id)
       }
 
-      const connectionId = `${sourcePid}-${targetPid}`;
+      const connectionId = `${sourcePid}-${targetPid}`
       if (!projectConnections.has(connectionId)) {
         projectConnections.set(connectionId, {
           id: connectionId,
           fromId: sourcePid,
           toId: targetPid,
-        });
+        })
 
         // Identify which side is the "new" discovery
         if (!visitedProjectIds.has(sourcePid)) {
-          nextLevelProjectIds.add(sourcePid);
-          newProjectIdsToFetch.add(sourcePid);
-          visitedProjectIds.add(sourcePid);
+          nextLevelProjectIds.add(sourcePid)
+          newProjectIdsToFetch.add(sourcePid)
+          visitedProjectIds.add(sourcePid)
         }
         if (!visitedProjectIds.has(targetPid)) {
-          nextLevelProjectIds.add(targetPid);
-          newProjectIdsToFetch.add(targetPid);
-          visitedProjectIds.add(targetPid);
+          nextLevelProjectIds.add(targetPid)
+          newProjectIdsToFetch.add(targetPid)
+          visitedProjectIds.add(targetPid)
         }
       }
     }
@@ -193,21 +186,21 @@ export const getProjectLevelDependencyGraph = async (
     // Batch fetch project details for the newly discovered IDs
     if (newProjectIdsToFetch.size > 0) {
       const projects = await repository.getProjects({
-        where: { id: { in: Array.from(newProjectIdsToFetch) } }
-      });
+        where: { id: { in: Array.from(newProjectIdsToFetch) } },
+      })
 
-      projects.data.forEach(p => {
-        projectInfos.set(p.id, { ...p, branch });
-      });
+      projects.data.forEach((p) => {
+        projectInfos.set(p.id, { ...p, branch })
+      })
     }
 
     // Move to next level
-    currentLevelProjectIds = Array.from(nextLevelProjectIds);
-    currentDepth++;
+    currentLevelProjectIds = Array.from(nextLevelProjectIds)
+    currentDepth++
   }
 
   // Assemble nodes
-  const projectLevelNodes: GraphNode[] = Array.from(projectInfos.values());
+  const projectLevelNodes: GraphNode[] = Array.from(projectInfos.values())
 
-  return buildDependencyGraph(projectLevelNodes, Array.from(projectConnections.values()));
-};
+  return buildDependencyGraph(projectLevelNodes, Array.from(projectConnections.values()))
+}

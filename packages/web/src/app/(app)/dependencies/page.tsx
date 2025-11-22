@@ -9,7 +9,13 @@ import NodePanel from '@/components/dependency-visualizer/panel'
 import { ProjectSelector } from '@/components/project-selector'
 import { NodeIdInput } from '@/components/node-id-input'
 import { DependencyGraph, D3Node } from '@/components/types'
-import { Project, getProjectById, getProjectDependencies, getNodeDependencies, getNodeById } from '@/lib/api'
+import {
+  Project,
+  getProjectById,
+  getProjectDependencies,
+  getNodeDependencies,
+  getNodeById,
+} from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
 
 function DependenciesContent() {
@@ -24,23 +30,31 @@ function DependenciesContent() {
   const [branch, setBranch] = useState<string>('test')
 
   // Project dependencies SWR
-  const { data: projectGraphData, error: projectError, isLoading: projectLoading } = useSWR(
+  const {
+    data: projectGraphData,
+    error: projectError,
+    isLoading: projectLoading,
+  } = useSWR(
     selectedProject ? ['project-dependencies', selectedProject.id, depth, branch] : null,
     () => getProjectDependencies(selectedProject!.id, depth, branch),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   )
 
   // Node dependencies SWR
-  const { data: nodeGraphData, error: nodeError, isLoading: nodeLoading } = useSWR(
+  const {
+    data: nodeGraphData,
+    error: nodeError,
+    isLoading: nodeLoading,
+  } = useSWR(
     nodeId ? ['node-dependencies', nodeId, depth] : null,
     () => getNodeDependencies(nodeId, depth),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   )
 
   // Determine which data to use based on view mode
@@ -162,9 +176,12 @@ function DependenciesContent() {
     router.replace(`/dependencies?${params.toString()}`, { scroll: false })
   }
 
-  const handleNodeClick = useCallback((node: D3Node) => {
-    setSelectedNode(node)
-  }, [setSelectedNode])
+  const handleNodeClick = useCallback(
+    (node: D3Node) => {
+      setSelectedNode(node)
+    },
+    [setSelectedNode],
+  )
 
   const handleClosePanel = () => {
     setSelectedNode(null)
@@ -218,9 +235,7 @@ function DependenciesContent() {
           {/* Depth and Branch Inputs */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Depth:
-              </label>
+              <label className="text-sm font-medium text-gray-700">Depth:</label>
               <input
                 type="number"
                 value={depth}
@@ -231,9 +246,7 @@ function DependenciesContent() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Branch:
-              </label>
+              <label className="text-sm font-medium text-gray-700">Branch:</label>
               <input
                 type="text"
                 value={branch}
@@ -249,9 +262,7 @@ function DependenciesContent() {
         {viewMode === 'project' && (
           <div className="flex items-center gap-4">
             <div className="flex-1 max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Project
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Project</label>
               <ProjectSelector
                 value={selectedProject}
                 onValueChange={handleProjectChange}
@@ -265,9 +276,7 @@ function DependenciesContent() {
         {viewMode === 'node' && (
           <div className="flex items-center gap-4">
             <div className="flex-1 max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Enter Node ID
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Enter Node ID</label>
               <NodeIdInput
                 value={nodeId}
                 onValueChange={handleNodeIdChange}
@@ -312,8 +321,7 @@ function DependenciesContent() {
               <p className="text-gray-600">
                 {viewMode === 'project'
                   ? 'Select a project to visualize its dependencies'
-                  : 'Enter a node ID to visualize its dependency graph'
-                }
+                  : 'Enter a node ID to visualize its dependency graph'}
               </p>
             </div>
           </div>

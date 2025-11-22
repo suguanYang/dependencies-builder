@@ -152,7 +152,6 @@ function ConnectionsContent() {
   const connections = connectionsResponse?.data || []
   const totalCount = connectionsResponse?.total || 0
 
-
   const handleCreate = async (data: ConnectionFormData) => {
     try {
       await createConnection(data)
@@ -564,7 +563,6 @@ function ConnectionsContent() {
           </div>
         </div>
       )}
-
     </div>
   )
 }

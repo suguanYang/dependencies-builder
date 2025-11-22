@@ -12,9 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({ adapter })
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 
 prisma.$on('error', (e) => {
   error('prisma Error: ' + e.message)

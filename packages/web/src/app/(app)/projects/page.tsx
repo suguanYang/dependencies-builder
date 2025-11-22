@@ -438,11 +438,7 @@ function ProjectsContent() {
                     <Button variant="outline" size="sm" onClick={() => setEditingProject(project)}>
                       <EditIcon className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(project)}
-                    >
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(project)}>
                       <TrashIcon className="h-4 w-4" />
                     </Button>
                   </div>

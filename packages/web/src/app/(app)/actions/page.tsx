@@ -184,7 +184,6 @@ function ActionsContent() {
     }
   }, [selectedProject, setValue])
 
-
   const handleCreate = async (data: ActionFormData) => {
     try {
       await createAction(data)
@@ -682,7 +681,6 @@ function ActionsContent() {
           </div>
         </div>
       )}
-
     </div>
   )
 }

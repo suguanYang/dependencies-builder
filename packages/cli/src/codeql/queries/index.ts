@@ -48,7 +48,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 
@@ -133,7 +133,7 @@ const parseExportQuery = (queryResultDir: string) => {
         meta: {
           entry: tuple[0],
           entryName: entryName,
-          qlsVersion: ctx.getQlsVersion()
+          qlsVersion: ctx.getQlsVersion(),
         },
       }
     })
@@ -157,7 +157,7 @@ const parseES6ImportQuery = (queryResultDir: string) => {
       ...parseLoc(tuple[2]),
       version: ctx.getVersion(),
       meta: {
-        qlsVersion: ctx.getQlsVersion()
+        qlsVersion: ctx.getQlsVersion(),
       },
     }))
   } catch (error) {
@@ -181,7 +181,7 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
       ...parseLoc(tuple[3]),
       version: ctx.getVersion(),
       meta: {
-        qlsVersion: ctx.getQlsVersion()
+        qlsVersion: ctx.getQlsVersion(),
       },
     }))
   } catch (error) {
@@ -207,7 +207,7 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
         meta: {
-          qlsVersion: ctx.getQlsVersion()
+          qlsVersion: ctx.getQlsVersion(),
         },
       })
     })
@@ -236,7 +236,7 @@ const parseEventOnQuery = (queryResultDir: string) => {
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
         meta: {
-          qlsVersion: ctx.getQlsVersion()
+          qlsVersion: ctx.getQlsVersion(),
         },
       }))
   } catch (error) {
@@ -262,7 +262,7 @@ const parseEventEmitQuery = (queryResultDir: string) => {
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
         meta: {
-          qlsVersion: ctx.getQlsVersion()
+          qlsVersion: ctx.getQlsVersion(),
         },
       }))
   } catch (error) {
@@ -288,7 +288,7 @@ const parseWebStorageQuery = (queryResultDir: string) => {
         version: ctx.getVersion(),
         meta: {
           kind: tuple[2],
-          qlsVersion: ctx.getQlsVersion()
+          qlsVersion: ctx.getQlsVersion(),
         },
       }),
     )
@@ -313,7 +313,7 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
       ...parseLoc(tuple[2]),
       version: ctx.getVersion(),
       meta: {
-        qlsVersion: ctx.getQlsVersion()
+        qlsVersion: ctx.getQlsVersion(),
       },
     }))
   } catch (error) {

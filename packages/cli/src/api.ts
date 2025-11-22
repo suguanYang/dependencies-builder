@@ -27,8 +27,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error ||
-      errorData.message ||
-      `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 

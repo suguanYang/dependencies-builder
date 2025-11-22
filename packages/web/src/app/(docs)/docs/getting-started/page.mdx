@@ -1,4 +1,3 @@
-
 # 依赖管理系统 (DMS) 用户手册
 
 ## 1. 概述
@@ -6,6 +5,7 @@
 DMS（Dependency Management System）是一个专为**微前端架构**设计的依赖治理平台。它利用静态代码分析技术（基于 [CodeQL](https://codeql.github.com/docs/codeql-overview/about-codeql/)），跨越多个代码仓库深入识别、追踪项目间的依赖关系，帮助开发团队预防依赖破坏造成的线上问题。
 
 **主要目标：**
+
 - **依赖验证**：确保代码变更不会破坏现有的依赖关系
 - **影响分析**：分析代码变更对依赖关系的影响范围
 - **跨项目管理**：管理多个项目间的复杂依赖关系
@@ -23,17 +23,21 @@ DMS（Dependency Management System）是一个专为**微前端架构**设计的
 在代码中，我们可以将依赖分为以下两个维度：
 
 #### A. 语法级依赖
+
 这是最显性、最严格的依赖形式。通常表现为代码层面的直接引用，**在编译阶段或简单的静态分析即可确定的关联**。
-*   **特征**：具有明确的契约（Contract），如函数签名、类型定义、模块路径。
-*   **DMS 中的体现**：`ESM Import/Export`。
+
+- **特征**：具有明确的契约（Contract），如函数签名、类型定义、模块路径。
+- **DMS 中的体现**：`ESM Import/Export`。
 
 #### B. 隐式依赖
+
 这是一种更隐蔽、更危险的依赖形式。模块之间没有直接的代码引用，而是通过**共享环境、共享资源或约定俗成的逻辑**产生关联。这种依赖往往**仅在运行时表现出来**。
-*   **特征**：依赖于"看不见的契约"。代码在语法上是独立的，但在逻辑上是耦合的（Common Coupling）。
-*   **DMS 中的体现**：
-    *   **共享状态**：模块 A 向 `localStorage` 或 `window` 全局变量写入数据，模块 B 读取该数据。如果 A 修改了 Key 的命名规则，B 将默默失效。
-    *   **消息通信**：事件总线（Event Bus）。模块 A `emit('user_login')`，模块 B `on('user_login')`。这是一种松耦合，但如果事件名称或载荷结构变更，会导致通信中断。
-    *   **DOM 依赖**：模块 A 依赖模块 B 渲染的特定 CSS 类名或 DOM 结构进行挂载。（未实现）
+
+- **特征**：依赖于"看不见的契约"。代码在语法上是独立的，但在逻辑上是耦合的（Common Coupling）。
+- **DMS 中的体现**：
+  - **共享状态**：模块 A 向 `localStorage` 或 `window` 全局变量写入数据，模块 B 读取该数据。如果 A 修改了 Key 的命名规则，B 将默默失效。
+  - **消息通信**：事件总线（Event Bus）。模块 A `emit('user_login')`，模块 B `on('user_login')`。这是一种松耦合，但如果事件名称或载荷结构变更，会导致通信中断。
+  - **DOM 依赖**：模块 A 依赖模块 B 渲染的特定 CSS 类名或 DOM 结构进行挂载。（未实现）
 
 ---
 
@@ -50,23 +54,29 @@ DMS 系统的核心价值，就是通过静态分析技术，**将不可见的"�
 DMS 将代码抽象为一张巨大的图（Graph），其主要由以下元素构成：
 
 #### 节点 (Node)
+
 代码中产生依赖行为的具体位置。
-*   **Project**：所属项目。
-*   **Type**：节点类型（详见下节）。
-*   **Name**：标识符（如变量名、事件名、存储Key）。
-*   **Source Location**：节点所在项目的文件路径、起始行列。
+
+- **Project**：所属项目。
+- **Type**：节点类型（详见下节）。
+- **Name**：标识符（如变量名、事件名、存储Key）。
+- **Source Location**：节点所在项目的文件路径、起始行列。
 
 #### 链接 (Connection)
+
 表示依赖的流向，方向通常为 `依赖者` -> `被依赖者`。
-*   **From**：依赖者（如 Import、Read、On）。
-*   **To**：被依赖者（如 Export、Write、Emit）。
+
+- **From**：依赖者（如 Import、Read、On）。
+- **To**：被依赖者（如 Export、Write、Emit）。
 
 #### 孤立节点 (Standalone Node)
+
 **定义**：在系统中被扫描到，但未发现任何上下游关联的节点。
 **成因**：
-*   **废弃代码**：遗留的全局变量读写。
-*   **跨系统依赖**：依赖了未接入 DMS 的外部系统。
-*   **分析盲区**：过于灵活的动态写法导致关联节点无法静态分析。
+
+- **废弃代码**：遗留的全局变量读写。
+- **跨系统依赖**：依赖了未接入 DMS 的外部系统。
+- **分析盲区**：过于灵活的动态写法导致关联节点无法静态分析。
 
 ---
 
@@ -75,75 +85,87 @@ DMS 将代码抽象为一张巨大的图（Graph），其主要由以下元素�
 DMS 能够识别以下维度的依赖关系：
 
 ### 3.1 静态依赖（编译时集成）
-| 类型 | 描述 | 典型场景 |
-| :--- | :--- | :--- |
-| **NamedExport** | 命名导出 | `export const util = ...` |
+
+| 类型            | 描述     | 典型场景                     |
+| :-------------- | :------- | :--------------------------- |
+| **NamedExport** | 命名导出 | `export const util = ...`    |
 | **NamedImport** | 命名导入 | `import { util } from 'pkg'` |
 
 ### 3.2 动态依赖（运行时集成）
-| 类型 | 描述 | 典型场景 |
-| :--- | :--- | :--- |
-| **RuntimeDynamicImport** | 动态导入 | `await dynamicImport('module')` |
-| **GlobalVarRead/Write** | 全局变量读写 | `window.MyConfig = {}` |
-| **WebStorageRead/Write** | 浏览器存储 | `localStorage.setItem('token', val)` |
-| **EventOn/Emit** | 全局事件总线 | `EventOn('login', cb)` |
-| **DynamicMFReference** | 模块联邦引用 | `<RemoteLoader appName pageName />` |
+
+| 类型                     | 描述         | 典型场景                             |
+| :----------------------- | :----------- | :----------------------------------- |
+| **RuntimeDynamicImport** | 动态导入     | `await dynamicImport('module')`      |
+| **GlobalVarRead/Write**  | 全局变量读写 | `window.MyConfig = {}`               |
+| **WebStorageRead/Write** | 浏览器存储   | `localStorage.setItem('token', val)` |
+| **EventOn/Emit**         | 全局事件总线 | `EventOn('login', cb)`               |
+| **DynamicMFReference**   | 模块联邦引用 | `<RemoteLoader appName pageName />`  |
 
 ---
 
 ## 4. 主要功能介绍
 
 ### 4.1 依赖扫描
+
 **场景**：构建依赖图谱。
 
 1.  进入 **Actions** 页面，点击 **Create Action**。
 2.  配置参数：
-    *   `Project`：目标项目。
-    *   `Branch`：代码分支（如 `master`）。
-    *   `Action Type`：选择 **Analysis**。
+    - `Project`：目标项目。
+    - `Branch`：代码分支（如 `master`）。
+    - `Action Type`：选择 **Analysis**。
 3.  运行后，系统将提取节点。
 4.  **关键步骤**：前往 **Nodes** 页面，点击 **"Auto-create Connections"**，系统将自动匹配跨项目的依赖节点（例如：匹配 A 项目的 `EventEmit` 和 B 项目的 `EventOn`）。
 
 ### 4.2 变更报告
+
 **场景**：Code Review 阶段，评估 Pull Request 的安全性。
 
 1.  进入 **Actions** 页面，点击 **Create Action**。
 2.  配置参数：
-    *   `Project`：目标项目。
-    *   `Branch`：当前开发分支（如 `feature/login-fix`）。
-    *   `Target Branch`：目标合并分支（如 `master`）。
-    *   `Action Type`：选择 **Report**。
+    - `Project`：目标项目。
+    - `Branch`：当前开发分支（如 `feature/login-fix`）。
+    - `Target Branch`：目标合并分支（如 `master`）。
+    - `Action Type`：选择 **Report**。
 3.  查看报告结果：
-    *   **Affected Nodes**：受影响的被依赖节点列表。
-    *   **Impacted Connections**：受影响的关系。
+    - **Affected Nodes**：受影响的被依赖节点列表。
+    - **Impacted Connections**：受影响的关系。
 
 ### 4.3 可视化
+
 进入 **Dependencies** 页面：
-*   **宏观视图**：查看应用之间的依赖关系，识别核心应用（被依赖最多的）和边缘应用。
-*   **微观视图**：代码级调用链路，追踪数据流向。
+
+- **宏观视图**：查看应用之间的依赖关系，识别核心应用（被依赖最多的）和边缘应用。
+- **微观视图**：代码级调用链路，追踪数据流向。
 
 ---
 
 ## 5. FAQ
 
 #### Q: 如何添加其他项目仓库？
+
 **A**: 在 Projects 页面添加 URL 时，请包含认证信息。建议使用具有只读权限的 Access Token
 `https://oauth2:YOUR_TOKEN@gitlab.example.com/group/project.git`
-*(注：出于安全考虑，不建议直接使用个人账号密码)*
+_(注：出于安全考虑，不建议直接使用个人账号密码)_
 
 #### Q: 为什么无法删除或修改某些数据？
+
 **A**: 受公司网络安全策略，还未正式上线的项目无法发起DELETE，PUT等请求， 如要修改请联系管理员
 
 #### Q: 代码里明明有依赖，为什么没扫描出来？
+
 **A**: 静态分析存在局限性，可能原因包括：
+
 1.  **动态键名**：如 `localStorage.setItem('key_' + id, val)`，工具无法确定具体的 Key。
 2.  **封装过深**：如果将 `window.dispatchEvent` 封装在复杂的工具类中且未通过类型提示暴露，可能导致分析中断。
 3.  **非标准写法**：建议在代码编写时保持显式、标准的调用方式，这不仅有助于工具分析，也有利于人工维护。
 
 #### Q: **报告显示无影响链接，但我确实对其它模块有影响。**
+
 **A: 遇到这种情况请及时反馈，该系统的首要目标就是识别这类问题。**
 
 #### Q: 依赖关系不准确或没有扫描到
+
 **A**: 受限于JS语言的灵活动态特性，无法保证所有产生依赖关系的代码都被代码分析工具检测到, 特别是模块联邦相关的代码，我们目前只支持了RemoteLoader的调用分析。
 
 目前系统也只定义了7种节点类型，现实中肯定还存在其他类型的节点，对于这类节点需要给出可被分析的特征才能被录入系统。
