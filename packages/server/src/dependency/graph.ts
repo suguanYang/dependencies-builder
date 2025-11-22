@@ -24,69 +24,58 @@ const buildOrthogonalGraph = (
   nodes: GraphNode[],
   connections: GraphConnection[],
 ): OrthogonalGraph => {
-  const vertices: OrthogonalGraph['vertices'] = []
-  const edges: OrthogonalGraph['edges'] = []
-  const nodeIndexMap = new Map<string, number>()
+  const vertices: OrthogonalGraph['vertices'] = [];
+  const edges: OrthogonalGraph['edges'] = [];
+  const nodeIndexMap = new Map<string, number>();
 
-  // Create vertices and map node IDs to indices
-  nodes.forEach((node, index) => {
-    nodeIndexMap.set(node.id, index)
+  // 1. Create Vertices
+  for (let i = 0; i < nodes.length; i++) {
+    nodeIndexMap.set(nodes[i].id, i);
     vertices.push({
-      data: node,
+      data: nodes[i],
       firstIn: -1,
       firstOut: -1,
       inDegree: 0,
       outDegree: 0
-    })
-  })
+    });
+  }
 
-  // Create edges and build orthogonal list
-  connections.forEach((connection) => {
-    const fromIndex = nodeIndexMap.get(connection.fromId)
-    const toIndex = nodeIndexMap.get(connection.toId)
+  // 2. Create Edges
+  for (const connection of connections) {
+    const fromIndex = nodeIndexMap.get(connection.fromId);
+    const toIndex = nodeIndexMap.get(connection.toId);
 
-    if (fromIndex === undefined || toIndex === undefined) return
+    if (fromIndex === undefined || toIndex === undefined) continue;
 
-    const edgeIndex = edges.length
-    const edge = {
+    const edgeIndex = edges.length;
+
+    // PREPEND to Incoming List (Head Insertion)
+    // Point new edge's "next" to the current head
+    const currentFirstIn = vertices[toIndex].firstIn;
+
+    // Update Vertex stats
+    vertices[toIndex].firstIn = edgeIndex;
+    vertices[toIndex].inDegree++;
+
+    // PREPEND to Outgoing List (Head Insertion)
+    const currentFirstOut = vertices[fromIndex].firstOut;
+
+    // Update Vertex stats
+    vertices[fromIndex].firstOut = edgeIndex;
+    vertices[fromIndex].outDegree++;
+
+    // Create the edge record with the pointers
+    edges.push({
       data: connection,
       tailvertex: fromIndex,
       headvertex: toIndex,
-      headnext: -1,
-      tailnext: -1,
-    }
+      headnext: currentFirstIn, // Point to the OLD head
+      tailnext: currentFirstOut // Point to the OLD head
+    });
+  }
 
-    // Link to head vertex's incoming edges
-    if (vertices[toIndex].firstIn === -1) {
-      vertices[toIndex].firstIn = edgeIndex
-      vertices[toIndex].inDegree++
-    } else {
-      let currentEdgeIndex = vertices[toIndex].firstIn
-      while (edges[currentEdgeIndex].headnext !== -1) {
-        currentEdgeIndex = edges[currentEdgeIndex].headnext
-      }
-      edges[currentEdgeIndex].headnext = edgeIndex
-      vertices[toIndex].inDegree++
-    }
-
-    // Link to tail vertex's outgoing edges
-    if (vertices[fromIndex].firstOut === -1) {
-      vertices[fromIndex].firstOut = edgeIndex
-      vertices[fromIndex].outDegree++
-    } else {
-      let currentEdgeIndex = vertices[fromIndex].firstOut
-      while (edges[currentEdgeIndex].tailnext !== -1) {
-        currentEdgeIndex = edges[currentEdgeIndex].tailnext
-      }
-      edges[currentEdgeIndex].tailnext = edgeIndex
-      vertices[fromIndex].outDegree++
-    }
-
-    edges.push(edge)
-  })
-
-  return { vertices, edges }
-}
+  return { vertices, edges };
+};
 
 const dfsOrthogonal = (
   graph: OrthogonalGraph,
