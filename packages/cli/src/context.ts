@@ -7,6 +7,7 @@ import { ensureDirectoryExistsSync, existsSync } from './utils/fs-helper'
 import { readFileSync, readdirSync } from 'node:fs'
 import { getProjectByName } from './api'
 import { parse } from 'yaml'
+import { PACKAGE_ROOT } from './utils/constant'
 
 const path2name = (path: string) => {
   return path.replaceAll('/', '_')
@@ -246,7 +247,8 @@ class Context {
     )
     ensureDirectoryExistsSync(this.localDirectory)
 
-    const qlsYmlFile = readFileSync('./file.yml', 'utf8')
+    const qlsDir = path.join(PACKAGE_ROOT, 'qls')
+    const qlsYmlFile = readFileSync(path.join(qlsDir, './qlpack.yml'), 'utf8')
     const qlsYml: { version: string } = parse(qlsYmlFile)
 
     this.qlsVersion = qlsYml.version
