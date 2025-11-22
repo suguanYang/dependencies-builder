@@ -1,4 +1,6 @@
-import { PrismaClient } from '../dist/generated/prisma/client.js'
+import 'dotenv/config'
+import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { auth } from '../dist/auth.js'
@@ -18,7 +20,8 @@ function extractProjectData() {
  * Create admin user using Better Auth
  */
 async function seedAdminUser() {
-  const prisma = new PrismaClient()
+  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
+  const prisma = new PrismaClient({ adapter })
 
   try {
     console.log('Creating admin user...')
@@ -75,7 +78,8 @@ async function seedAdminUser() {
  * Seed projects into the database
  */
 async function seedProjects() {
-  const prisma = new PrismaClient()
+  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
+  const prisma = new PrismaClient({ adapter })
 
   try {
     console.log('Starting project seed...')

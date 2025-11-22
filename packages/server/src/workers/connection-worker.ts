@@ -1,6 +1,6 @@
 import { parentPort } from 'node:worker_threads'
-import { PrismaClient } from '../generated/prisma/client'
 import { optimizedAutoCreateConnections } from './create-connections'
+import { prisma } from '../database/prisma'
 
 /**
  * Worker function for connection auto-creation
@@ -15,13 +15,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
   }
   error?: string
 }> {
-  let prisma: PrismaClient | null = null
-
   try {
-    // Create a new Prisma client instance for this worker
-    prisma = new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL,
-    })
 
     // Update action status to running
     await prisma.action.update({
