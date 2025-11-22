@@ -3,6 +3,7 @@ import * as repository from '../../database/repository'
 import * as dependencyManager from '../../dependency'
 import { GraphNode } from '../../dependency/types'
 import { authenticate } from '../../auth/middleware'
+import { error } from '../../logging'
 
 // Custom error class for not found errors
 class NotFoundError extends Error {
@@ -53,16 +54,17 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       })
 
       return graph
-    } catch (error) {
-      if (isNotFoundError(error)) {
+    } catch (err) {
+      error(err)
+      if (isNotFoundError(err)) {
         reply.code(404).send({
           error: 'No dependency found',
-          details: error.message,
+          details: err.message,
         })
       } else {
         reply.code(500).send({
           error: 'Failed to fetch project-level dependency graph',
-          details: error instanceof Error ? error.message : 'Unknown error',
+          details: err instanceof Error ? err.message : 'Unknown error',
         })
       }
     }
