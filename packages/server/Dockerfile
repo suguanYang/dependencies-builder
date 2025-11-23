@@ -47,6 +47,7 @@ RUN groupadd --gid 1001 nodejs && \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/server/package.json ./packages/server/
 COPY packages/cli/package.json ./packages/cli/
+COPY packages/server/prisma.config.ts ./packages/server/
 
 # Copy built application from builder stage
 COPY --from=builder --chown=dms:nodejs /app/packages/cli/dist ./packages/cli/dist
