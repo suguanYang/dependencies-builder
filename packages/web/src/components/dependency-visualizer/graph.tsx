@@ -206,6 +206,38 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
       })
       context.stroke()
 
+      if (transformRef.current.k > 0.4) {
+        context.beginPath()
+        context.fillStyle = '#94a3b8' // slate-400
+        links.forEach((link) => {
+          const s = link.source as D3Node
+          const t = link.target as D3Node
+          const dx = t.x! - s.x!
+          const dy = t.y! - s.y!
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 40) return // Don't draw arrows on very short links
+
+          // Calculate arrow position (60% down the line)
+          const ratio = 0.6
+          const mx = s.x! + dx * ratio
+          const my = s.y! + dy * ratio
+
+          // Arrow geometry
+          const len = 6 / transformRef.current.k // Scale arrow by zoom so it doesn't get huge
+          const w = 3 / transformRef.current.k
+          const angle = Math.atan2(dy, dx)
+
+          context.save()
+          context.translate(mx, my)
+          context.rotate(angle)
+          context.moveTo(len, 0)
+          context.lineTo(-len, w)
+          context.lineTo(-len, -w)
+          context.fill()
+          context.restore()
+        })
+      }
+
       // B. Draw Nodes
       nodes.forEach((node) => {
         if (node.x === undefined || node.y === undefined) return

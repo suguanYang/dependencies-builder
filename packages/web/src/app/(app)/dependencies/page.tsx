@@ -26,7 +26,7 @@ function DependenciesContent() {
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined)
   const [nodeId, setNodeId] = useState<string>('')
   const [viewMode, setViewMode] = useState<'project' | 'node'>('project')
-  const [depth, setDepth] = useState<number>(2)
+  const [depth, setDepth] = useState<number>(1)
   const [branch, setBranch] = useState<string>('test')
 
   // Project dependencies SWR
