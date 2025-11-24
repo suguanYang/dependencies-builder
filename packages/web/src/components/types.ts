@@ -33,8 +33,8 @@ export interface D3Node {
 
 // D3-compatible link interface
 export interface D3Link {
-  source: D3Node | string
-  target: D3Node | string
+  source: D3Node
+  target: D3Node
   id?: string
 }
 

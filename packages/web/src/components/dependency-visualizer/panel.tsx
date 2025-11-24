@@ -72,7 +72,7 @@ const NodePanel: React.FC<NodePanelProps> = ({ node, onClose }) => {
   }
 
   return (
-    <div className="absolute top-4 right-4 w-96 bg-white/95 backdrop-blur shadow-xl rounded-xl border border-slate-200 z-10 overflow-hidden animate-in slide-in-from-right-2 fade-in duration-300">
+    <div className="fixed top-4 right-4 w-96 bg-white/95 backdrop-blur shadow-xl rounded-xl border border-slate-200 z-10 overflow-hidden animate-in slide-in-from-right-2 fade-in duration-300">
       <div className="p-4 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 flex-shrink-0">

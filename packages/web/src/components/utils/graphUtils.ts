@@ -3,9 +3,13 @@ import { DependencyGraph, D3Node, D3Link } from '../types'
 /**
  * Parse server-side dependency graph format into D3-compatible format
  */
-export function parseDependencyGraph(graph: DependencyGraph): { nodes: D3Node[]; links: D3Link[] } {
+export function parseDependencyGraph(graph: DependencyGraph): {
+  nodes: D3Node[]
+  links: (D3Link & { isBiDirectional?: boolean })[]
+} {
   const nodes: D3Node[] = []
-  const links: D3Link[] = []
+  const links: (D3Link & { isBiDirectional?: boolean })[] = []
+  const linkMap = new Set<string>()
 
   // Create node lookup map
   const nodeMap = new Map<string, D3Node>()
@@ -31,7 +35,15 @@ export function parseDependencyGraph(graph: DependencyGraph): { nodes: D3Node[];
         target: targetNode,
         id: edge.data.id,
       }
+      linkMap.add(`${link.source.id}-${link.target.id}`)
       links.push(link)
+    }
+  })
+
+  links.forEach((l: any) => {
+    // Check if the reverse "target-source" exists in the set
+    if (linkMap.has(`${l.target.id}-${l.source.id}`)) {
+      l.isBiDirectional = true
     }
   })
 

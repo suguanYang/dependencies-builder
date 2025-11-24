@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react'
 import * as d3 from 'd3'
 import { DependencyGraph, D3Node, D3Link, EntityType } from '../types'
 import { parseDependencyGraph } from '../utils/graphUtils'
-import { ZoomIn, ZoomOut, Maximize } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, Box, NetworkIcon } from 'lucide-react'
 import { AppType, NodeType } from '@/lib/api'
 
 interface DependencyGraphVisualizerProps {
@@ -15,9 +15,9 @@ interface DependencyGraphVisualizerProps {
 
 // Increased base radius to ensure Abbr text fits inside
 const getNodeRadius = (node: D3Node) => {
-  const baseRadius = 16 // Minimum size to fit text
+  const baseRadius = 12
   const degree = node.degree || 0
-  return baseRadius + Math.sqrt(degree) * 1.4
+  return baseRadius + Math.sqrt(degree) * 2.5
 }
 
 const getNodeColor = (type: EntityType) => {
@@ -80,6 +80,13 @@ const getNodeAbbreviation = (type: EntityType) => {
   }
 }
 
+// 1.0 = Compact
+// 2.0 = Normal
+// 3.0+ = Very Spread Out (Good for large datasets)
+const SCATTER_FACTOR = 3.0
+// Colors
+const COLOR_DEFAULT_LINK = '#cbd5e1' // slate-300
+const COLOR_BIDIRECTIONAL = '#f59e0b' // amber-500 (Highlight Color)
 const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
   data,
   onNodeClick,
@@ -88,18 +95,13 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Refs for D3 state
+  // Refs
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null)
   const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity)
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<HTMLCanvasElement, unknown> | null>(null)
   const nodesRef = useRef<D3Node[]>([])
+  const quadtreeRef = useRef<d3.Quadtree<D3Node> | null>(null)
 
-  // Main Effect: Init & Render Loop
-  // ... imports and interfaces remain the same
-
-  // Inside DependencyGraphVisualizer component:
-
-  // Main Effect: Init & Render Loop
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !data) return
 
@@ -107,165 +109,197 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
     const { nodes, links } = parseDependencyGraph(data)
     nodesRef.current = nodes
 
+    const nodeCount = nodes.length
+    const isMassive = nodeCount > 500
+
     const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
+    const context = canvas.getContext('2d', { alpha: false })
     const container = containerRef.current
     if (!context) return
 
-    // 2. Setup Canvas DPI
+    // 2. DPI Setup
     const width = container.clientWidth
     const height = container.clientHeight
     const dpr = window.devicePixelRatio || 1
-
     canvas.width = width * dpr
     canvas.height = height * dpr
     canvas.style.width = `${width}px`
     canvas.style.height = `${height}px`
     context.scale(dpr, dpr)
 
-    // 3. Stop previous simulation
     if (simulationRef.current) simulationRef.current.stop()
 
-    // 4. Force Simulation
+    // 3. Physics Simulation (SCATTER_FACTOR applied here)
     const simulation = d3
       .forceSimulation<D3Node, D3Link>(nodes)
+      .alphaDecay(0.04)
       .force(
         'link',
         d3
           .forceLink<D3Node, D3Link>(links)
           .id((d) => d.id)
           .distance((d) => {
-            const sourceDeg = (d.source as D3Node).degree || 1
-            const targetDeg = (d.target as D3Node).degree || 1
-            return 80 + Math.sqrt(Math.max(sourceDeg, targetDeg)) * 10
+            const s = d.source as D3Node
+            const t = d.target as D3Node
+            // Scale base distance by SCATTER_FACTOR
+            const base = (isMassive ? 100 : 80) * SCATTER_FACTOR
+            return base + getNodeRadius(s) + getNodeRadius(t)
           }),
       )
       .force(
         'charge',
-        d3.forceManyBody().strength((d: any) => -400 - d.degree * 20),
+        d3
+          .forceManyBody()
+          // Much stronger repulsion based on SCATTER_FACTOR
+          .strength(-500 * SCATTER_FACTOR)
+          .theta(0.9),
       )
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
       .force(
         'collide',
         d3
           .forceCollide()
-          .radius((d: any) => getNodeRadius(d) + 20)
-          .iterations(2),
+          // Larger collision buffer based on SCATTER_FACTOR to prevent overlap
+          .radius((d: any) => getNodeRadius(d) * (1 + SCATTER_FACTOR * 0.3))
+          .iterations(1),
       )
 
     simulationRef.current = simulation
 
-    // --- Helper: Find Node ---
-    const findNodeAt = (x: number, y: number) => {
-      // 1. Get current zoom transform
-      const transform = transformRef.current
-      // 2. Invert screen coord to world coord
-      const [simX, simY] = transform.invert([x, y])
+    // --- NEW ARROW DRAWER (Mid-Line) ---
+    const drawArrow = (
+      ctx: CanvasRenderingContext2D,
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      targetRadius: number,
+      zoomScale: number,
+      color: string,
+      showArrowHead: boolean,
+    ) => {
+      const dx = x2 - x1
+      const dy = y2 - y1
+      const dist = Math.sqrt(dx * dx + dy * dy)
 
-      let closest: D3Node | null = null
-      let minDst = Infinity
+      // Safety: Don't draw if nodes are basically touching
+      if (dist < targetRadius + 20) return
 
-      for (const node of nodes) {
-        if (node.x === undefined || node.y === undefined) continue
-        const dist = Math.hypot(simX - node.x, simY - node.y)
-        const radius = getNodeRadius(node)
+      const ux = dx / dist
+      const uy = dy / dist
 
-        // Strict hit area (radius + 5px buffer)
-        if (dist < radius + 5 && dist < minDst) {
-          minDst = dist
-          closest = node
-        }
+      // 1. Draw the full Line (Source Center -> Target Edge)
+      // We subtract targetRadius so the line stops clean at the node circle
+      const stopX = x2 - ux * (targetRadius + 2)
+      const stopY = y2 - uy * (targetRadius + 2)
+
+      ctx.strokeStyle = color
+      ctx.fillStyle = color
+
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(stopX, stopY)
+      ctx.stroke()
+
+      // 2. Draw Arrowhead (At ~62% of the distance)
+      // Using 0.62 ensures that if A->B and B->A exist, the arrows
+      // will be separated (one at 62%, the other at 38%)
+      if (showArrowHead) {
+        const ratio = 0.62
+        const midX = x1 + dx * ratio
+        const midY = y1 + dy * ratio
+
+        const arrowLen = Math.max(6, 12 / Math.sqrt(zoomScale))
+        const arrowWidth = arrowLen * 0.5
+
+        ctx.beginPath()
+        // Move to the tip of the arrow (at the mid-point)
+        ctx.moveTo(midX, midY)
+        // Draw back corners relative to the tip
+        ctx.lineTo(midX - arrowLen * ux - arrowWidth * -uy, midY - arrowLen * uy - arrowWidth * ux)
+        ctx.lineTo(midX - arrowLen * ux + arrowWidth * -uy, midY - arrowLen * uy + arrowWidth * ux)
+        ctx.closePath()
+        ctx.fill()
       }
-      return closest
     }
 
-    // --- Render Function ---
     const render = () => {
+      const transform = transformRef.current
       context.save()
-      context.clearRect(0, 0, width, height)
+      context.fillStyle = '#f8fafc'
+      context.fillRect(0, 0, width, height)
 
-      context.translate(transformRef.current.x, transformRef.current.y)
-      context.scale(transformRef.current.k, transformRef.current.k)
+      context.translate(transform.x, transform.y)
+      context.scale(transform.k, transform.k)
 
-      // A. Draw Links
-      context.lineWidth = 1.5
-      context.strokeStyle = '#e5e7eb'
-      context.beginPath()
-      links.forEach((link) => {
-        const source = link.source as D3Node
-        const target = link.target as D3Node
+      const [minX, minY] = transform.invert([0, 0])
+      const [maxX, maxY] = transform.invert([width, height])
+      const padding = 200
+
+      // LOD Thresholds
+      const showText = transform.k > 0.45
+      const showArrows = transform.k > 0.45
+      const simplifyNodes = transform.k < 0.15
+
+      // A. Draw Links & Arrows
+      context.lineWidth = 1.5 / Math.sqrt(transform.k)
+
+      links.forEach((link: any) => {
+        const s = link.source as D3Node
+        const t = link.target as D3Node
+        if (s.x === undefined || s.y === undefined || t.x === undefined || t.y === undefined) return
+
+        // Culling
         if (
-          source.x !== undefined &&
-          source.y !== undefined &&
-          target.x !== undefined &&
-          target.y !== undefined
-        ) {
-          context.moveTo(source.x, source.y)
-          context.lineTo(target.x, target.y)
-        }
+          (s.x < minX - padding || s.x > maxX + padding) &&
+          (t.x < minX - padding || t.x > maxX + padding)
+        )
+          return
+
+        const linkColor = link.isBiDirectional ? COLOR_BIDIRECTIONAL : COLOR_DEFAULT_LINK
+
+        // Clean call - no seed or staggering needed anymore!
+        drawArrow(context, s.x, s.y, t.x, t.y, getNodeRadius(t), transform.k, linkColor, showArrows)
       })
-      context.stroke()
-
-      if (transformRef.current.k > 0.4) {
-        context.beginPath()
-        context.fillStyle = '#94a3b8' // slate-400
-        links.forEach((link) => {
-          const s = link.source as D3Node
-          const t = link.target as D3Node
-          const dx = t.x! - s.x!
-          const dy = t.y! - s.y!
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 40) return // Don't draw arrows on very short links
-
-          // Calculate arrow position (60% down the line)
-          const ratio = 0.6
-          const mx = s.x! + dx * ratio
-          const my = s.y! + dy * ratio
-
-          // Arrow geometry
-          const len = 6 / transformRef.current.k // Scale arrow by zoom so it doesn't get huge
-          const w = 3 / transformRef.current.k
-          const angle = Math.atan2(dy, dx)
-
-          context.save()
-          context.translate(mx, my)
-          context.rotate(angle)
-          context.moveTo(len, 0)
-          context.lineTo(-len, w)
-          context.lineTo(-len, -w)
-          context.fill()
-          context.restore()
-        })
-      }
 
       // B. Draw Nodes
       nodes.forEach((node) => {
         if (node.x === undefined || node.y === undefined) return
-        const radius = getNodeRadius(node)
-        const isFocused = focusNodeId === node.id
+        if (
+          node.x < minX - padding ||
+          node.x > maxX + padding ||
+          node.y < minY - padding ||
+          node.y > maxY + padding
+        )
+          return
 
-        // Focus Glow
-        if (isFocused) {
-          context.beginPath()
-          context.fillStyle = 'rgba(59, 130, 246, 0.3)'
-          context.arc(node.x, node.y, radius + 8, 0, 2 * Math.PI)
-          context.fill()
+        const radius = getNodeRadius(node)
+
+        if (simplifyNodes) {
+          context.fillStyle = getNodeColor(node.type)
+          context.fillRect(node.x - radius, node.y - radius, radius * 2, radius * 2)
+          return
         }
 
-        // Node Circle
         context.beginPath()
         context.fillStyle = getNodeColor(node.type)
         context.arc(node.x, node.y, radius, 0, 2 * Math.PI)
         context.fill()
-        context.strokeStyle = isFocused ? '#1d4ed8' : '#ffffff'
-        context.lineWidth = isFocused ? 3 : 1.5
-        context.stroke()
 
-        // Abbreviation Text
-        if (transformRef.current.k > 0.15) {
+        if (focusNodeId === node.id) {
+          context.strokeStyle = '#2563eb'
+          context.lineWidth = 4 / transform.k
+          context.stroke()
+        } else {
+          context.strokeStyle = '#ffffff'
+          context.lineWidth = 1.5 / transform.k
+          context.stroke()
+        }
+
+        if (showText) {
           const abbr = getNodeAbbreviation(node.type)
           context.fillStyle = '#ffffff'
-          const fontSize = Math.min(radius, 14)
+          const fontSize = Math.min(radius, 16)
           context.font = `700 ${fontSize}px sans-serif`
           context.textAlign = 'center'
           context.textBaseline = 'middle'
@@ -273,19 +307,28 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
         }
       })
 
-      // C. Draw Labels (Optional: Only when zoomed in)
-      if (transformRef.current.k > 0.6) {
+      // C. Draw Labels (Zoomed In Only)
+      if (transform.k > 0.7) {
         context.textAlign = 'center'
         context.textBaseline = 'top'
+        context.lineJoin = 'round'
+        context.lineWidth = 3
+        context.strokeStyle = 'rgba(255, 255, 255, 0.85)'
+        context.fillStyle = '#334155'
+        context.font = `600 11px sans-serif`
+
         nodes.forEach((node) => {
-          if ((node.degree || 0) < 5 && transformRef.current.k < 1.2) return
           if (node.x === undefined || node.y === undefined) return
+          if (
+            node.x < minX - padding ||
+            node.x > maxX + padding ||
+            node.y < minY - padding ||
+            node.y > maxY + padding
+          )
+            return
+          if (transform.k < 1.1 && (node.degree || 0) < 5 && focusNodeId !== node.id) return
 
           const radius = getNodeRadius(node)
-          context.fillStyle = '#1e293b'
-          context.font = '10px sans-serif'
-          context.strokeStyle = 'rgba(255,255,255,0.8)'
-          context.lineWidth = 3
           context.strokeText(node.name, node.x, node.y + radius + 4)
           context.fillText(node.name, node.x, node.y + radius + 4)
         })
@@ -294,80 +337,78 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
       context.restore()
     }
 
-    simulation.on('tick', render)
+    simulation.on('tick', () => {
+      quadtreeRef.current = d3
+        .quadtree<D3Node>()
+        .x((d) => d.x!)
+        .y((d) => d.y!)
+        .addAll(nodes)
+      render()
+    })
 
-    // 5. Interactions
+    // --- Standard Interactions (Drag/Zoom/Hover) ---
     const canvasSelection = d3.select(canvas)
 
-    // --- Drag Behavior (Define BEFORE Zoom) ---
+    const findNodeAt = (x: number, y: number) => {
+      if (!quadtreeRef.current) return null
+      const transform = transformRef.current
+      const [simX, simY] = transform.invert([x, y])
+      const closest = quadtreeRef.current.find(simX, simY, 40 / transform.k)
+      if (
+        closest &&
+        Math.hypot(simX - closest.x!, simY - closest.y!) < getNodeRadius(closest) + 5
+      ) {
+        return closest
+      }
+      return null
+    }
+
+    const zoom = d3
+      .zoom<HTMLCanvasElement, unknown>()
+      .scaleExtent([0.05, 3])
+      .on('zoom', (e) => {
+        transformRef.current = e.transform
+        requestAnimationFrame(render)
+      })
+    zoomBehaviorRef.current = zoom
+
     const drag = d3
       .drag<HTMLCanvasElement, unknown>()
       .container(canvas)
-      .subject((event) => {
-        // FIX: Use d3.pointer to get [x,y] relative to the canvas
-        const [x, y] = d3.pointer(event, canvas)
-        // Find node at those coordinates
+      .subject((e) => {
+        const [x, y] = d3.pointer(e, canvas)
         return findNodeAt(x, y)
       })
-      .on('start', (event) => {
-        // If subject returned null, this event never fires
-        if (!event.active) simulation.alphaTarget(0.3).restart()
-
-        const node = event.subject as D3Node
-        node.fx = node.x
-        node.fy = node.y
-
+      .on('start', (e) => {
+        if (!e.active) simulation.alphaTarget(0.3).restart()
+        e.subject.fx = e.subject.x
+        e.subject.fy = e.subject.y
         canvas.style.cursor = 'grabbing'
       })
-      .on('drag', (event) => {
-        const node = event.subject as D3Node
-        // event.x/y are automatically transformed by d3-drag
-        // to match the subject's coordinate system (world coordinates)
-        node.fx = event.x
-        node.fy = event.y
+      .on('drag', (e) => {
+        e.subject.fx = e.x
+        e.subject.fy = e.y
+        simulation.alpha(0.1).restart()
       })
-      .on('end', (event) => {
-        if (!event.active) simulation.alphaTarget(0)
-        const node = event.subject as D3Node
-        node.fx = null
-        node.fy = null
+      .on('end', (e) => {
+        if (!e.active) simulation.alphaTarget(0)
+        e.subject.fx = null
+        e.subject.fy = null
         canvas.style.cursor = 'grab'
       })
 
-    // --- Zoom Behavior ---
-    const zoom = d3
-      .zoom<HTMLCanvasElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (e) => {
-        transformRef.current = e.transform
-        render()
-      })
-
-    zoomBehaviorRef.current = zoom
-
-    // Apply Drag FIRST, then Zoom
-    // If Drag.subject returns a node, Drag consumes the event.
-    // If Drag.subject returns null, the event passes to Zoom.
     canvasSelection.call(drag).call(zoom)
 
-    // --- Click Handling ---
-    canvasSelection.on('click', (event) => {
-      // Ignore clicks that happened during a drag gesture
-      if (event.defaultPrevented) return
-
-      const [x, y] = d3.pointer(event, canvas)
+    canvasSelection.on('click', (e) => {
+      if (e.defaultPrevented) return
+      const [x, y] = d3.pointer(e, canvas)
       const node = findNodeAt(x, y)
-      if (node && onNodeClick) {
-        onNodeClick(node)
-      }
+      if (node && onNodeClick) onNodeClick(node)
     })
 
-    // --- Mouse Move (Cursor) ---
-    canvasSelection.on('mousemove', (event) => {
-      // Don't update cursor while dragging
-      if (event.buttons === 1) return
-
-      const [x, y] = d3.pointer(event, canvas)
+    canvasSelection.on('mousemove', (e) => {
+      if (e.buttons === 1) return
+      const [x, y] = d3.pointer(e, canvas)
       const node = findNodeAt(x, y)
       canvas.style.cursor = node ? 'pointer' : 'move'
     })
@@ -375,26 +416,54 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
     return () => {
       simulation.stop()
       zoom.on('zoom', null)
-      drag.on('start', null).on('drag', null).on('end', null)
     }
   }, [data, onNodeClick])
-  // --- Focus Animation Effect ---
-  useEffect(() => {
-    if (!focusNodeId || !canvasRef.current || !zoomBehaviorRef.current) return
-    const node = nodesRef.current.find((n) => n.id === focusNodeId)
-    if (node && node.x && node.y) {
-      const canvas = d3.select(canvasRef.current)
-      const width = containerRef.current?.clientWidth || 800
-      const height = containerRef.current?.clientHeight || 600
+  // --- Auto-Fit / Reset ---
+  // Updated to handle large graphs by zooming out more initially
+  const handleFit = useCallback(() => {
+    if (!canvasRef.current || !zoomBehaviorRef.current || nodesRef.current.length === 0) return
 
-      const targetTransform = d3.zoomIdentity
-        .translate(width / 2, height / 2)
-        .scale(1.5)
-        .translate(-node.x, -node.y)
+    // 1. Calculate Bounds
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity
+    let validNodes = 0
+    nodesRef.current.forEach((n) => {
+      if (n.x === undefined || n.y === undefined) return
+      if (n.x < minX) minX = n.x
+      if (n.x > maxX) maxX = n.x
+      if (n.y < minY) minY = n.y
+      if (n.y > maxY) maxY = n.y
+      validNodes++
+    })
 
-      canvas.transition().duration(1000).call(zoomBehaviorRef.current.transform, targetTransform)
-    }
-  }, [focusNodeId])
+    if (validNodes === 0) return
+
+    const width = containerRef.current?.clientWidth || 800
+    const height = containerRef.current?.clientHeight || 600
+    const padding = 80
+
+    const graphW = maxX - minX
+    const graphH = maxY - minY
+    const midX = (minX + maxX) / 2
+    const midY = (minY + maxY) / 2
+
+    // 2. Calculate Scale
+    // If graph is massive (10000px wide), this scale will be small (e.g. 0.05)
+    const scale = Math.min(2, Math.min((width - padding) / graphW, (height - padding) / graphH))
+
+    // 3. Apply Transform
+    const transform = d3.zoomIdentity
+      .translate(width / 2, height / 2)
+      .scale(scale)
+      .translate(-midX, -midY)
+
+    d3.select(canvasRef.current)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current.transform, transform)
+  }, [])
 
   // --- Toolbar Handlers ---
   const handleZoom = (factor: number) => {
@@ -406,57 +475,31 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
     }
   }
 
-  const handleFit = () => {
-    if (!canvasRef.current || !zoomBehaviorRef.current || nodesRef.current.length === 0) return
-
-    // Calculate Bounding Box
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity
-
-    nodesRef.current.forEach((n) => {
-      // FIX: Check BOTH x and y. If either is undefined, skip this node.
-      if (n.x === undefined || n.y === undefined) return
-
-      if (n.x < minX) minX = n.x
-      if (n.x > maxX) maxX = n.x
-      if (n.y < minY) minY = n.y
-      if (n.y > maxY) maxY = n.y
-    })
-
-    // If no valid nodes were found (e.g. simulation hasn't ticked yet), exit
-    if (minX === Infinity || minY === Infinity) return
-
-    const padding = 100
-    const width = containerRef.current?.clientWidth || 800
-    const height = containerRef.current?.clientHeight || 600
-    const dx = maxX - minX
-    const dy = maxY - minY
-    const midX = (minX + maxX) / 2
-    const midY = (minY + maxY) / 2
-
-    // Calculate scale to fit
-    const scale = Math.max(0.1, Math.min(2, 0.9 / Math.max(dx / width, dy / height)))
-
-    const transform = d3.zoomIdentity
-      .translate(width / 2, height / 2)
-      .scale(scale)
-      .translate(-midX, -midY)
-
-    d3.select(canvasRef.current)
-      .transition()
-      .duration(750)
-      .call(zoomBehaviorRef.current.transform, transform)
-  }
-
   return (
     <div
       ref={containerRef}
       className="relative w-full h-full bg-slate-50 overflow-hidden rounded-xl border border-slate-200 shadow-inner"
     >
       <canvas ref={canvasRef} className="block w-full h-full touch-none" />
-
+      <div className="absolute bottom-4 left-4 pointer-events-none select-none">
+        <div className="flex items-center gap-4 bg-white/90 backdrop-blur px-4 py-2 rounded-lg border border-slate-200 shadow-sm text-xs font-medium text-slate-600">
+          <div className="flex items-center gap-2">
+            <Box size={14} className="text-blue-500" />
+            <span>
+              <span className="text-slate-400 mr-1.5">Nodes:</span>
+              <span className="text-slate-700 font-bold">{data.vertices.length}</span>
+            </span>
+          </div>
+          <div className="w-px h-3 bg-slate-300"></div>
+          <div className="flex items-center gap-2">
+            <NetworkIcon size={14} className="text-violet-500" />
+            <span>
+              <span className="text-slate-400 mr-1.5">Edges:</span>
+              <span className="text-slate-700 font-bold">{data.edges.length}</span>
+            </span>
+          </div>
+        </div>
+      </div>
       {/* Controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
         <button

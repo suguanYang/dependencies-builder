@@ -242,12 +242,10 @@ function nodesRoutes(fastify: FastifyInstance) {
         }
 
         if (!req.shallowBranch || !req.targetBranch || !Array.isArray(req.projectNames)) {
-          reply
-            .code(400)
-            .send({
-              error:
-                'Invalid request body. Expected { shallowBranch: string; targetBranch: string; projectNames: string[] }',
-            })
+          reply.code(400).send({
+            error:
+              'Invalid request body. Expected { shallowBranch: string; targetBranch: string; projectNames: string[] }',
+          })
           return
         }
 
