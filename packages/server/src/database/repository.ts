@@ -92,41 +92,58 @@ export async function updateNode(
   return updatedNode
 }
 
-// @TODO using 2 phase commit
 export async function createSequenceNodes(
   nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
+) {
+  const createdNodes = await prisma.node.createMany({
+    data: nodes,
+  })
+  return createdNodes
+}
+
+export async function commitShallowNodes(
+  shallowBranch: string,
+  targetBranch: string,
   projectNames: string[],
 ) {
-  const node = nodes[0]
-  const [_, createdNodes] = await prisma.$transaction([
-    ...projectNames.map((pName) =>
-      prisma.node.deleteMany({
-        where: {
-          branch: node.branch,
-          projectName: pName,
-          OR: [
-            {
-              version: {
-                not: node.version,
-              },
-            },
-            {
-              qlsVersion: {
-                not: node.qlsVersion,
-              },
-            },
-          ],
-          NOT: {
-            version: 'null',
-          },
-        },
-      }),
-    ),
-    prisma.node.createMany({
-      data: nodes,
-    }),
-  ])
-  return createdNodes
+  return await prisma.$transaction(async (tx) => {
+    const count = await tx.node.count({
+      where: { branch: shallowBranch },
+    })
+
+    if (count === 0) {
+      throw new Error('No staged nodes found to commit.')
+    }
+
+    await tx.node.deleteMany({
+      where: {
+        branch: targetBranch,
+        projectName: { in: projectNames },
+      },
+    })
+
+    await tx.node.updateMany({
+      where: {
+        branch: shallowBranch,
+        projectName: { in: projectNames },
+      },
+      data: {
+        branch: targetBranch,
+      },
+    })
+
+    return { committedNodes: count }
+  })
+}
+
+export async function rollbackBatch(shallowBranch: string) {
+  await prisma.node.deleteMany({
+    where: {
+      branch: shallowBranch,
+    },
+  })
+
+  return { success: true }
 }
 
 export async function deleteNode(id: string) {

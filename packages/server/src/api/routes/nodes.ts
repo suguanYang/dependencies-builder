@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { onlyQuery, queryContains } from '../../utils'
 import * as repository from '../../database/repository'
-import type { NodeQuery, NodeCreationBody } from '../types'
+import type { NodeQuery, NodeCreationBody, NodeBatchCreationBody } from '../types'
 import { formatStringToNumber } from '../request_parameter'
 import { authenticate } from '../../auth/middleware'
 import { Prisma } from '../../generated/prisma/client'
@@ -137,7 +137,6 @@ function nodesRoutes(fastify: FastifyInstance) {
     },
   )
 
-  // POST /nodes/batch-create - Create multiple nodes(and same branch) in batch
   fastify.post(
     '/nodes/batch-create',
     {
@@ -145,10 +144,12 @@ function nodesRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const nodesData = request.body as NodeCreationBody[]
+        const req = request.body as NodeBatchCreationBody
 
-        if (!nodesData || !Array.isArray(nodesData)) {
-          reply.code(400).send({ error: 'Invalid request body. Expected array of nodes' })
+        if (!req || !req.shallowBranch || !Array.isArray(req.data)) {
+          reply
+            .code(400)
+            .send({ error: 'Invalid request body. Expected { shallowBranch: string; data: [] }' })
           return
         }
 
@@ -158,7 +159,9 @@ function nodesRoutes(fastify: FastifyInstance) {
         const versions: Set<string> = new Set()
         const qlsVersions: Set<string> = new Set()
 
-        nodesData.forEach((node) => {
+        const { shallowBranch, data } = req
+
+        data.forEach((node) => {
           projectNames.add(node.projectName)
           projectBranches.add(node.branch)
 
@@ -166,18 +169,18 @@ function nodesRoutes(fastify: FastifyInstance) {
           qlsVersions.add(node.qlsVersion)
         })
 
-        if (projectBranches.size > 1) {
-          reply.code(400).send({ error: 'Invalid request body. Expected any 1 branch' })
+        if (projectBranches.size !== 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected only 1 branch' })
           return
         }
 
-        if (versions.size > 1) {
-          reply.code(400).send({ error: 'Invalid request body. Expected any 1 version' })
+        if (versions.size !== 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected only 1 version' })
           return
         }
 
-        if (qlsVersions.size > 1) {
-          reply.code(400).send({ error: 'Invalid request body. Expected any 1 qls version' })
+        if (qlsVersions.size !== 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected only 1 qls version' })
           return
         }
 
@@ -206,15 +209,86 @@ function nodesRoutes(fastify: FastifyInstance) {
         )
 
         const createdNodes = await repository.createSequenceNodes(
-          nodesData.map((node) => ({
+          data.map((node) => ({
             ...node,
             projectId: pIdNameMap[node.projectName]?.id,
+            branch: shallowBranch,
           })),
-          Array.from(projectNames),
         )
 
         reply.code(201).send({
-          message: `Successfully created ${createdNodes.count} nodes`,
+          message: `Successfully created ${createdNodes.count} shallow nodes`,
+        })
+      } catch (error) {
+        reply.code(500).send({
+          error: 'Failed to create nodes in batch',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    },
+  )
+
+  fastify.post(
+    '/nodes/batch-create/commit',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const req = request.body as {
+          shallowBranch: string
+          targetBranch: string
+          projectNames: string[]
+        }
+
+        if (!req.shallowBranch || !req.targetBranch || !Array.isArray(req.projectNames)) {
+          reply
+            .code(400)
+            .send({
+              error:
+                'Invalid request body. Expected { shallowBranch: string; targetBranch: string; projectNames: string[] }',
+            })
+          return
+        }
+
+        const createdNodes = await repository.commitShallowNodes(
+          req.shallowBranch,
+          req.targetBranch,
+          req.projectNames,
+        )
+
+        reply.code(201).send({
+          message: `Successfully created ${createdNodes.committedNodes} nodes`,
+        })
+      } catch (error) {
+        reply.code(500).send({
+          error: 'Failed to create nodes in batch',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    },
+  )
+
+  fastify.post(
+    '/nodes/batch-create/rollback',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const req = request.body as { shallowBranch: string }
+
+        if (!req.shallowBranch) {
+          reply
+            .code(400)
+            .send({ error: 'Invalid request body. Expected { shallowBranch: string; }' })
+          return
+        }
+
+        await repository.rollbackBatch(req.shallowBranch)
+
+        reply.code(201).send({
+          message: `Successfully rollback ${req.shallowBranch} nodes`,
         })
       } catch (error) {
         reply.code(500).send({

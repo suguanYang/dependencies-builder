@@ -1,4 +1,5 @@
-import { batchCreateNodes, updateAction } from '../api'
+import { randomUUID } from 'node:crypto'
+import { batchCreateNodes, commitCreatedNodes, rollbackCreatedNodes, updateAction } from '../api'
 import type { RunCodeQLResult } from '../codeql'
 import { getContext } from '../context'
 import debug, { error as errLog } from '../utils/debug'
@@ -12,10 +13,15 @@ export interface UploadResult {
 
 export async function uploadResults(results: RunCodeQLResult): Promise<UploadResult> {
   debug('Uploading results to server')
+  const projectNames: Set<string> = new Set()
 
-  try {
-    // Prepare nodes for upload with projectId and projectName
-    const nodesToUpload = results.nodes.map((node: any) => ({
+  const shallowBranch = `shallow-${randomUUID()}-${results.summary.branch}`
+
+  // Prepare nodes for upload with projectId and projectName
+  const nodesToUpload = results.nodes.map((node) => {
+    projectNames.add(node.projectName)
+
+    return {
       projectName: node.projectName,
       branch: node.branch,
       type: node.type,
@@ -27,8 +33,10 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
       endColumn: node.endColumn,
       version: node.version,
       meta: node.meta,
-    }))
+    }
+  })
 
+  try {
     debug('Uploading %d nodes to server', nodesToUpload.length)
 
     // Upload nodes in batches to avoid overwhelming the server
@@ -46,7 +54,10 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
       debug('Uploading batch %d/%d (%d nodes)', i + 1, batches.length, batch.length)
 
       try {
-        const result = await batchCreateNodes(batch)
+        const result = await batchCreateNodes({
+          shallowBranch,
+          data: batch,
+        })
 
         totalUploaded += batch.length
         debug('Batch %d uploaded successfully: %s', i + 1, result.message)
@@ -59,6 +70,13 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
       throw new Error(errors.join('/n'))
     }
 
+    debug('start commit created nodes')
+    await commitCreatedNodes({
+      shallowBranch,
+      projectNames: Array.from(projectNames),
+      targetBranch: results.summary.branch,
+    })
+
     return {
       success: true,
       message: `Successfully uploaded ${totalUploaded} nodes to server`,
@@ -66,6 +84,15 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
     }
   } catch (error) {
     errLog('Upload failed: %o', error)
+
+    debug('start rollback created nodes')
+    await rollbackCreatedNodes({
+      shallowBranch,
+      projectNames: Array.from(projectNames),
+    }).catch((err) => {
+      errLog(`Failed to rollback shallow nodes, ${shallowBranch} : %o`, err)
+    })
+
     throw error
   }
 }

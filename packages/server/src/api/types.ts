@@ -26,6 +26,11 @@ export interface NodeCreationBody {
   meta: Record<string, string>
 }
 
+export interface NodeBatchCreationBody {
+  shallowBranch: string
+  data: NodeCreationBody[]
+}
+
 export interface ConnectionQuery {
   fromId?: string
   toId?: string

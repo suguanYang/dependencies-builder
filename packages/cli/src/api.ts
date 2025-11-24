@@ -50,10 +50,35 @@ export const getProjectByName = async (name: string) => {
   }
 }
 
-export const batchCreateNodes = async (nodes: any[]) => {
+export const batchCreateNodes = async (bd: { shallowBranch: string; data: unknown[] }) => {
   const response = await apiRequest<{ message: string }>(`nodes/batch-create`, {
     method: 'POST',
-    body: JSON.stringify(nodes),
+    body: JSON.stringify(bd),
+  })
+
+  return response
+}
+
+export const commitCreatedNodes = async (bd: {
+  shallowBranch: string
+  projectNames: string[]
+  targetBranch: string
+}) => {
+  const response = await apiRequest<{ message: string }>(`nodes/batch-create/commit`, {
+    method: 'POST',
+    body: JSON.stringify(bd),
+  })
+
+  return response
+}
+
+export const rollbackCreatedNodes = async (bd: {
+  shallowBranch: string
+  projectNames: string[]
+}) => {
+  const response = await apiRequest<{ message: string }>(`nodes/batch-create/rollback`, {
+    method: 'POST',
+    body: JSON.stringify(bd),
   })
 
   return response
