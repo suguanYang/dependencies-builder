@@ -3,3 +3,5 @@ dist
 pnpm-lock.yaml
 .next
 *.md
+docker-compose.yaml
+*.db
