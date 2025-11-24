@@ -21,19 +21,7 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
   const nodesToUpload = results.nodes.map((node) => {
     projectNames.add(node.projectName)
 
-    return {
-      projectName: node.projectName,
-      branch: node.branch,
-      type: node.type,
-      name: node.name,
-      relativePath: node.relativePath,
-      startLine: node.startLine,
-      startColumn: node.startColumn,
-      endLine: node.endLine,
-      endColumn: node.endColumn,
-      version: node.version,
-      meta: node.meta,
-    }
+    return node
   })
 
   try {
