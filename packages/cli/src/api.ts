@@ -66,9 +66,7 @@ export const getAnyNodeByProjectBranchVersion = async (
 ) => {
   const res = await apiRequest<{
     data: {
-      meta?: {
-        qlsVersion?: string
-      }
+      qlsVersion?: string
     }[]
   }>(`nodes?version=${version}&projectName=${projectName}&branch=${branch}&limit=1`, {
     method: 'GET',

@@ -64,6 +64,7 @@ model Node {
   meta         Json
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
+  qlsVersion   String   @default("0.1.0")
 
   // Relations
   fromConnections Connection[] @relation("FromNode")
@@ -74,8 +75,11 @@ model Node {
   @@index([projectName])
   @@index([type])
   @@index([name])
+  @@index([branch])
+  @@index([version])
+  @@index([qlsVersion])
 
-  @@unique([projectId, version, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn])
+  @@unique([projectId, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn])
 }
 
 model Connection {

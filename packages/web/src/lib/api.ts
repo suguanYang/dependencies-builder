@@ -17,7 +17,8 @@ export interface Node {
   projectName: string
   type: NodeType
   branch: string
-  version?: string
+  version: string
+  qlsVersion: string
   relativePath?: string
   startLine?: number
   startColumn?: number

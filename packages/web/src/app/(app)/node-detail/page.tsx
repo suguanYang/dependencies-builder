@@ -138,6 +138,16 @@ function NodeDetailContent() {
               <label className="block text-sm font-medium text-gray-500 mb-1">Branch</label>
               <p className="text-sm">{node.branch}</p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Version</label>
+                <p className="text-sm">{node.version || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">QLS version</label>
+                <p className="text-sm">{node.qlsVersion || 'N/A'}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -170,10 +180,6 @@ function NodeDetailContent() {
                 <label className="block text-sm font-medium text-gray-500 mb-1">End Column</label>
                 <p className="text-sm">{node.endColumn || 'N/A'}</p>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Version</label>
-              <p className="text-sm">{node.version || 'N/A'}</p>
             </div>
           </div>
         </div>

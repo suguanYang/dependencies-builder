@@ -92,21 +92,36 @@ export async function updateNode(
   return updatedNode
 }
 
+// @TODO using 2 phase commit
 export async function createSequenceNodes(
   nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
+  projectNames: string[],
 ) {
   const node = nodes[0]
   const [_, createdNodes] = await prisma.$transaction([
-    prisma.node.deleteMany({
-      where: {
-        branch: node.branch,
-        projectName: node.projectName,
-        // empty version means this node is created manually
-        NOT: {
-          version: '',
+    ...projectNames.map((pName) =>
+      prisma.node.deleteMany({
+        where: {
+          branch: node.branch,
+          projectName: pName,
+          OR: [
+            {
+              version: {
+                not: node.version,
+              },
+            },
+            {
+              qlsVersion: {
+                not: node.qlsVersion,
+              },
+            },
+          ],
+          NOT: {
+            version: 'null',
+          },
         },
-      },
-    }),
+      }),
+    ),
     prisma.node.createMany({
       data: nodes,
     }),

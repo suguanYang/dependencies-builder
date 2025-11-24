@@ -47,6 +47,7 @@ const nodeSchema = z.object({
   endLine: z.number().min(0, 'End line must be a positive number'),
   endColumn: z.number().min(0, 'End column must be a positive number'),
   version: z.string().min(1, 'Version is required'),
+  qlsVersion: z.string().min(1, 'qlsVersion is required'),
   meta: z.object({}).optional(),
 })
 
@@ -79,7 +80,8 @@ function NodesContent() {
       startColumn: 0,
       endLine: 0,
       endColumn: 0,
-      version: '1.0.0',
+      version: 'null',
+      qlsVersion: '0.1.0',
       meta: {},
     },
   })
@@ -585,7 +587,18 @@ function NodesContent() {
                       name="version"
                       control={createControl}
                       render={({ field }) => (
-                        <Input id="create-version" {...field} placeholder="1.0.0" required />
+                        <Input id="create-version" {...field} placeholder="null" required />
+                      )}
+                    />
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="create-version">QLSVersion</FieldLabel>
+                    <Controller
+                      name="qlsVersion"
+                      control={createControl}
+                      render={({ field }) => (
+                        <Input id="create-qlsVersion" {...field} placeholder="0.1.0" required />
                       )}
                     />
                   </Field>
@@ -799,11 +812,21 @@ function NodesContent() {
                       name="version"
                       control={editControl}
                       render={({ field }) => (
-                        <Input id="edit-version" {...field} placeholder="1.0.0" required />
+                        <Input id="edit-version" {...field} placeholder="null" required />
                       )}
                     />
                   </Field>
 
+                  <Field>
+                    <FieldLabel htmlFor="edit-qlsVersion">QLSVersion</FieldLabel>
+                    <Controller
+                      name="qlsVersion"
+                      control={editControl}
+                      render={({ field }) => (
+                        <Input id="edit-qlsVersion" {...field} placeholder="0.1.0" required />
+                      )}
+                    />
+                  </Field>
                   <div className="flex space-x-4">
                     <Button type="submit" className="flex-1">
                       Update

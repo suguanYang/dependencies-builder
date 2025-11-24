@@ -22,6 +22,7 @@ export interface NodeCreationBody {
   endLine: number
   endColumn: number
   version: string
+  qlsVersion: string
   meta: Record<string, string>
 }
 

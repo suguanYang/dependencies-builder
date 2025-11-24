@@ -23,7 +23,6 @@ function nodesRoutes(fastify: FastifyInstance) {
 
       // Handle standalone filter - nodes that don't have any connections
       const { standalone } = filters
-      const extraQuery: Prisma.NodeFindManyArgs['where'] = {}
       if (standalone !== undefined) {
         // Convert string "true" to boolean true
         const standaloneBool = standalone === true || standalone === 'true'
@@ -153,10 +152,39 @@ function nodesRoutes(fastify: FastifyInstance) {
           return
         }
 
+        const projectNames: Set<string> = new Set()
+        const projectBranches: Set<string> = new Set()
+
+        const versions: Set<string> = new Set()
+        const qlsVersions: Set<string> = new Set()
+
+        nodesData.forEach((node) => {
+          projectNames.add(node.projectName)
+          projectBranches.add(node.branch)
+
+          versions.add(node.version)
+          qlsVersions.add(node.qlsVersion)
+        })
+
+        if (projectBranches.size > 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected any 1 branch' })
+          return
+        }
+
+        if (versions.size > 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected any 1 version' })
+          return
+        }
+
+        if (qlsVersions.size > 1) {
+          reply.code(400).send({ error: 'Invalid request body. Expected any 1 qls version' })
+          return
+        }
+
         const projectIds = await repository.getProjects({
           where: {
             name: {
-              in: nodesData.map((n) => n.projectName),
+              in: Array.from(projectNames),
             },
           },
           select: {
@@ -182,6 +210,7 @@ function nodesRoutes(fastify: FastifyInstance) {
             ...node,
             projectId: pIdNameMap[node.projectName]?.id,
           })),
+          Array.from(projectNames),
         )
 
         reply.code(201).send({

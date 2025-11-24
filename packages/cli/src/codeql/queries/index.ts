@@ -130,10 +130,10 @@ const parseExportQuery = (queryResultDir: string) => {
         type: NodeType.NamedExport,
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
+        qlsVersion: ctx.getQlsVersion(),
         meta: {
           entry: tuple[0],
           entryName: entryName,
-          qlsVersion: ctx.getQlsVersion(),
         },
       }
     })
@@ -156,9 +156,8 @@ const parseES6ImportQuery = (queryResultDir: string) => {
       name: `${tuple[0]}.${tuple[1]}`, // importName
       ...parseLoc(tuple[2]),
       version: ctx.getVersion(),
-      meta: {
-        qlsVersion: ctx.getQlsVersion(),
-      },
+      qlsVersion: ctx.getQlsVersion(),
+      meta: {},
     }))
   } catch (error) {
     console.warn('Failed to parse ES6 import query result:', error)
@@ -180,9 +179,8 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
       name: `${tuple[0]}.${tuple[1]}.${tuple[2]}`, // namedImport
       ...parseLoc(tuple[3]),
       version: ctx.getVersion(),
-      meta: {
-        qlsVersion: ctx.getQlsVersion(),
-      },
+      qlsVersion: ctx.getQlsVersion(),
+      meta: {},
     }))
   } catch (error) {
     console.warn('Failed to parse dynamic import query result:', error)
@@ -206,9 +204,8 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
         name: tuple[0], // variableName
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
-        meta: {
-          qlsVersion: ctx.getQlsVersion(),
-        },
+        qlsVersion: ctx.getQlsVersion(),
+        meta: {},
       })
     })
 
@@ -235,9 +232,8 @@ const parseEventOnQuery = (queryResultDir: string) => {
         name: tuple[0], // eventName
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
-        meta: {
-          qlsVersion: ctx.getQlsVersion(),
-        },
+        qlsVersion: ctx.getQlsVersion(),
+        meta: {},
       }))
   } catch (error) {
     console.warn('Failed to parse event on query result:', error)
@@ -261,9 +257,8 @@ const parseEventEmitQuery = (queryResultDir: string) => {
         name: tuple[0], // eventName
         ...parseLoc(tuple[2]),
         version: ctx.getVersion(),
-        meta: {
-          qlsVersion: ctx.getQlsVersion(),
-        },
+        qlsVersion: ctx.getQlsVersion(),
+        meta: {},
       }))
   } catch (error) {
     console.warn('Failed to parse event on query result:', error)
@@ -286,9 +281,9 @@ const parseWebStorageQuery = (queryResultDir: string) => {
         name: tuple[0], // localStorageKey
         ...parseLoc(tuple[3]),
         version: ctx.getVersion(),
+        qlsVersion: ctx.getQlsVersion(),
         meta: {
           kind: tuple[2],
-          qlsVersion: ctx.getQlsVersion(),
         },
       }),
     )
@@ -312,9 +307,8 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
       name: `${tuple[0]}.${tuple[1]}`,
       ...parseLoc(tuple[2]),
       version: ctx.getVersion(),
-      meta: {
-        qlsVersion: ctx.getQlsVersion(),
-      },
+      qlsVersion: ctx.getQlsVersion(),
+      meta: {},
     }))
   } catch (error) {
     console.warn('Failed to parse remote loader query result:', error)
@@ -380,6 +374,7 @@ type Node = {
   endLine: number
   endColumn: number
   version: string
+  qlsVersion: string
   meta: Record<string, any>
 }
 
