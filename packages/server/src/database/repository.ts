@@ -101,9 +101,7 @@ export async function createSequenceNodes(
       where: {
         branch: node.branch,
         projectName: node.projectName,
-        version: {
-          not: node.version,
-        },
+        // empty version means this node is created manually
         NOT: {
           version: '',
         },
