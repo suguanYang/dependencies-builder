@@ -23,4 +23,5 @@ README.md
 **/.env
 
 **/dms.db
+**/*.db
 **/test

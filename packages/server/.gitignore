@@ -5,4 +5,5 @@ node_modules
 /src/generated/prisma
 
 dms.db
+*.db
 seed
