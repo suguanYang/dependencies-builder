@@ -10,6 +10,7 @@ vi.mock('../../workers/worker-pool', () => ({
     ConnectionWorkerPool: {
         getPool: () => ({
             executeConnectionAutoCreation: async () => ({ success: true }),
+            stopExecution: () => true,
         }),
     },
 }))
@@ -17,6 +18,9 @@ vi.mock('../../workers/worker-pool', () => ({
 // Mock cli-service
 vi.mock('../../services/cli-service', () => ({
     executeCLI: async () => ({ success: true, stdout: 'mock output', stderr: '' }),
+    getActiveExecution: () => ({
+        stop: async () => { },
+    }),
 }))
 
 describe('Actions API', () => {
@@ -108,5 +112,125 @@ describe('Actions API', () => {
         expect(response.statusCode).toBe(201)
         const action = response.json()
         expect(action.type).toBe('connection_auto_create')
+    })
+
+    it('should return existing action if connection auto create is already running', async () => {
+        const { headers } = await getAuthHeaders(server)
+
+        // Create an initial action
+        await prisma.action.create({
+            data: {
+                type: 'connection_auto_create',
+                status: 'running',
+                parameters: {},
+            },
+        })
+
+        const response = await server.inject({
+            method: 'POST',
+            url: '/actions/connection-auto-create',
+            headers,
+            payload: {
+                projectId: 'test-project',
+                branch: 'main',
+            },
+        })
+
+        expect(response.statusCode).toBe(200)
+        const action = response.json()
+        expect(action.type).toBe('connection_auto_create')
+        expect(action.status).toBe('running')
+    })
+    it('should get action by id', async () => {
+        const { headers } = await getAuthHeaders(server)
+
+        const created = await prisma.action.create({
+            data: {
+                type: 'static_analysis',
+                status: 'pending',
+                parameters: {},
+            },
+        })
+
+        const response = await server.inject({
+            method: 'GET',
+            url: `/actions/${created.id}`,
+            headers,
+        })
+
+        expect(response.statusCode).toBe(200)
+        const action = response.json()
+        expect(action.id).toBe(created.id)
+    })
+
+    it('should update an action', async () => {
+        const { headers } = await getAuthHeaders(server)
+
+        const created = await prisma.action.create({
+            data: {
+                type: 'static_analysis',
+                status: 'pending',
+                parameters: {},
+            },
+        })
+
+        const response = await server.inject({
+            method: 'PUT',
+            url: `/actions/${created.id}`,
+            headers,
+            payload: {
+                status: 'completed',
+            },
+        })
+
+        expect(response.statusCode).toBe(200)
+        const action = response.json()
+        expect(action.status).toBe('completed')
+    })
+
+    it('should delete an action', async () => {
+        const { headers } = await getAuthHeaders(server)
+
+        const created = await prisma.action.create({
+            data: {
+                type: 'static_analysis',
+                status: 'pending',
+                parameters: {},
+            },
+        })
+
+        const response = await server.inject({
+            method: 'DELETE',
+            url: `/actions/${created.id}`,
+            headers,
+        })
+
+        expect(response.statusCode).toBe(200)
+        const check = await prisma.action.findUnique({
+            where: { id: created.id },
+        })
+        expect(check).toBeNull()
+    })
+
+    it('should stop an action', async () => {
+        const { headers } = await getAuthHeaders(server)
+
+        const created = await prisma.action.create({
+            data: {
+                type: 'connection_auto_create',
+                status: 'running',
+                parameters: {},
+            },
+        })
+
+        const response = await server.inject({
+            method: 'POST',
+            url: `/actions/${created.id}/stop`,
+            headers,
+        })
+
+        expect(response.statusCode).toBe(200)
+        const result = response.json()
+        expect(result.success).toBe(true)
     })
 })

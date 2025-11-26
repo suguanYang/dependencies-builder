@@ -137,4 +137,22 @@ describe('Projects API', () => {
         })
         expect(check).toBeNull()
     })
+    it('should get project by id', async () => {
+        const project = await prisma.project.create({
+            data: {
+                name: 'test-project-by-id',
+                addr: 'https://github.com/test/project-by-id',
+                type: 'App',
+            },
+        })
+
+        const response = await server.inject({
+            method: 'GET',
+            url: `/projects/${project.id}`,
+        })
+
+        expect(response.statusCode).toBe(200)
+        const result = response.json()
+        expect(result.id).toBe(project.id)
+    })
 })

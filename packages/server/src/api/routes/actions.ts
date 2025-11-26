@@ -217,6 +217,13 @@ function actionsRoutes(fastify: FastifyInstance) {
           return
         }
 
+        // Check if there is already an active connection_auto_create action
+        const existingAction = await repository.findActiveActionByType('connection_auto_create')
+        if (existingAction) {
+          reply.code(200).send(existingAction)
+          return
+        }
+
         // Create the action record
         const action = await repository.createAction({
           type: 'connection_auto_create',

@@ -387,3 +387,16 @@ export async function countRunningActions(): Promise<number> {
     where: { status: 'running' },
   })
 }
+
+export async function findActiveActionByType(
+  type: 'static_analysis' | 'report' | 'connection_auto_create',
+) {
+  return prisma.action.findFirst({
+    where: {
+      type,
+      status: {
+        in: ['pending', 'running'],
+      },
+    },
+  })
+}
