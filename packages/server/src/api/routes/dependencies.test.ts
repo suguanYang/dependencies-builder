@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
-import { buildServer } from '../../index'
+import buildServer from '../../server'
 import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
-import { getAuthHeaders } from '../../../test/auth-helper'
 
 describe('Dependencies API', () => {
     let server: FastifyInstance
