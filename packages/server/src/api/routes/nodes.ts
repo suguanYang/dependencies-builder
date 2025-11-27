@@ -10,9 +10,12 @@ function nodesRoutes(fastify: FastifyInstance) {
   // GET /nodes - Get nodes with query parameters
   fastify.get('/nodes', async (request, reply) => {
     try {
-      const { take, skip, ...filters } = formatStringToNumber(request.query as NodeQuery)
+      const { take, skip, fuzzy, ...filters } = formatStringToNumber(request.query as NodeQuery)
+      const isFuzzy = fuzzy === 'true' || fuzzy === true
 
-      queryContains(filters, ['name', 'branch', 'projectName'])
+      if (isFuzzy) {
+        queryContains(filters, ['name', 'branch', 'projectName'])
+      }
 
       const where: Prisma.NodeFindManyArgs['where'] = onlyQuery(filters, [
         'branch',

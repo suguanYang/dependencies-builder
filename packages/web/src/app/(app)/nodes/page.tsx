@@ -102,6 +102,7 @@ function NodesContent() {
     type: '',
     name: '',
     standalone: false,
+    fuzzy: true,
   })
 
   // Get pagination from URL query parameters
@@ -146,6 +147,7 @@ function NodesContent() {
         standalone: debouncedSearchFilters.standalone || undefined,
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,
+        fuzzy: debouncedSearchFilters.fuzzy,
       }),
   )
 
@@ -286,6 +288,20 @@ function NodesContent() {
                   Show only standalone nodes
                 </label>
               </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="fuzzy"
+                  checked={searchFilters.fuzzy}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fuzzy: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="fuzzy" className="text-sm font-medium">
+                  Fuzzy Matching
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -362,8 +378,8 @@ function NodesContent() {
                   render: (node: Node) => (
                     <div className="text-sm text-gray-500 truncate">
                       {node.relativePath &&
-                      node.startLine !== undefined &&
-                      node.startColumn !== undefined
+                        node.startLine !== undefined &&
+                        node.startColumn !== undefined
                         ? `${node.relativePath}:${node.startLine}:${node.startColumn}`
                         : 'N/A'}
                     </div>

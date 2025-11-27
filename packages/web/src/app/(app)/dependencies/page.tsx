@@ -206,11 +206,10 @@ function DependenciesContent() {
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => handleViewModeChange('project')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'project'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'project'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Folder className="w-4 h-4" />
@@ -219,11 +218,10 @@ function DependenciesContent() {
             </button>
             <button
               onClick={() => handleViewModeChange('node')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'node'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'node'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <GitBranch className="w-4 h-4" />
@@ -257,46 +255,49 @@ function DependenciesContent() {
             </div>
           </div>
         </div>
-
-        {/* Project Selection */}
-        {viewMode === 'project' && (
-          <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Project</label>
-              <ProjectSelector
-                value={selectedProject}
-                onValueChange={handleProjectChange}
-                placeholder="Choose a project..."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Node Selection */}
-        {viewMode === 'node' && (
-          <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Enter Node ID</label>
-              <NodeIdInput
-                value={nodeId}
-                onValueChange={handleNodeIdChange}
-                placeholder="Enter node ID..."
-              />
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <div>
-            <h3 className="text-sm font-medium text-red-800">Error</h3>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+      {/* Project Selection */}
+      {viewMode === 'project' && (
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-md">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Project</label>
+            <ProjectSelector
+              value={selectedProject}
+              onValueChange={handleProjectChange}
+              placeholder="Choose a project..."
+            />
           </div>
         </div>
       )}
+
+      {/* Node Selection */}
+      {viewMode === 'node' && (
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-md">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Enter Node ID</label>
+            <NodeIdInput
+              value={nodeId}
+              onValueChange={handleNodeIdChange}
+              placeholder="Enter node ID..."
+            />
+          </div>
+        </div>
+      )}
+
+
+      {/* Error Display */}
+      {
+        error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+          </div>
+        )
+      }
 
       {/* Graph Visualization */}
       <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white relative">
@@ -330,7 +331,7 @@ function DependenciesContent() {
 
       {/* Node Panel */}
       <NodePanel node={selectedNode} onClose={handleClosePanel} />
-    </div>
+    </div >
   )
 }
 

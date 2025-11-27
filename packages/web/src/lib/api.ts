@@ -45,6 +45,7 @@ export interface SearchFilters {
   standalone?: boolean
   limit?: number
   offset?: number
+  fuzzy?: boolean
 }
 
 const API_BASE = '/api'
@@ -60,6 +61,7 @@ export async function searchNodes(filters: SearchFilters): Promise<Node[]> {
   if (filters.name) params.append('name', filters.name)
   if (filters.limit) params.append('limit', filters.limit.toString())
   if (filters.offset) params.append('offset', filters.offset.toString())
+  if (filters.fuzzy) params.append('fuzzy', filters.fuzzy.toString())
 
   const response = await fetch(`${API_BASE}/nodes?${params}`)
 
@@ -138,6 +140,7 @@ export async function getNodes(filters?: SearchFilters): Promise<{ data: Node[];
   if (filters?.standalone !== undefined) params.append('standalone', filters.standalone.toString())
   if (filters?.limit) params.append('limit', filters.limit.toString())
   if (filters?.offset) params.append('offset', filters.offset.toString())
+  if (filters?.fuzzy) params.append('fuzzy', filters.fuzzy.toString())
 
   const queryString = params.toString()
   return apiRequest(`/nodes${queryString ? `?${queryString}` : ''}`)
@@ -188,6 +191,7 @@ export async function getConnectionsList(filters?: {
   toNodeType?: string
   limit?: number
   offset?: number
+  fuzzy?: boolean
 }): Promise<{ data: Connection[]; total: number }> {
   const params = new URLSearchParams()
 
@@ -203,6 +207,7 @@ export async function getConnectionsList(filters?: {
   if (filters?.toNodeType) params.append('toNodeType', filters.toNodeType)
   if (filters?.limit) params.append('limit', filters.limit.toString())
   if (filters?.offset) params.append('offset', filters.offset.toString())
+  if (filters?.fuzzy) params.append('fuzzy', filters.fuzzy.toString())
 
   const queryString = params.toString()
   return apiRequest(`/connections${queryString ? `?${queryString}` : ''}`)
@@ -379,6 +384,7 @@ export interface ProjectQuery {
   type?: AppType
   limit?: number
   offset?: number
+  fuzzy?: boolean
 }
 
 export interface ProjectCreationData {
@@ -405,6 +411,7 @@ export async function getProjects(
   if (filters?.type) params.append('type', filters.type)
   if (filters?.limit) params.append('limit', filters.limit.toString())
   if (filters?.offset) params.append('offset', filters.offset.toString())
+  if (filters?.fuzzy) params.append('fuzzy', filters.fuzzy.toString())
 
   const queryString = params.toString()
   return apiRequest(`/projects${queryString ? `?${queryString}` : ''}`)

@@ -56,6 +56,7 @@ function ConnectionsContent() {
     toNodeProjectName: '',
     fromNodeType: '',
     toNodeType: '',
+    fuzzy: true,
   })
   // React Hook Form for create connection
   const {
@@ -113,6 +114,7 @@ function ConnectionsContent() {
       toNodeType: debouncedSearchFilters.toNodeType || undefined,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize,
+      fuzzy: debouncedSearchFilters.fuzzy,
     }),
   )
 
@@ -376,6 +378,20 @@ function ConnectionsContent() {
                     DynamicModuleFederationReference
                   </option>
                 </select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="fuzzy"
+                  checked={searchFilters.fuzzy || false}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, fuzzy: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="fuzzy" className="text-sm font-medium">
+                  Fuzzy Matching
+                </label>
               </div>
             </div>
           </div>

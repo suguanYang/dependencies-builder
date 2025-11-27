@@ -10,7 +10,8 @@ function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
-      const { take, skip, ...filters } = formatStringToNumber(request.query as ConnectionQuery)
+      const { take, skip, fuzzy, ...filters } = formatStringToNumber(request.query as ConnectionQuery)
+      const isFuzzy = fuzzy === 'true' || fuzzy === true
 
       // Build the where clause with node field filters
       const where: Prisma.ConnectionFindManyArgs['where'] = onlyQuery(filters, ['fromId', 'toId'])
@@ -21,9 +22,16 @@ function connectionsRoutes(fastify: FastifyInstance) {
       // From node filters
       if (filters?.fromNodeName || filters?.fromNodeProjectName || filters.fromNodeType) {
         const fromNodeCondition: Prisma.NodeWhereInput = {}
-        if (filters.fromNodeName) fromNodeCondition.name = { contains: filters.fromNodeName }
-        if (filters.fromNodeProjectName)
-          fromNodeCondition.projectName = { contains: filters.fromNodeProjectName }
+        if (filters.fromNodeName) {
+          fromNodeCondition.name = isFuzzy
+            ? { contains: filters.fromNodeName }
+            : { equals: filters.fromNodeName }
+        }
+        if (filters.fromNodeProjectName) {
+          fromNodeCondition.projectName = isFuzzy
+            ? { contains: filters.fromNodeProjectName }
+            : { equals: filters.fromNodeProjectName }
+        }
         if (filters.fromNodeType) {
           fromNodeCondition.type = { equals: filters.fromNodeType as any }
         }
@@ -33,9 +41,16 @@ function connectionsRoutes(fastify: FastifyInstance) {
       // To node filters
       if (filters.toNodeName || filters.toNodeProjectName || filters.toNodeType) {
         const toNodeCondition: Prisma.NodeWhereInput = {}
-        if (filters.toNodeName) toNodeCondition.name = { contains: filters.toNodeName }
-        if (filters.toNodeProjectName)
-          toNodeCondition.projectName = { contains: filters.toNodeProjectName }
+        if (filters.toNodeName) {
+          toNodeCondition.name = isFuzzy
+            ? { contains: filters.toNodeName }
+            : { equals: filters.toNodeName }
+        }
+        if (filters.toNodeProjectName) {
+          toNodeCondition.projectName = isFuzzy
+            ? { contains: filters.toNodeProjectName }
+            : { equals: filters.toNodeProjectName }
+        }
         if (filters.toNodeType) {
           toNodeCondition.type = { equals: filters.toNodeType as any }
         }

@@ -4,32 +4,11 @@ import { setupAPI } from './api'
 import process from 'node:process'
 import logger, { fatal, info } from './logging'
 import { prisma } from './database/prisma'
-
-export async function buildServer() {
-  const fastify = Fastify({
-    loggerInstance: logger as FastifyBaseLogger,
-  })
-
-  // Setup CORS
-  await fastify.register(cors, {
-    origin: process.env.CLIENT_DOMAIN,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
-    maxAge: 86400,
-  })
-  info('CORS configured')
-
-  // Setup API routes
-  await setupAPI(fastify)
-  info('API routes registered')
-
-  return fastify
-}
+import server from './server'
 
 async function startServer() {
   try {
-    const fastify = await buildServer()
+    const fastify = await server()
 
     // Start server
     const port = parseInt(process.env.PORT || '3001')
@@ -62,8 +41,4 @@ async function startServer() {
     })
   }
 }
-
-if (process.argv[1] === new URL(import.meta.url).pathname) {
-  startServer()
-}
-
+startServer()

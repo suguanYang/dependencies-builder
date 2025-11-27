@@ -10,8 +10,12 @@ function projectsRoutes(fastify: FastifyInstance) {
   // GET /projects - Get projects with query parameters
   fastify.get('/projects', async (request, reply) => {
     try {
-      const { skip, take, ...filters } = formatStringToNumber(request.query as ProjectQuery)
-      queryContains(filters, ['name', 'addr'])
+      const { skip, take, fuzzy, ...filters } = formatStringToNumber(request.query as ProjectQuery)
+      const isFuzzy = fuzzy === 'true' || fuzzy === true
+
+      if (isFuzzy) {
+        queryContains(filters, ['name', 'addr'])
+      }
 
       const where = onlyQuery(filters, ['addr', 'name', 'type'])
 

@@ -8,6 +8,7 @@ export interface NodeQuery {
   standalone?: boolean | string
   limit?: number
   offset?: number
+  fuzzy?: boolean | string
 }
 
 export interface NodeCreationBody {
@@ -42,6 +43,7 @@ export interface ConnectionQuery {
   toNodeType?: string
   limit?: number
   offset?: number
+  fuzzy?: boolean | string
 }
 
 export interface ProjectQuery {
@@ -50,6 +52,7 @@ export interface ProjectQuery {
   limit?: number
   offset?: number
   type?: AppType
+  fuzzy?: boolean | string
 }
 
 export interface ProjectCreationBody {
