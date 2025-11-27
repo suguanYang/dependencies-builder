@@ -63,6 +63,7 @@ export function ProjectSelector({
         name: query || undefined,
         limit: PAGE_SIZE,
         offset: pageIndex * PAGE_SIZE,
+        fuzzy: true
       })
       return response
     },
