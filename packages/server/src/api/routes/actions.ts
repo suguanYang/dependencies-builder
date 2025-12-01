@@ -75,6 +75,15 @@ function actionsRoutes(fastify: FastifyInstance) {
           return
         }
 
+        // Check if there is already an active connection_auto_create action
+        if (actionData.type === 'connection_auto_create') {
+          const existingAction = await repository.findActiveActionByType('connection_auto_create')
+          if (existingAction) {
+            reply.code(200).send(existingAction)
+            return
+          }
+        }
+
         // Create the action record
         const action = await repository.createAction(actionData)
 
@@ -193,62 +202,6 @@ function actionsRoutes(fastify: FastifyInstance) {
       } catch (error) {
         reply.code(500).send({
           error: 'Failed to stop action execution',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-    },
-  )
-
-  // POST /actions/connection-auto-create - Trigger connection auto-creation
-  fastify.post(
-    '/actions/connection-auto-create',
-    {
-      preHandler: [authenticate],
-    },
-    async (request, reply) => {
-      try {
-        // Check if there are too many running actions (limit: 10)
-        const runningActionsCount = await repository.countRunningActions()
-        if (runningActionsCount >= 10) {
-          reply.code(429).send({
-            error: 'Too many running actions',
-            details: `Currently ${runningActionsCount} actions are running. Maximum allowed is 10.`,
-          })
-          return
-        }
-
-        // Check if there is already an active connection_auto_create action
-        const existingAction = await repository.findActiveActionByType('connection_auto_create')
-        if (existingAction) {
-          reply.code(200).send(existingAction)
-          return
-        }
-
-        // Create the action record
-        const action = await repository.createAction({
-          type: 'connection_auto_create',
-        })
-
-        // Trigger connection auto-creation in worker thread
-        const result = await ConnectionWorkerPool.getPool().executeConnectionAutoCreation(action.id)
-        if (!result.success) {
-          repository.updateAction(action.id, {
-            status: 'failed',
-            error: result.error,
-          })
-
-          reply.code(500).send({
-            error: 'Failed to trigger connection auto-creation',
-            details: result.error,
-          })
-          return
-        }
-
-        reply.code(201).send(action)
-      } catch (error) {
-        logError('Failed to trigger connection auto-creation: ' + error)
-        reply.code(500).send({
-          error: 'Failed to trigger connection auto-creation',
           details: error instanceof Error ? error.message : 'Unknown error',
         })
       }
