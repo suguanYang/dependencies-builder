@@ -10,31 +10,17 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
-import {
-  type Node,
-  NodeType,
-  getNodes,
-  deleteNode,
-  createNode,
-  updateNode,
-  type Project,
-} from '@/lib/api'
+import { getNodes, deleteNode, createNode, updateNode } from '@/lib/api'
 import { NODE_TYPE_OPTIONS } from '@/lib/constants'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProjectSelector } from '@/components/project-selector'
 import useDebounce from '@/hooks/use-debounce-value'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from '@/components/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Node, NodeType, Project } from '@/lib/server-types'
 
 // Zod schema for Node validation
 const nodeSchema = z.object({

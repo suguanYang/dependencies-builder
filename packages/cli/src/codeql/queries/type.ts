@@ -80,4 +80,3 @@ export type UrlParamQuery = {
     tuples: [paramName: string, type: 'UrlParamRead' | 'UrlParamWrite', location: string][]
   }
 }
-

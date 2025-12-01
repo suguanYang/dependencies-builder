@@ -11,10 +11,8 @@ import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
 import {
-  type Project,
   type ProjectQuery,
   type ProjectEntry,
-  AppType,
   getProjects,
   deleteProject,
   createProject,
@@ -35,6 +33,7 @@ import {
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AppType, Project } from '@/lib/server-types'
 
 // Zod schema for Project validation
 const projectEntrySchema = z.object({

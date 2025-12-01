@@ -1,30 +1,4 @@
-import type {
-  Node as PrismaNode,
-  Project as PrismaProject,
-  Connection as PrismaConnection,
-} from './server-types'
-import { NodeType, AppType } from './server-types'
-
-export { NodeType, AppType }
-
-export interface Node extends Omit<PrismaNode, 'createdAt' | 'updatedAt' | 'meta'> {
-  createdAt: string
-  project?: {
-    addr: string
-  }
-  meta: any
-}
-
-export interface Connection extends Omit<PrismaConnection, 'createdAt'> {
-  createdAt: string
-  fromNode?: Node
-  toNode?: Node
-}
-
-export interface Project extends Omit<PrismaProject, 'createdAt' | 'updatedAt' | 'entries'> {
-  createdAt: string
-  entries?: ProjectEntry[]
-}
+import { NodeType, AppType, Node, Connection, Project, Action } from './server-types'
 
 export interface SearchFilters {
   projectName?: string
@@ -149,7 +123,7 @@ export async function getNodesByIds(ids: string[]): Promise<{ data: Node[] }> {
 }
 
 export async function createNode(
-  nodeData: Omit<Node, 'id' | 'createdAt' | 'projectId' | 'meta'> & {
+  nodeData: Omit<Node, 'id' | 'createdAt' | 'projectId' | 'meta' | 'updatedAt'> & {
     projectId?: string
     meta?: any
   },
@@ -221,24 +195,6 @@ export async function deleteConnection(id: string): Promise<{ success: boolean }
   return apiRequest(`/connections/${id}`, {
     method: 'DELETE',
   })
-}
-
-// Actions API
-export interface Action {
-  id: string
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  type: 'static_analysis' | 'report' | 'connection_auto_create'
-  parameters: {
-    projectAddr?: string
-    projectName?: string
-    branch?: string
-    targetBranch?: string
-    ignoreCallGraph?: boolean
-  }
-  createdAt: string
-  updatedAt: string
-  result?: any
-  error?: string
 }
 
 export interface CreateActionData {
@@ -357,16 +313,6 @@ export async function stopActionExecution(
 export interface ProjectEntry {
   name: string
   path: string
-}
-
-export interface Project {
-  id: string
-  name: string
-  addr: string
-  type: AppType
-  entries?: ProjectEntry[]
-  createdAt: string
-  updatedAt: string
 }
 
 export interface ProjectQuery {

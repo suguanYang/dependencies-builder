@@ -8,15 +8,10 @@ import DependencyGraphVisualizer from '@/components/dependency-visualizer/graph'
 import NodePanel from '@/components/dependency-visualizer/panel'
 import { ProjectSelector } from '@/components/project-selector'
 import { NodeIdInput } from '@/components/node-id-input'
-import { DependencyGraph, D3Node } from '@/components/types'
-import {
-  Project,
-  getProjectById,
-  getProjectDependencies,
-  getNodeDependencies,
-  getNodeById,
-} from '@/lib/api'
+import { D3Node } from '@/components/types'
+import { getProjectById, getProjectDependencies, getNodeDependencies } from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
+import { Project } from '@/lib/server-types'
 
 function DependenciesContent() {
   const searchParams = useSearchParams()

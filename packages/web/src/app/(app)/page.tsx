@@ -17,7 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
-import { type Node, getNodes, getConnectionsList, getActions } from '@/lib/api'
+import { getNodes, getConnectionsList, getActions } from '@/lib/api'
+import { Node } from '@/lib/server-types'
 function HomeContent() {
   const { data: nodesResponse } = useSWR('dashboard-nodes', () => getNodes({ limit: 1 }))
   const { data: connectionsResponse } = useSWR('dashboard-connections', () =>

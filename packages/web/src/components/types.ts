@@ -1,4 +1,4 @@
-import { NodeType, AppType } from '@/lib/api'
+import { AppType, NodeType } from '@/lib/server-types'
 
 // Unified type for all entities (nodes and projects)
 export type EntityType = NodeType | AppType

@@ -2,22 +2,15 @@
 
 import { useState } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { EyeIcon, AlertCircleIcon, Trash2Icon, AlertTriangleIcon } from 'lucide-react'
+import { EyeIcon, AlertCircleIcon, AlertTriangleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteButton } from '@/components/delete-button'
-import {
-  type Action,
-  getActions,
-  getActionById,
-  getConnectionsList,
-  getNodes,
-  deleteAction,
-  Node,
-} from '@/lib/api'
+import { getActions, getActionById, getConnectionsList, getNodes, deleteAction } from '@/lib/api'
+import { Action, Node } from '@/lib/server-types'
 function ReportsContent() {
   const [error, setError] = useState<string>('')
   const [viewingReport, setViewingReport] = useState<{

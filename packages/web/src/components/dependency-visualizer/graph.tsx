@@ -3,8 +3,8 @@ import * as d3 from 'd3'
 import { DependencyGraph, D3Node, D3Link, EntityType } from '../types'
 import { parseDependencyGraph } from '../utils/graphUtils'
 import { ZoomIn, ZoomOut, Maximize, Box, NetworkIcon } from 'lucide-react'
-import { AppType, NodeType } from '@/lib/api'
 import { NODE_CONFIG } from '@/lib/constants'
+import { AppType, NodeType } from '@/lib/server-types'
 
 interface DependencyGraphVisualizerProps {
   data: DependencyGraph

@@ -16,7 +16,8 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Project, getProjects } from '@/lib/api'
+import { getProjects } from '@/lib/api'
+import { Project } from '@/lib/server-types'
 
 interface ProjectSelectorProps {
   value?: Project

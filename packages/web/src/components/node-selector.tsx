@@ -16,7 +16,8 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Node, getNodes } from '@/lib/api'
+import { getNodes } from '@/lib/api'
+import { Node } from '@/lib/server-types'
 
 interface NodeSelectorProps {
   value?: Node

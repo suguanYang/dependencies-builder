@@ -10,12 +10,10 @@ import { AlertCircleIcon } from 'lucide-react'
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteButton } from '@/components/delete-button'
 import {
-  type Connection,
   getConnectionsList,
   deleteConnection,
   createConnection,
   createAction,
-  NodeType,
   getActionById,
 } from '@/lib/api'
 import { NODE_TYPE_OPTIONS } from '@/lib/constants'
@@ -26,6 +24,7 @@ import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from '@/component
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Connection } from '@/lib/server-types'
 
 // Zod schema for Connection validation
 const connectionSchema = z.object({

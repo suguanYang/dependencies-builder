@@ -1,4 +1,4 @@
-import { prisma } from "../database/prisma"
+import { prisma } from '../database/prisma'
 
 /**
  * Optimized connection auto-creation algorithm using batch operations

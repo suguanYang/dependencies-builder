@@ -19,14 +19,12 @@ import { VirtualTable } from '@/components/virtual-table'
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteButton } from '@/components/delete-button'
 import {
-  type Action,
   type CreateActionData,
   getActions,
   deleteAction,
   createAction,
   stopActionExecution,
   getActionById,
-  type Project,
   type ActionFilters,
 } from '@/lib/api'
 import { ProjectSelector } from '@/components/project-selector'
@@ -36,6 +34,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useDebounce from '@/hooks/use-debounce-value'
+import { Action, Project } from '@/lib/server-types'
 
 // Zod schema for Action validation
 const actionSchema = z.object({

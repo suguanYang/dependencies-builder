@@ -1,8 +1,8 @@
 import React from 'react'
 import { D3Node, EntityType } from '../types'
 import { X } from 'lucide-react'
-import { AppType, NodeType } from '@/lib/api'
 import { NODE_CONFIG } from '@/lib/constants'
+import { AppType, NodeType } from '@/lib/server-types'
 
 interface NodePanelProps {
   node: D3Node | null

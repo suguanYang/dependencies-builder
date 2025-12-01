@@ -1,5 +1,5 @@
-import { NodeType, AppType } from './api'
 import { FileText, Box, Globe, Package, GitBranch, Link, Folder, HelpCircle } from 'lucide-react'
+import { AppType, NodeType } from './server-types'
 
 export const NODE_TYPE_OPTIONS = Object.values(NodeType).map((type) => ({
   value: type,

@@ -6,8 +6,10 @@ import { ArrowLeftIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircleIcon } from 'lucide-react'
-import { getNode, Node } from '@/lib/api'
+import { getNode } from '@/lib/api'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { Node } from '@/lib/server-types'
+
 function NodeDetailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
