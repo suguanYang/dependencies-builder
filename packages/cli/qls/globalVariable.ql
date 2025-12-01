@@ -10,6 +10,7 @@
 import javascript
 import libs.location
 import libs.builtInGlobalVars
+import libs.callStack
 
 /**
  * Helper predicate to determine if a node is being written to.
@@ -22,7 +23,7 @@ predicate isWrite(DataFlow::Node node) {
   )
 }
 
-from DataFlow::SourceNode globalRef, DataFlow::Node usage, string name, string type
+from DataFlow::SourceNode globalRef, DataFlow::Node usage, string name, string type, string location
 where
   not isBuiltinGlobalVar(name) and
   // 1. Find the origin of the global variable reference
@@ -34,7 +35,23 @@ where
 
   // 3. Determine if it is a Write or a Read
   if isWrite(usage)
-  then type = "Write"
-  else type = "Read"
+  then (
+    type = "Write" and
+    if exists(AssignExpr assign, CallAbleNode value |
+        assign.getLhs() = usage.asExpr() and
+        value.getACreatorReference().flowsTo(DataFlow::valueNode(assign.getRhs()).getALocalSource())
+    ) then
+        exists(AssignExpr assign, CallAbleNode value |
+            assign.getLhs() = usage.asExpr() and
+            value.getACreatorReference().flowsTo(DataFlow::valueNode(assign.getRhs()).getALocalSource()) and
+            location = getLocation(value)
+        )
+    else
+        location = getLocation(usage.getAstNode())
+  )
+  else (
+    type = "Read" and
+    location = getLocation(usage.getAstNode())
+  )
 
-select name, type, getLocation(usage.getAstNode())
+select name, type, location

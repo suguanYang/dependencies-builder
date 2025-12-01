@@ -2,6 +2,7 @@ import libs.location
 import javascript
 import semmle.javascript.dataflow.TaintTracking
 import semmle.javascript.Promises
+import libs.callStack
 
 
 private class EventSourceNode extends DataFlow::Node {
@@ -83,6 +84,14 @@ where
     eventName = eventCall.getArgument(0).getStringValue() and
     eventType = source.(EventSourceNode).getType()
     and
-    usageLocation = getLocation(eventCall.getAstNode())
+    if (eventType = "eventOn" and exists(CallAbleNode handler |
+        handler.getACreatorReference().flowsTo(eventCall.getArgument(1).getALocalSource())
+    )) then
+        exists(CallAbleNode handler |
+            handler.getACreatorReference().flowsTo(eventCall.getArgument(1).getALocalSource()) and
+            usageLocation = getLocation(handler)
+        )
+    else
+        usageLocation = getLocation(eventCall.getAstNode())
   )
 select eventName, eventType, usageLocation
