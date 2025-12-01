@@ -19,6 +19,7 @@ import {
   updateNode,
   type Project,
 } from '@/lib/api'
+import { NODE_TYPE_OPTIONS } from '@/lib/constants'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProjectSelector } from '@/components/project-selector'
@@ -39,7 +40,7 @@ import { z } from 'zod'
 const nodeSchema = z.object({
   projectName: z.string().min(1, 'Project is required'),
   branch: z.string().min(1, 'Branch is required'),
-  type: z.enum(NodeType),
+  type: z.nativeEnum(NodeType),
   name: z.string().min(1, 'Name is required'),
   relativePath: z.string().min(1, 'Relative path is required'),
   startLine: z.number().min(0, 'Start line must be a positive number'),
@@ -264,23 +265,18 @@ function NodesContent() {
               <div>
                 <label className="block text-sm font-medium mb-2">Type</label>
                 <select
-                  value={searchFilters.type}
-                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, type: e.target.value }))}
+                  value={searchFilters.type || ''}
+                  onChange={(e) =>
+                    setSearchFilters((prev) => ({ ...prev, type: e.target.value as NodeType }))
+                  }
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="">All Types</option>
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>
-                    DynamicModuleFederationReference
-                  </option>
+                  {NODE_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -506,20 +502,11 @@ function NodesContent() {
                           {...field}
                           className="w-full px-3 py-2 border rounded-md"
                         >
-                          <option value={NodeType.NamedExport}>NamedExport</option>
-                          <option value={NodeType.NamedImport}>NamedImport</option>
-                          <option value={NodeType.RuntimeDynamicImport}>
-                            RuntimeDynamicImport
-                          </option>
-                          <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                          <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                          <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                          <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                          <option value={NodeType.EventOn}>EventOn</option>
-                          <option value={NodeType.EventEmit}>EventEmit</option>
-                          <option value={NodeType.DynamicModuleFederationReference}>
-                            DynamicModuleFederationReference
-                          </option>
+                          {NODE_TYPE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />
@@ -731,20 +718,11 @@ function NodesContent() {
                           {...field}
                           className="w-full px-3 py-2 border rounded-md"
                         >
-                          <option value={NodeType.NamedExport}>NamedExport</option>
-                          <option value={NodeType.NamedImport}>NamedImport</option>
-                          <option value={NodeType.RuntimeDynamicImport}>
-                            RuntimeDynamicImport
-                          </option>
-                          <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                          <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                          <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                          <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                          <option value={NodeType.EventOn}>EventOn</option>
-                          <option value={NodeType.EventEmit}>EventEmit</option>
-                          <option value={NodeType.DynamicModuleFederationReference}>
-                            DynamicModuleFederationReference
-                          </option>
+                          {NODE_TYPE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                       )}
                     />

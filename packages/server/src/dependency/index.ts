@@ -11,19 +11,6 @@ class NotFoundError extends Error {
   }
 }
 
-export const validateEdgeCreation = (fromNode: GraphNode, toNode: GraphNode): boolean => {
-  // Basic validation: ensure nodes are of compatible types
-  const validTypePairs: Record<string, string[]> = {
-    NamedImport: ['NamedExport'],
-    RuntimeDynamicImport: ['NamedExport'],
-    EventOn: ['EventEmit'],
-    DynamicModuleFederationReference: ['NamedExport'],
-  }
-
-  const allowedTargets = validTypePairs[fromNode.type]
-  return allowedTargets ? allowedTargets.includes(toNode.type) : false
-}
-
 export const getNodeDependencyGraph = async (
   nodeId: string,
   opts?: { depth?: number },

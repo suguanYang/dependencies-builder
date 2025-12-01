@@ -14,6 +14,7 @@ import {
   WebStorageQuery,
   NodeType,
   RemoteLoaderQuery,
+  UrlParamQuery,
 } from './type'
 import { PACKAGE_ROOT } from '../../utils/constant'
 import { projectNameToCodeQLName } from '../../utils/names'
@@ -88,6 +89,7 @@ type QueryResults = {
   eventEmit: ReturnType<typeof parseEventEmitQuery>
   webStorage: ReturnType<typeof parseWebStorageQuery>
   remoteLoader: ReturnType<typeof parseRemoteLoaderQuery>
+  urlParams: ReturnType<typeof parseUrlParamQuery>
 }
 const processQuery = (queryResultDir: string) => {
   const results: QueryResults = {
@@ -99,6 +101,7 @@ const processQuery = (queryResultDir: string) => {
     eventEmit: parseEventEmitQuery(queryResultDir),
     webStorage: parseWebStorageQuery(queryResultDir),
     remoteLoader: parseRemoteLoaderQuery(queryResultDir),
+    urlParams: parseUrlParamQuery(queryResultDir),
   }
 
   return formatResults(results)
@@ -316,6 +319,36 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
   }
 }
 
+const parseUrlParamQuery = (queryResultDir: string) => {
+  const ctx = getContext()
+  const projectName = ctx.getMetadata().name
+  try {
+    const result = JSON.parse(
+      readFileSync(path.join(queryResultDir, 'urlParam.json'), 'utf-8'),
+    ) as UrlParamQuery
+    return result['#select'].tuples
+      .map((tuple) => {
+        const rawName = tuple[0]
+        // Strip value if present (e.g. "pageOpenMode=create" -> "pageOpenMode")
+        const name = rawName.split('=')[0].trim()
+        return {
+          projectName,
+          branch: ctx.getBranch(),
+          type: tuple[1] === 'UrlParamRead' ? NodeType.UrlParamRead : NodeType.UrlParamWrite,
+          name,
+          ...parseLoc(tuple[2]),
+          version: ctx.getVersion(),
+          qlsVersion: ctx.getQlsVersion(),
+          meta: {},
+        }
+      })
+      .filter((item) => item.name !== '')
+  } catch (error) {
+    console.warn('Failed to parse url param query result:', error)
+    return []
+  }
+}
+
 const formatResults = (results: QueryResults) => {
   const ctx = getContext()
   const allNodes = [
@@ -327,6 +360,7 @@ const formatResults = (results: QueryResults) => {
     ...results.eventEmit,
     ...results.webStorage,
     ...results.remoteLoader,
+    ...results.urlParams,
   ]
 
   const summary = {
@@ -354,6 +388,12 @@ const formatResults = (results: QueryResults) => {
         (node) => node.type === NodeType.WebStorageWrite,
       ).length,
       [NodeType.DynamicModuleFederationReference]: results.remoteLoader.length,
+      [NodeType.UrlParamRead]: results.urlParams.filter(
+        (node) => node.type === NodeType.UrlParamRead,
+      ).length,
+      [NodeType.UrlParamWrite]: results.urlParams.filter(
+        (node) => node.type === NodeType.UrlParamWrite,
+      ).length,
     },
   }
 

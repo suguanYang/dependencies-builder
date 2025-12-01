@@ -75,17 +75,10 @@ export type RemoteLoaderQuery = {
   }
 }
 
-export const NodeType = {
-  NamedExport: 'NamedExport',
-  NamedImport: 'NamedImport',
-  RuntimeDynamicImport: 'RuntimeDynamicImport',
-  GlobalVarRead: 'GlobalVarRead',
-  GlobalVarWrite: 'GlobalVarWrite',
-  WebStorageRead: 'WebStorageRead',
-  WebStorageWrite: 'WebStorageWrite',
-  EventOn: 'EventOn',
-  EventEmit: 'EventEmit',
-  DynamicModuleFederationReference: 'DynamicModuleFederationReference',
+export type UrlParamQuery = {
+  '#select': {
+    tuples: [paramName: string, type: 'UrlParamRead' | 'UrlParamWrite', location: string][]
+  }
 }
 
-export type NodeType = (typeof NodeType)[keyof typeof NodeType]
+export { NodeType } from '@dms/server/core'

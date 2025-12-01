@@ -1,43 +1,29 @@
-export enum NodeType {
-  NamedExport = 'NamedExport',
-  NamedImport = 'NamedImport',
-  RuntimeDynamicImport = 'RuntimeDynamicImport',
-  GlobalVarRead = 'GlobalVarRead',
-  GlobalVarWrite = 'GlobalVarWrite',
-  WebStorageRead = 'WebStorageRead',
-  WebStorageWrite = 'WebStorageWrite',
-  EventOn = 'EventOn',
-  EventEmit = 'EventEmit',
-  DynamicModuleFederationReference = 'DynamicModuleFederationReference',
-}
+import { NodeType } from '@dms/server/core'
+import type {
+  Node as PrismaNode,
+  Project as PrismaProject,
+  Connection as PrismaConnection,
+} from '@dms/server/core'
 
-export interface Node {
-  id: string
-  name: string
-  projectName: string
-  type: NodeType
-  branch: string
-  version: string
-  qlsVersion: string
-  relativePath?: string
-  startLine?: number
-  startColumn?: number
-  endLine?: number
-  endColumn?: number
-  meta?: Record<string, any>
+export { NodeType }
+
+export interface Node extends Omit<PrismaNode, 'createdAt' | 'updatedAt' | 'meta'> {
   createdAt: string
   project?: {
     addr: string
   }
+  meta: any
 }
 
-export interface Connection {
-  id: string
-  fromId: string
-  toId: string
-  createdAt?: string
+export interface Connection extends Omit<PrismaConnection, 'createdAt'> {
+  createdAt: string
   fromNode?: Node
   toNode?: Node
+}
+
+export interface Project extends Omit<PrismaProject, 'createdAt' | 'updatedAt' | 'entries'> {
+  createdAt: string
+  entries?: ProjectEntry[]
 }
 
 export interface SearchFilters {
@@ -162,7 +148,12 @@ export async function getNodesByIds(ids: string[]): Promise<{ data: Node[] }> {
   })
 }
 
-export async function createNode(nodeData: Omit<Node, 'id' | 'createdAt'>): Promise<Node> {
+export async function createNode(
+  nodeData: Omit<Node, 'id' | 'createdAt' | 'projectId' | 'meta'> & {
+    projectId?: string
+    meta?: any
+  },
+): Promise<Node> {
   return apiRequest('/nodes', {
     method: 'POST',
     body: JSON.stringify(nodeData),

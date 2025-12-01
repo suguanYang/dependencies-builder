@@ -217,6 +217,33 @@ export async function optimizedAutoCreateConnections(prisma: PrismaClient): Prom
       }
     }
 
+    // Rule 7: UrlParamRead -> UrlParamWrite
+    const urlParamReads = nodesByType.get('UrlParamRead') || []
+    const urlParamWrites = nodesByType.get('UrlParamWrite') || []
+
+    for (const readNode of urlParamReads) {
+      const paramName = readNode.name
+      const matchingWrites = urlParamWrites.filter((writeNode) => {
+        return (
+          writeNode.name === paramName &&
+          writeNode.branch === readNode.branch &&
+          writeNode.projectName !== readNode.projectName
+        )
+      })
+
+      for (const writeNode of matchingWrites) {
+        const connectionKey = `${readNode.id}:${writeNode.id}`
+        if (!existingConnectionSet.has(connectionKey)) {
+          connectionsToCreate.push({
+            fromId: readNode.id,
+            toId: writeNode.id,
+          })
+        } else {
+          result.skippedConnections++
+        }
+      }
+    }
+
     try {
       await prisma.connection.createMany({
         data: connectionsToCreate,

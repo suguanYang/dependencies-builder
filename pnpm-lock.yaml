@@ -55,6 +55,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@dms/server':
+        specifier: workspace:*
+        version: link:../server
       jsonc-parser:
         specifier: ^3.3.1
         version: 3.3.1
@@ -120,6 +123,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@dms/server':
+        specifier: workspace:*
+        version: link:../server
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.65.0(react@19.2.0))

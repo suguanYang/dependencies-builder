@@ -1,18 +1,8 @@
 import React from 'react'
 import { D3Node, EntityType } from '../types'
-import {
-  X,
-  GitBranch,
-  Box,
-  Globe,
-  Folder,
-  Package,
-  Link,
-  Calendar,
-  FileText,
-  MapPin,
-} from 'lucide-react'
-import { AppType } from '@/lib/api'
+import { X } from 'lucide-react'
+import { AppType, NodeType } from '@/lib/api'
+import { NODE_CONFIG } from '@/lib/constants'
 
 interface NodePanelProps {
   node: D3Node | null
@@ -20,32 +10,10 @@ interface NodePanelProps {
 }
 
 const NodeIcon = ({ type }: { type: EntityType }) => {
-  // Handle AppType first
-  if (type === AppType.App || type === AppType.Lib) {
-    return <Folder className="w-5 h-5 text-violet-500" />
-  }
+  const config = NODE_CONFIG[type as NodeType | AppType] || NODE_CONFIG.Default
+  const Icon = config.icon
 
-  // Handle NodeType
-  switch (type) {
-    case 'NamedExport':
-    case 'NamedImport':
-      return <FileText className="w-5 h-5 text-green-500" />
-    case 'RuntimeDynamicImport':
-      return <Box className="w-5 h-5 text-orange-500" />
-    case 'GlobalVarRead':
-    case 'GlobalVarWrite':
-      return <Globe className="w-5 h-5 text-red-500" />
-    case 'WebStorageRead':
-    case 'WebStorageWrite':
-      return <Package className="w-5 h-5 text-purple-500" />
-    case 'EventOn':
-    case 'EventEmit':
-      return <GitBranch className="w-5 h-5 text-yellow-500" />
-    case 'DynamicModuleFederationReference':
-      return <Link className="w-5 h-5 text-cyan-500" />
-    default:
-      return <Box className="w-5 h-5 text-gray-500" />
-  }
+  return <Icon className="w-5 h-5" style={{ color: config.color }} />
 }
 
 const NodePanel: React.FC<NodePanelProps> = ({ node, onClose }) => {

@@ -4,6 +4,7 @@ import { DependencyGraph, D3Node, D3Link, EntityType } from '../types'
 import { parseDependencyGraph } from '../utils/graphUtils'
 import { ZoomIn, ZoomOut, Maximize, Box, NetworkIcon } from 'lucide-react'
 import { AppType, NodeType } from '@/lib/api'
+import { NODE_CONFIG } from '@/lib/constants'
 
 interface DependencyGraphVisualizerProps {
   data: DependencyGraph
@@ -21,63 +22,13 @@ const getNodeRadius = (node: D3Node) => {
 }
 
 const getNodeColor = (type: EntityType) => {
-  if (type === AppType.App) return '#3b82f6'
-  if (type === AppType.Lib) return '#8b5cf6'
-
-  switch (type) {
-    case NodeType.NamedExport:
-      return '#3b82f6'
-    case NodeType.NamedImport:
-      return '#eab308'
-    case NodeType.RuntimeDynamicImport:
-      return '#ec4899'
-    case NodeType.GlobalVarRead:
-      return '#8b5cf6'
-    case NodeType.GlobalVarWrite:
-      return '#10b981'
-    case NodeType.WebStorageRead:
-      return '#f97316'
-    case NodeType.WebStorageWrite:
-      return '#22c55e'
-    case NodeType.EventOn:
-      return '#06b6d4'
-    case NodeType.EventEmit:
-      return '#ef4444'
-    case NodeType.DynamicModuleFederationReference:
-      return '#8b5cf6'
-    default:
-      return '#6b7280'
-  }
+  const config = NODE_CONFIG[type as NodeType | AppType] || NODE_CONFIG.Default
+  return config.color
 }
 
 const getNodeAbbreviation = (type: EntityType) => {
-  if (type === AppType.App) return 'APP'
-  if (type === AppType.Lib) return 'LIB'
-
-  switch (type) {
-    case NodeType.NamedExport:
-      return 'NE'
-    case NodeType.NamedImport:
-      return 'NI'
-    case NodeType.RuntimeDynamicImport:
-      return 'RDI'
-    case NodeType.GlobalVarRead:
-      return 'GR'
-    case NodeType.GlobalVarWrite:
-      return 'GW'
-    case NodeType.WebStorageRead:
-      return 'WR'
-    case NodeType.WebStorageWrite:
-      return 'WW'
-    case NodeType.EventOn:
-      return 'EO'
-    case NodeType.EventEmit:
-      return 'EE'
-    case NodeType.DynamicModuleFederationReference:
-      return 'DMF'
-    default:
-      return '?'
-  }
+  const config = NODE_CONFIG[type as NodeType | AppType] || NODE_CONFIG.Default
+  return config.abbr
 }
 
 // 1.0 = Compact

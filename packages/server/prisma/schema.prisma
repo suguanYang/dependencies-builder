@@ -25,6 +25,8 @@ enum NodeType {
   EventOn
   EventEmit
   DynamicModuleFederationReference
+  UrlParamRead
+  UrlParamWrite
 }
 
 enum AppType {

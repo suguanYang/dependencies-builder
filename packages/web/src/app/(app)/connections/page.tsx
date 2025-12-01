@@ -18,6 +18,7 @@ import {
   NodeType,
   getActionById,
 } from '@/lib/api'
+import { NODE_TYPE_OPTIONS } from '@/lib/constants'
 import { VirtualTable } from '@/components/virtual-table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useDebounce from '@/hooks/use-debounce-value'
@@ -321,18 +322,11 @@ function ConnectionsContent() {
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="">All Types</option>
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>
-                    DynamicModuleFederationReference
-                  </option>
+                  {NODE_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -365,18 +359,11 @@ function ConnectionsContent() {
                   className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="">All Types</option>
-                  <option value={NodeType.NamedExport}>NamedExport</option>
-                  <option value={NodeType.NamedImport}>NamedImport</option>
-                  <option value={NodeType.RuntimeDynamicImport}>RuntimeDynamicImport</option>
-                  <option value={NodeType.GlobalVarRead}>GlobalVarRead</option>
-                  <option value={NodeType.GlobalVarWrite}>GlobalVarWrite</option>
-                  <option value={NodeType.WebStorageRead}>WebStorageRead</option>
-                  <option value={NodeType.WebStorageWrite}>WebStorageWrite</option>
-                  <option value={NodeType.EventOn}>EventOn</option>
-                  <option value={NodeType.EventEmit}>EventEmit</option>
-                  <option value={NodeType.DynamicModuleFederationReference}>
-                    DynamicModuleFederationReference
-                  </option>
+                  {NODE_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex items-center space-x-2">

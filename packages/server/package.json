@@ -12,6 +12,16 @@
     "db:seed": "npx prisma db seed"
   },
   "type": "module",
+  "exports": {
+    "./core": {
+      "types": "./src/core.ts",
+      "default": "./dist/core.js"
+    },
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
