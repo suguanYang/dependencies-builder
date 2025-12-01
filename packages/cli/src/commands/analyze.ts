@@ -49,7 +49,7 @@ export async function analyzeProject(): Promise<void> {
 
     debug('Analysis completed successfully!')
   } catch (err) {
-    error('Analysis failed with context: ' + ctx.toString())
+    error('Analysis failed with context: ' + ctx.toString() + ' error: ' + err?.toString())
     throw err
   } finally {
     if (ctx.isRemote() && directoryExistsSync(path.join(ctx.getRepositoryDir()))) {

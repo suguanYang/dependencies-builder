@@ -16,7 +16,10 @@
     "typecheck": "tsgo",
     "build": "rimraf dist && rolldown -c rolldown.config.ts",
     "dev": "vite-node src/index.ts",
-    "codeql:precompile": "codeql query compile qls --precompile"
+    "codeql:precompile": "codeql query compile qls --precompile",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
