@@ -17,38 +17,38 @@ const log = pino(
   isTest
     ? undefined
     : pino.transport({
-      level: 'trace',
-      targets: [
-        {
-          target: path.join(import.meta.dirname, 'transport.js'),
-          level: 'fatal',
-          options: {
+        level: 'trace',
+        targets: [
+          {
+            target: path.join(import.meta.dirname, 'transport.js'),
             level: 'fatal',
-            destination: LOG_FATAL_FILE,
+            options: {
+              level: 'fatal',
+              destination: LOG_FATAL_FILE,
+            },
           },
-        },
-        {
-          target: path.join(import.meta.dirname, 'transport.js'),
-          level: 'error',
-          options: {
+          {
+            target: path.join(import.meta.dirname, 'transport.js'),
             level: 'error',
-            destination: LOG_ERROR_FILE,
+            options: {
+              level: 'error',
+              destination: LOG_ERROR_FILE,
+            },
           },
-        },
-        {
-          target: path.join(import.meta.dirname, 'transport.js'),
-          level: 'info',
-          options: {
+          {
+            target: path.join(import.meta.dirname, 'transport.js'),
             level: 'info',
-            destination: LOG_INFO_FILE,
+            options: {
+              level: 'info',
+              destination: LOG_INFO_FILE,
+            },
           },
-        },
-        {
-          level: 'info',
-          target: 'pino-pretty',
-        },
-      ],
-    }),
+          {
+            level: 'info',
+            target: 'pino-pretty',
+          },
+        ],
+      }),
 )
 
 export default log

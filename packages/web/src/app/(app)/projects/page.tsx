@@ -356,9 +356,7 @@ function ProjectsContent() {
                         }
                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium">
-                        Fuzzy Matching
-                      </span>
+                      <span className="text-sm font-medium">Fuzzy Matching</span>
                     </label>
                   </div>
                 </div>
@@ -420,10 +418,11 @@ function ProjectsContent() {
                     width: 100,
                     render: (project: Project) => (
                       <div
-                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${project.type === AppType.Lib
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                          }`}
+                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${
+                          project.type === AppType.Lib
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
                       >
                         {project.type}
                       </div>
@@ -835,7 +834,7 @@ function ProjectsContent() {
           onConfirm={confirmDelete}
         />
       </div>
-    </TooltipProvider >
+    </TooltipProvider>
   )
 }
 

@@ -10,6 +10,13 @@ export async function getNodes(query: Prisma.NodeFindManyArgs) {
       orderBy: { updatedAt: 'desc' },
       take,
       skip,
+      include: {
+        project: {
+          select: {
+            addr: true,
+          },
+        },
+      },
     }),
     prisma.node.count({ where }),
   ])

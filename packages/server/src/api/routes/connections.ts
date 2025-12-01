@@ -10,7 +10,9 @@ function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
     try {
-      const { take, skip, fuzzy, ...filters } = formatStringToNumber(request.query as ConnectionQuery)
+      const { take, skip, fuzzy, ...filters } = formatStringToNumber(
+        request.query as ConnectionQuery,
+      )
       const isFuzzy = fuzzy === 'true' || fuzzy === true
 
       // Build the where clause with node field filters
