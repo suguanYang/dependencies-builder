@@ -1,8 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import * as repository from '../../database/repository'
 import * as dependencyManager from '../../dependency'
-import { GraphNode } from '../../dependency/types'
-import { authenticate } from '../../auth/middleware'
 import { error } from '../../logging'
 
 // Custom error class for not found errors

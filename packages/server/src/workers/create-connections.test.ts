@@ -62,7 +62,7 @@ describe('Connection Creation Worker', () => {
     const readNode = await createNode(projectA, 'userId', 'UrlParamRead')
     const writeNode = await createNode(projectB, 'userId', 'UrlParamWrite')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -78,7 +78,7 @@ describe('Connection Creation Worker', () => {
     await createNode(projectA, 'userId', 'UrlParamRead')
     await createNode(projectA, 'userId', 'UrlParamWrite')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(0)
   })
@@ -90,7 +90,7 @@ describe('Connection Creation Worker', () => {
     await createNode(projectA, 'userId', 'UrlParamRead')
     await createNode(projectB, 'otherId', 'UrlParamWrite')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(0)
   })
@@ -107,7 +107,7 @@ describe('Connection Creation Worker', () => {
       entryName: 'index',
     })
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -124,7 +124,7 @@ describe('Connection Creation Worker', () => {
     const readNode = await createNode(projectA, 'globalConfig', 'GlobalVarRead')
     const writeNode = await createNode(projectB, 'globalConfig', 'GlobalVarWrite')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -141,7 +141,7 @@ describe('Connection Creation Worker', () => {
     const readNode = await createNode(projectA, 'token', 'WebStorageRead')
     const writeNode = await createNode(projectB, 'token', 'WebStorageWrite')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -158,7 +158,7 @@ describe('Connection Creation Worker', () => {
     const onNode = await createNode(projectA, 'userLoggedIn', 'EventOn')
     const emitNode = await createNode(projectB, 'userLoggedIn', 'EventEmit')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -188,7 +188,7 @@ describe('Connection Creation Worker', () => {
       { entryName: 'myComponent' },
     )
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -208,7 +208,7 @@ describe('Connection Creation Worker', () => {
     // Export: helper in project-b
     const exportNode = await createNode(projectB, 'helper', 'NamedExport')
 
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(1)
 
@@ -226,10 +226,10 @@ describe('Connection Creation Worker', () => {
     const writeNode = await createNode(projectB, 'userId', 'UrlParamWrite')
 
     // First run creates the connection
-    await optimizedAutoCreateConnections(prisma)
+    await optimizedAutoCreateConnections()
 
     // Second run should skip it
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     expect(result.createdConnections).toBe(0)
     expect(result.skippedConnections).toBe(1)

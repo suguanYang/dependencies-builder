@@ -16,10 +16,6 @@
     "./core": {
       "types": "./src/core.ts",
       "default": "./dist/core.js"
-    },
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/index.js"
     }
   },
   "keywords": [],

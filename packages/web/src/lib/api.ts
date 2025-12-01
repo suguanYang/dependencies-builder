@@ -1,11 +1,11 @@
-import { NodeType } from '@dms/server/core'
 import type {
   Node as PrismaNode,
   Project as PrismaProject,
   Connection as PrismaConnection,
-} from '@dms/server/core'
+} from './server-types'
+import { NodeType, AppType } from './server-types'
 
-export { NodeType }
+export { NodeType, AppType }
 
 export interface Node extends Omit<PrismaNode, 'createdAt' | 'updatedAt' | 'meta'> {
   createdAt: string
@@ -352,10 +352,7 @@ export async function stopActionExecution(
 }
 
 // Projects API
-export enum AppType {
-  Lib = 'Lib',
-  App = 'App',
-}
+// AppType imported from server-types
 
 export interface ProjectEntry {
   name: string

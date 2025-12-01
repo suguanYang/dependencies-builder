@@ -1,8 +1,5 @@
-import Fastify, { FastifyBaseLogger } from 'fastify'
-import cors from '@fastify/cors'
-import { setupAPI } from './api'
 import process from 'node:process'
-import logger, { fatal, info } from './logging'
+import { fatal, info } from './logging'
 import { prisma } from './database/prisma'
 import server from './server'
 
@@ -41,4 +38,5 @@ async function startServer() {
     })
   }
 }
+
 startServer()

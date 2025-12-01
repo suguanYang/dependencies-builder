@@ -23,7 +23,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
     })
 
     // Execute the optimized connection auto-creation
-    const result = await optimizedAutoCreateConnections(prisma)
+    const result = await optimizedAutoCreateConnections()
 
     // Update action with result
     await prisma.action.update({

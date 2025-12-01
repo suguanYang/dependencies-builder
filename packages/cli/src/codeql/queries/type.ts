@@ -81,4 +81,3 @@ export type UrlParamQuery = {
   }
 }
 
-export { NodeType } from '@dms/server/core'

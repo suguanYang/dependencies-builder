@@ -12,12 +12,12 @@ import {
   GlobalVariableQuery,
   EventQuery,
   WebStorageQuery,
-  NodeType,
   RemoteLoaderQuery,
   UrlParamQuery,
 } from './type'
 import { PACKAGE_ROOT } from '../../utils/constant'
 import { projectNameToCodeQLName } from '../../utils/names'
+import { NodeType } from '../../server-types'
 
 const qlsDir = path.join(PACKAGE_ROOT, 'qls')
 
@@ -49,7 +49,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 

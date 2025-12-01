@@ -1,10 +1,10 @@
-import { PrismaClient } from '../generated/prisma/client'
+import { prisma } from "../database/prisma"
 
 /**
  * Optimized connection auto-creation algorithm using batch operations
  * This should be run in a worker thread to avoid blocking the main thread
  */
-export async function optimizedAutoCreateConnections(prisma: PrismaClient): Promise<{
+export async function optimizedAutoCreateConnections(): Promise<{
   createdConnections: number
   skippedConnections: number
   errors: string[]
