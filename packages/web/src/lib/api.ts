@@ -26,6 +26,9 @@ export interface Node {
   endColumn?: number
   meta?: Record<string, any>
   createdAt: string
+  project?: {
+    addr: string
+  }
 }
 
 export interface Connection {

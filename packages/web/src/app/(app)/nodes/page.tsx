@@ -53,6 +53,23 @@ const nodeSchema = z.object({
 
 type NodeFormData = z.infer<typeof nodeSchema>
 
+/**
+ * Generate a permanent link to the source code in GitLab
+ * Format: {projectAddr}/-/blob/{version}/{relativePath}#L{startLine}
+ */
+function generatePermanentLink(node: Node, projectAddr?: string): string | null {
+  if (!projectAddr || !node.relativePath || node.startLine === undefined) {
+    return null
+  }
+
+  let baseAddr = projectAddr.replace(/\.git$/, '')
+
+  // Remove trailing slash if present
+  baseAddr = baseAddr.replace(/\/$/, '')
+
+  return `${baseAddr}/-/blob/${node.version}/${node.relativePath}#L${node.startLine}`
+}
+
 function NodesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -375,15 +392,37 @@ function NodesContent() {
                   key: 'location',
                   header: 'Location',
                   width: '200',
-                  render: (node: Node) => (
-                    <div className="text-sm text-gray-500 truncate">
-                      {node.relativePath &&
-                        node.startLine !== undefined &&
-                        node.startColumn !== undefined
+                  render: (node: Node) => {
+                    const locationText =
+                      node.relativePath &&
+                      node.startLine !== undefined &&
+                      node.startColumn !== undefined
                         ? `${node.relativePath}:${node.startLine}:${node.startColumn}`
-                        : 'N/A'}
-                    </div>
-                  ),
+                        : 'N/A'
+
+                    // Get the project addr from the node's project relation
+                    const permanentLink = node.project
+                      ? generatePermanentLink(node, node.project.addr)
+                      : null
+
+                    return (
+                      <div className="text-sm text-gray-500 truncate">
+                        {permanentLink ? (
+                          <a
+                            href={permanentLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                            title={locationText}
+                          >
+                            {locationText}
+                          </a>
+                        ) : (
+                          locationText
+                        )}
+                      </div>
+                    )
+                  },
                 },
                 {
                   key: 'createdAt',

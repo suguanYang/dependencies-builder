@@ -136,7 +136,7 @@ async function getDiffChangedLines(
             existingEntry.lines.push(...lineNumbers)
           } else {
             changedLines.push({
-              file: currentFile.replace('src/', ''),
+              file: currentFile,
               lines: lineNumbers,
             })
           }

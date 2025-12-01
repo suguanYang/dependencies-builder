@@ -25,23 +25,23 @@ const buildQueries = () => {
   ensureDirectoryExistsSync(path.join(ctx.getWorkingDirectory(), 'queries'))
 
   const entries = getEntries()
-  if (entries.length === 0) {
-    throw new Error('No entries found')
-  }
-  const entryQuery = entryExportsQuery.replace(
-    '$$entryQuery$$',
-    entries
-      .map(
-        (entry) => `
+  if (entries.length !== 0) {
+    const entryQuery = entryExportsQuery.replace(
+      '$$entryQuery$$',
+      entries
+        .map(
+          (entry) => `
         (
         entry = "${entry.path}"
         and
         getFileExports(entry, name, location)
         )`,
-      )
-      .join(' or '),
-  )
-  writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
+        )
+        .join(' or '),
+    )
+    writeFileSync(path.join(ctx.getWorkingDirectory(), 'queries', 'export.ql'), entryQuery)
+  }
+
   cpSync(qlsDir, path.join(ctx.getWorkingDirectory(), 'queries'), { recursive: true })
 
   // cp qlpack.yml to queries
@@ -381,10 +381,21 @@ type Node = {
 export type Results = ReturnType<typeof formatResults>
 
 const parseLoc = (loc: string) => {
+  const ctx = getContext()
   const [relativePath, startLine, startColumn, endLine, endColumn] = loc.split(':')
 
+  // Calculate the relative path from repository root to working directory
+  const repoDir = ctx.getRepositoryDir()
+  const workDir = ctx.getWorkingDirectory()
+  const packageRelativePath = repoDir === workDir ? '' : path.relative(repoDir, workDir)
+
+  // Combine package path with the file path from CodeQL
+  const fullRelativePath = packageRelativePath
+    ? path.join(packageRelativePath, relativePath)
+    : relativePath
+
   return {
-    relativePath,
+    relativePath: fullRelativePath,
     startLine: parseInt(startLine),
     startColumn: parseInt(startColumn),
     endLine: parseInt(endLine),
