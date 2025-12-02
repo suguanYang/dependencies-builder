@@ -29,7 +29,7 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
   for (const node of nodesToUpload) {
     const key = `${node.projectName}:${node.branch}:${node.relativePath}:${node.type}:${node.name}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}:${node.qlsVersion ?? '0.1.0'}`
     if (uniqueKeys.has(key)) {
-      throw new Error(`Duplicate node found in batch: ${node.name} (${node.relativePath}:${node.startLine})`)
+      throw new Error(`Duplicate node found in batch: ${key}`)
     }
     uniqueKeys.add(key)
   }
