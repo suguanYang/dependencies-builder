@@ -99,7 +99,7 @@ export async function updateNode(
   return updatedNode
 }
 
-export async function createSequenceNodes(
+export async function createBatchNodes(
   nodes: Omit<Prisma.NodeUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt'>[],
 ) {
   const createdNodes = await prisma.node.createMany({

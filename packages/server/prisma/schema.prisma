@@ -81,7 +81,7 @@ model Node {
   @@index([version])
   @@index([qlsVersion])
 
-  @@unique([projectId, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn])
+  @@unique([projectId, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn, qlsVersion])
 }
 
 model Connection {

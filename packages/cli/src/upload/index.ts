@@ -24,6 +24,16 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
     return node
   })
 
+  // Check for duplicates in the batch
+  const uniqueKeys = new Set<string>()
+  for (const node of nodesToUpload) {
+    const key = `${node.projectName}:${node.branch}:${node.relativePath}:${node.type}:${node.name}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}:${node.qlsVersion ?? '0.1.0'}`
+    if (uniqueKeys.has(key)) {
+      throw new Error(`Duplicate node found in batch: ${node.name} (${node.relativePath}:${node.startLine})`)
+    }
+    uniqueKeys.add(key)
+  }
+
   try {
     debug('Uploading %d nodes to server', nodesToUpload.length)
 

@@ -291,5 +291,37 @@ describe('analyzeProject command', () => {
 
             expect(mockContext.findPackageDirectory).toHaveBeenCalled()
         })
+
+        it('should fail if batch contains duplicate nodes', async () => {
+            const duplicateNode = {
+                projectId: 'p1',
+                projectName: 'test-project',
+                branch: 'main',
+                type: 'NamedExport',
+                name: 'duplicate',
+                relativePath: 'src/index.ts',
+                startLine: 1,
+                startColumn: 1,
+                endLine: 10,
+                endColumn: 1,
+                qlsVersion: 'v1.0.0',
+            }
+
+            const mockResults = {
+                nodes: [duplicateNode, duplicateNode], // Duplicate nodes
+                callGraph: [],
+                version: 'v1.0.0',
+                summary: { branch: 'main' },
+            }
+
+            vi.mocked(runCodeQL).mockResolvedValue(mockResults as any)
+
+            // Use actual implementation for this test to verify duplicate check
+            const actualUpload = await vi.importActual<typeof import('../upload')>('../upload')
+            vi.mocked(uploadResults).mockImplementation(actualUpload.uploadResults)
+
+            // Expect uploadResults to throw, and analyzeProject to re-throw
+            await expect(analyzeProject()).rejects.toThrow('Duplicate node found in batch')
+        })
     })
 })

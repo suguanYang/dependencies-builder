@@ -211,7 +211,7 @@ function nodesRoutes(fastify: FastifyInstance) {
           },
         )
 
-        const createdNodes = await repository.createSequenceNodes(
+        const createdNodes = await repository.createBatchNodes(
           data.map((node) => ({
             ...node,
             projectId: pIdNameMap[node.projectName]?.id,
