@@ -202,7 +202,7 @@ class UrlParamWrite extends DataFlow::Node {
   UrlParamWrite() {
     exists(UrlParamWriteConfig config, DataFlow::Node source, DataFlow::Node sink |
       config.hasFlow(source, sink) and
-      this = sink and
+      this = source and
       type = "UrlParamWrite" and
       // Extract param from the SOURCE string
       exists(string val |

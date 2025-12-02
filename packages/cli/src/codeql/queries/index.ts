@@ -326,11 +326,14 @@ const parseUrlParamQuery = (queryResultDir: string) => {
     const result = JSON.parse(
       readFileSync(path.join(queryResultDir, 'urlParam.json'), 'utf-8'),
     ) as UrlParamQuery
-    return result['#select'].tuples
+
+    const nodes = result['#select'].tuples
       .map((tuple) => {
         const rawName = tuple[0]
         // Strip value if present (e.g. "pageOpenMode=create" -> "pageOpenMode")
-        const name = rawName.split('=')[0].trim()
+        let name = rawName.split('=')[0].trim()
+        // Remove leading '?' or '&'
+        name = name.replace(/^[?&]+/, '')
         return {
           projectName,
           branch: ctx.getBranch(),
@@ -343,6 +346,8 @@ const parseUrlParamQuery = (queryResultDir: string) => {
         }
       })
       .filter((item) => item.name !== '')
+
+    return nodes
   } catch (error) {
     console.warn('Failed to parse url param query result:', error)
     return []
