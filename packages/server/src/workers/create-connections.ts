@@ -8,12 +8,14 @@ export async function optimizedAutoCreateConnections(): Promise<{
   createdConnections: number
   skippedConnections: number
   errors: string[]
+  cycles: string[][]
 }> {
   const result = {
     totalNodes: 0,
     createdConnections: 0,
     skippedConnections: 0,
     errors: [] as string[],
+    cycles: [] as string[][],
   }
 
   try {
@@ -253,9 +255,66 @@ export async function optimizedAutoCreateConnections(): Promise<{
       result.errors.push(`Failed to create connections: ${batchError}`)
     }
 
-    return result
+    // Circular Dependency Detection
+    const cycles: string[][] = []
+    try {
+      // Fetch all connections to build the graph
+      const allConnections = await prisma.connection.findMany({
+        select: {
+          fromId: true,
+          toId: true,
+        },
+      })
+
+      const graph: Record<string, string[]> = {}
+      allConnections.forEach((conn) => {
+        if (!graph[conn.fromId]) graph[conn.fromId] = []
+        graph[conn.fromId].push(conn.toId)
+      })
+
+      const visited: Record<string, boolean> = {}
+      const recStack: Record<string, boolean> = {}
+
+      const dfs = (nodeId: string, path: string[]) => {
+        if (recStack[nodeId]) {
+          const cycleStart = path.indexOf(nodeId)
+          if (cycleStart !== -1) {
+            cycles.push(path.slice(cycleStart))
+          }
+          return
+        }
+
+        if (visited[nodeId]) return
+
+        visited[nodeId] = true
+        recStack[nodeId] = true
+        path.push(nodeId)
+
+        if (graph[nodeId]) {
+          graph[nodeId].forEach((neighbor) => {
+            dfs(neighbor, [...path])
+          })
+        }
+
+        recStack[nodeId] = false
+        path.pop()
+      }
+
+      Object.keys(graph).forEach((nodeId) => {
+        if (!visited[nodeId]) {
+          dfs(nodeId, [])
+        }
+      })
+    } catch (cycleError) {
+      result.errors.push(`Failed to detect circular dependencies: ${cycleError}`)
+    }
+
+    return {
+      ...result,
+      cycles,
+    }
   } catch (error) {
     result.errors.push(`Failed to auto-create connections: ${error}`)
-    return result
+    return { ...result, cycles: [] }
   }
 }

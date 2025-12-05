@@ -316,6 +316,7 @@ export interface CreateActionData {
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
   ignoreCallGraph?: boolean
+  scheduledFor?: Date
 }
 
 export interface UpdateActionData {
@@ -364,6 +365,7 @@ export async function createAction(actionData: CreateActionData) {
       status: 'pending',
       type: actionData.type,
       parameters,
+      scheduledFor: actionData.scheduledFor,
     },
   })
 }

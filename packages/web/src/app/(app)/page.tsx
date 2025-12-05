@@ -47,55 +47,14 @@ function HomeContent() {
   const completedReports = reportActions.filter((action) => action.status === 'completed').length
   const failedReports = reportActions.filter((action) => action.status === 'failed').length
 
-  // Find potential circular dependencies
-  const findCycles = (): string[][] => {
-    const graph: Record<string, string[]> = {}
-    const visited: Record<string, boolean> = {}
-    const recStack: Record<string, boolean> = {}
-    const cycles: string[][] = []
+  const { data: autoCreateAction } = useSWR('dashboard-auto-create-action', () =>
+    getActions({
+      type: 'connection_auto_create',
+      limit: 1,
+    }),
+  )
 
-    // Build adjacency list
-    connections.forEach((conn) => {
-      if (!graph[conn.fromId]) graph[conn.fromId] = []
-      graph[conn.fromId].push(conn.toId)
-    })
-
-    const dfs = (nodeId: string, path: string[]): void => {
-      if (recStack[nodeId]) {
-        // Found a cycle
-        const cycleStart = path.indexOf(nodeId)
-        if (cycleStart !== -1) {
-          cycles.push(path.slice(cycleStart))
-        }
-        return
-      }
-
-      if (visited[nodeId]) return
-
-      visited[nodeId] = true
-      recStack[nodeId] = true
-      path.push(nodeId)
-
-      if (graph[nodeId]) {
-        graph[nodeId].forEach((neighbor) => {
-          dfs(neighbor, [...path])
-        })
-      }
-
-      recStack[nodeId] = false
-      path.pop()
-    }
-
-    Object.keys(graph).forEach((nodeId) => {
-      if (!visited[nodeId]) {
-        dfs(nodeId, [])
-      }
-    })
-
-    return cycles
-  }
-
-  const cycles = findCycles()
+  const cycles = (autoCreateAction?.data?.[0]?.result as any)?.cycles || []
 
   // Find nodes with many dependencies (potential bottlenecks)
   const dependencyCounts: Record<string, number> = {}
@@ -319,15 +278,14 @@ function HomeContent() {
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          action.status === 'completed'
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${action.status === 'completed'
                             ? 'text-green-600 bg-green-100'
                             : action.status === 'running'
                               ? 'text-blue-600 bg-blue-100'
                               : action.status === 'failed'
                                 ? 'text-red-600 bg-red-100'
                                 : 'text-yellow-600 bg-yellow-100'
-                        }`}
+                          }`}
                       >
                         {action.status}
                       </span>

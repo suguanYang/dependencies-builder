@@ -12,7 +12,64 @@ const globalForPrisma = globalThis as unknown as {
 
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
+const prismaClient = new PrismaClient({ adapter })
+
+export const prisma = globalForPrisma.prisma ?? prismaClient.$extends({
+  query: {
+    node: {
+      async create({ args, query }) {
+        const result = await query(args)
+        // Trigger auto-create connection scheduler
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async update({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async delete({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async createMany({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async updateMany({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async deleteMany({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+      async upsert({ args, query }) {
+        const result = await query(args)
+        import('../services/scheduler').then(({ ConnectionScheduler }) => {
+          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+        })
+        return result
+      },
+    },
+  },
+}) as unknown as PrismaClient
 
 prisma.$on('error', (e) => {
   error('prisma Error: ' + e.message)

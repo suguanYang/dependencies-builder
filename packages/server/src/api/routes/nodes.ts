@@ -117,6 +117,7 @@ function nodesRoutes(fastify: FastifyInstance) {
             projectId: nodeData.projectId,
           })
           reply.code(201).send(node)
+          return
         }
 
         const project = await repository.getProjectByName(nodeData.projectName)
