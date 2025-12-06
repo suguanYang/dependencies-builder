@@ -64,6 +64,10 @@ const postRun = async () => {
 
   if (tsconfigResult) {
     tsconfigResult.extends = undefined
+    if (!tsconfigResult.compilerOptions) {
+      tsconfigResult.compilerOptions = {}
+    }
+    tsconfigResult.compilerOptions.outDir = 'dist'
     writeFileSync(tsconfig, JSON.stringify(tsconfigResult, null, 2))
   }
 
