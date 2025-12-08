@@ -242,3 +242,10 @@ model Apikey {
   permissions         String?
   metadata            String?
 }
+
+model Lock {
+  key        String   @id
+  token      String
+  acquiredAt DateTime @default(now())
+  expiresAt  DateTime
+}

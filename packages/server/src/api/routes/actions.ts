@@ -115,6 +115,13 @@ function actionsRoutes(fastify: FastifyInstance) {
         const { id } = request.params as { id: string }
         const actionData = request.body as repository.UpdateActionData
 
+        const action = await repository.getActionById(id)
+
+        if (!action) {
+          reply.code(404).send({ error: 'Action not found' })
+          return
+        }
+
         const updatedAction = await repository.updateAction(id, actionData)
 
         if (!updatedAction) {

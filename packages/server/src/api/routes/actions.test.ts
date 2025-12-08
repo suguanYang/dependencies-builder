@@ -18,7 +18,7 @@ vi.mock('../../workers/worker-pool', () => ({
 vi.mock('../../services/cli-service', () => ({
   executeCLI: async () => ({ success: true, stdout: 'mock output', stderr: '' }),
   getActiveExecution: () => ({
-    stop: async () => {},
+    stop: async () => { },
   }),
 }))
 
@@ -104,10 +104,7 @@ describe('Actions API', () => {
       },
     })
 
-    if (response.statusCode !== 201) {
-      console.error('Trigger action failed:', response.body)
-    }
-    expect(response.statusCode).toBe(201)
+    expect(response.statusCode).toBe(200)
     const action = response.json()
     expect(action.type).toBe('connection_auto_create')
   })
@@ -229,5 +226,64 @@ describe('Actions API', () => {
     expect(response.statusCode).toBe(200)
     const result = response.json()
     expect(result.success).toBe(true)
+  })
+
+  it('should return 404 when getting non-existent action', async () => {
+    const { headers } = await getAuthHeaders(server)
+    const response = await server.inject({
+      method: 'GET',
+      url: '/actions/non-existent-id',
+      headers,
+    })
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('should return 404 when updating non-existent action', async () => {
+    const { headers } = await getAuthHeaders(server)
+    const response = await server.inject({
+      method: 'PUT',
+      url: '/actions/non-existent-id',
+      headers,
+      payload: { status: 'completed' },
+    })
+
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('should return 404 when deleting non-existent action', async () => {
+    const { headers } = await getAuthHeaders(server)
+    const response = await server.inject({
+      method: 'DELETE',
+      url: '/actions/non-existent-id',
+      headers,
+    })
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('should return 429 when too many actions are running', async () => {
+    const { headers } = await getAuthHeaders(server)
+
+    // Create 10 running actions
+    await prisma.action.createMany({
+      data: Array(10).fill({
+        type: 'static_analysis',
+        status: 'running',
+        parameters: {},
+      }),
+    })
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/actions',
+      headers,
+      payload: {
+        type: 'static_analysis',
+        parameters: { projectId: 'test' },
+      },
+    })
+
+    expect(response.statusCode).toBe(429)
+    const body = response.json()
+    expect(body.error).toBe('Too many running actions')
   })
 })
