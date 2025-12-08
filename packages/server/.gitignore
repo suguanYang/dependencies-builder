@@ -5,7 +5,7 @@ node_modules
 /src/generated/prisma
 
 dms.db
-*.db
+.test-dbs/
 seed
 
 build
