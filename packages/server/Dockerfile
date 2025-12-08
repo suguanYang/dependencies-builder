@@ -10,7 +10,7 @@ RUN apt-get update && \
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 
-RUN apt-get install -y nodejs git build-essential make
+RUN apt-get install -y nodejs git build-essential make libsqlite3-dev python3
 
 RUN corepack enable
 
@@ -34,6 +34,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Prisma Client
 RUN pnpm --filter @dms/server db:generate
 
+RUN pnpm --filter @dms/server build:addon
 RUN pnpm run -r build
 
 # Production stage
@@ -55,6 +56,7 @@ COPY --from=builder --chown=dms:nodejs /app/packages/cli/qls ./packages/cli/qls
 COPY --from=builder --chown=dms:nodejs /app/packages/cli/scan ./packages/cli/scan
 COPY --from=builder --chown=dms:nodejs /app/packages/server/dist ./packages/server/dist
 COPY --from=builder --chown=dms:nodejs /app/packages/server/prisma ./packages/server/prisma
+COPY --from=builder --chown=dms:nodejs /app/packages/server/build ./packages/server/build
 COPY --from=builder --chown=dms:nodejs /usr/local/codeql /usr/local/codeql
 
 # Install production dependencies only

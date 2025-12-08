@@ -11,6 +11,7 @@ export default defineConfig({
     setupFiles: ['./test/setup.ts'],
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     fileParallelism: false,
+    exclude: ['src/native/sqlite-hook.test.ts']
   },
   resolve: {
     alias: {

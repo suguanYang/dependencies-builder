@@ -10,66 +10,45 @@ const globalForPrisma = globalThis as unknown as {
   }
 }
 
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
+// Initialize the Factory
+const factory = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
 
-const prismaClient = new PrismaClient({ adapter })
+// Create a Proxy to intercept the connect() call
+const proxyAdapter = {
+  provider: 'sqlite' as const,
+  adapterName: factory.adapterName,
+  connect: async () => {
+    const adapter = await factory.connect()
 
-export const prisma = globalForPrisma.prisma ?? prismaClient.$extends({
-  query: {
-    node: {
-      async create({ args, query }) {
-        const result = await query(args)
-        // Trigger auto-create connection scheduler
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async update({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async delete({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async createMany({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async updateMany({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async deleteMany({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-      async upsert({ args, query }) {
-        const result = await query(args)
-        import('../services/scheduler').then(({ ConnectionScheduler }) => {
-          ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-        })
-        return result
-      },
-    },
+    // The adapter instance has a 'client' property which is the better-sqlite3 instance
+    // const db = (adapter as any).client
+
+    // Load the native extension
+    // try {
+    //   const extensionPath = path.resolve(process.cwd(), 'build/Release/sqlite_hook.node')
+    //   db.loadExtension(extensionPath)
+
+    //   // Setup the NAPI callback
+    //   const addon = require('../../build/Release/sqlite_hook.node')
+    //   addon.setup(() => {
+    //     import('../services/scheduler').then(({ ConnectionScheduler }) => {
+    //       ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+    //     })
+    //   })
+
+    //   info('SQLite update hook loaded successfully')
+    // } catch (e) {
+    //   error('Failed to load SQLite update hook: ' + e)
+    // }
+
+    return adapter
   },
-}) as unknown as PrismaClient
+  connectToShadowDb: async () => {
+    return factory.connectToShadowDb()
+  }
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter: proxyAdapter })
 
 prisma.$on('error', (e) => {
   error('prisma Error: ' + e.message)

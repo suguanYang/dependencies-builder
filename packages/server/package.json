@@ -9,7 +9,8 @@
     "test": "vitest run",
     "db:generate": "npx prisma generate",
     "db:deploy": "npx prisma migrate deploy",
-    "db:seed": "npx prisma db seed"
+    "db:seed": "npx prisma db seed",
+    "build:addon": "node-gyp rebuild"
   },
   "type": "module",
   "exports": {
@@ -38,6 +39,8 @@
     "@better-auth/cli": "^1.3.29",
     "@prisma/client": "^7.0.0",
     "dotenv": "^17.2.3",
+    "node-addon-api": "^8.5.0",
+    "node-gyp": "^12.1.0",
     "vite": "^7.1.5"
   }
 }
