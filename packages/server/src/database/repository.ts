@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { Prisma } from '../generated/prisma/client'
+import { randomUUID } from 'node:crypto'
 
 export async function getNodes(query: Prisma.NodeFindManyArgs) {
   const { where, take, skip } = query
@@ -316,12 +317,15 @@ export interface CreateActionData {
   type: 'static_analysis' | 'report' | 'connection_auto_create'
   targetBranch?: string
   ignoreCallGraph?: boolean
+  scheduledFor?: Date
+  status?: 'pending' | 'running' | 'completed' | 'failed'
 }
 
 export interface UpdateActionData {
   status?: 'pending' | 'running' | 'completed' | 'failed'
   result?: any
   error?: string
+  scheduledFor?: Date
 }
 
 export async function getActions(query: Prisma.ActionFindManyArgs) {
@@ -361,9 +365,10 @@ export async function createAction(actionData: CreateActionData) {
 
   return prisma.action.create({
     data: {
-      status: 'pending',
+      status: actionData.status ?? 'pending',
       type: actionData.type,
       parameters,
+      scheduledFor: actionData.scheduledFor,
     },
   })
 }
@@ -406,4 +411,105 @@ export async function findActiveActionByType(
       },
     },
   })
+}
+
+export async function claimNextAvailableAction(
+  type: 'static_analysis' | 'report' | 'connection_auto_create',
+) {
+  const now = new Date()
+
+  const candidate = await prisma.action.findFirst({
+    where: {
+      status: 'pending',
+      scheduledFor: {
+        lte: now,
+      },
+      type,
+    },
+    orderBy: {
+      scheduledFor: 'asc',
+    },
+  })
+
+  if (!candidate) return null
+
+  return claimAction(candidate.id)
+}
+
+export async function claimAction(id: string) {
+  const { count } = await prisma.action.updateMany({
+    where: {
+      id,
+      status: 'pending',
+    },
+    data: {
+      status: 'running',
+      updatedAt: new Date(),
+      scheduledFor: new Date(),
+    },
+  })
+
+  if (count === 0) {
+    return null
+  }
+
+  return prisma.action.findUnique({ where: { id } })
+}
+
+export async function acquireLock(key: string, ttlMs: number): Promise<string | null> {
+  const token = randomUUID()
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + ttlMs)
+
+  try {
+    // 1. Try to create the lock
+    await prisma.lock.create({
+      data: {
+        key,
+        token,
+        expiresAt,
+      },
+    })
+    return token
+  } catch (error) {
+    // 2. If creation failed, check if existing lock is expired
+    // We can try to delete it if it's expired
+    const deleteResult = await prisma.lock.deleteMany({
+      where: {
+        key,
+        expiresAt: {
+          lt: now,
+        },
+      },
+    })
+
+    if (deleteResult.count > 0) {
+      // 3. If we deleted an expired lock, try to create again
+      try {
+        await prisma.lock.create({
+          data: {
+            key,
+            token,
+            expiresAt,
+          },
+        })
+        return token
+      } catch {
+        return null // Lost race condition
+      }
+    }
+
+    return null
+  }
+}
+
+export async function releaseLock(key: string, token: string): Promise<boolean> {
+  // Only delete if the KEY matches AND the TOKEN matches
+  const result = await prisma.lock.deleteMany({
+    where: {
+      key: key,
+      token: token,
+    },
+  })
+  return result.count > 0
 }

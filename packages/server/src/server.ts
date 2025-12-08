@@ -23,5 +23,10 @@ export default async () => {
   await setupAPI(fastify)
   info('API routes registered')
 
+  // Start connection scheduler polling
+  const { ConnectionScheduler } = await import('./services/scheduler')
+  ConnectionScheduler.getInstance().startPolling()
+  info('Connection scheduler started')
+
   return fastify
 }

@@ -12,6 +12,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
     createdConnections: number
     skippedConnections: number
     errors: string[]
+    cycles: string[][]
   }
   error?: string
 }> {

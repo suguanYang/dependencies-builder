@@ -3,7 +3,7 @@
 
 generator client {
   provider     = "prisma-client"
-  output       = "../../../generated/prisma"
+  output       = "../src/generated/prisma"
   moduleFormat = "esm"
   driver       = "better-sqlite3"
 
@@ -123,10 +123,12 @@ model Action {
   logs       Json?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @default(now()) @updatedAt
+  scheduledFor DateTime?
 
   // Indexes
   @@index([status])
   @@index([type])
+  @@index([status, scheduledFor])
 }
 
 // Better Auth Models
@@ -239,4 +241,11 @@ model Apikey {
   updatedAt           DateTime
   permissions         String?
   metadata            String?
+}
+
+model Lock {
+  key        String   @id
+  token      String
+  acquiredAt DateTime @default(now())
+  expiresAt  DateTime
 }

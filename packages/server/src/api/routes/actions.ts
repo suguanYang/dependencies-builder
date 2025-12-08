@@ -77,19 +77,16 @@ function actionsRoutes(fastify: FastifyInstance) {
 
         // Check if there is already an active connection_auto_create action
         if (actionData.type === 'connection_auto_create') {
-          const existingAction = await repository.findActiveActionByType('connection_auto_create')
-          if (existingAction) {
-            reply.code(200).send(existingAction)
-            return
-          }
+          const { ConnectionScheduler } = await import('../../services/scheduler')
+          const action = await ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(true)
+          reply.code(200).send(action)
+          return
         }
 
         // Create the action record
         const action = await repository.createAction(actionData)
 
-        if (actionData.type === 'connection_auto_create') {
-          ConnectionWorkerPool.getPool().executeConnectionAutoCreation(action.id)
-        } else if (actionData.type === 'static_analysis' || actionData.type === 'report') {
+        if (actionData.type === 'static_analysis' || actionData.type === 'report') {
           executeCLI(action.id, actionData).catch((error) => {
             repository.updateAction(action.id, { status: 'failed' })
             logError('Failed to execute action' + error)
@@ -117,6 +114,13 @@ function actionsRoutes(fastify: FastifyInstance) {
       try {
         const { id } = request.params as { id: string }
         const actionData = request.body as repository.UpdateActionData
+
+        const action = await repository.getActionById(id)
+
+        if (!action) {
+          reply.code(404).send({ error: 'Action not found' })
+          return
+        }
 
         const updatedAction = await repository.updateAction(id, actionData)
 
