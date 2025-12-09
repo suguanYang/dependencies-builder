@@ -33,7 +33,7 @@ const nodeConfig = defineConfig({
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
   },
-  external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
+  external: [...Object.keys(pkg.dependencies || {})],
 })
 
 export default nodeConfig
