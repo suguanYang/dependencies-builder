@@ -218,13 +218,18 @@ describe('Connections API', () => {
 
     const response = await server.inject({
       method: 'DELETE',
-      url: `/connections/${connection.id}`,
+      url: `/connections?fromId=${connection.fromId}&toId=${connection.toId}`,
       headers,
     })
 
     expect(response.statusCode).toBe(200)
     const check = await prisma.connection.findUnique({
-      where: { id: connection.id },
+      where: {
+        fromId_toId: {
+          fromId: connection.fromId,
+          toId: connection.toId,
+        },
+      },
     })
     expect(check).toBeNull()
   })

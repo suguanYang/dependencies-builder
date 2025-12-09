@@ -237,4 +237,26 @@ describe('Connection Creation Worker', () => {
     const connections = await prisma.connection.findMany()
     expect(connections).toHaveLength(1)
   })
+
+  it('should detect circular dependencies', async () => {
+    const projectA = await createProject('project-a')
+    const projectB = await createProject('project-b')
+
+    // Create a cycle: Import (A) -> Export (B), and manually B -> A
+    const importNode = await createNode(projectA, 'project-b.funcB', 'NamedImport')
+    const exportNode = await createNode(projectB, 'funcB', 'NamedExport', 'main', { entryName: 'index' })
+
+    // Manually create the back-link to form a cycle
+    await prisma.connection.create({
+      data: {
+        fromId: exportNode.id,
+        toId: importNode.id,
+      },
+    })
+
+    const result = await optimizedAutoCreateConnections()
+
+    expect(result.createdConnections).toBe(1)
+    expect(result.cycles.length).toBeGreaterThan(0)
+  })
 })

@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../generated/prisma/client'
 import { error, info } from '../logging'
@@ -20,26 +21,24 @@ const proxyAdapter = {
   connect: async () => {
     const adapter = await factory.connect()
 
-    // The adapter instance has a 'client' property which is the better-sqlite3 instance
-    // const db = (adapter as any).client
-
     // Load the native extension
-    // try {
-    //   const extensionPath = path.resolve(process.cwd(), 'build/Release/sqlite_hook.node')
-    //   db.loadExtension(extensionPath)
+    try {
+      const extensionPath = path.resolve(process.cwd(), 'build/Release/sqlite_hook.node')
+      const db = (adapter as any).client
+      db.loadExtension(extensionPath)
 
-    //   // Setup the NAPI callback
-    //   const addon = require('../../build/Release/sqlite_hook.node')
-    //   addon.setup(() => {
-    //     import('../services/scheduler').then(({ ConnectionScheduler }) => {
-    //       ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-    //     })
-    //   })
+      // Setup the NAPI callback
+      // const addon = require('../../build/Release/sqlite_hook.node')
+      // addon.setup(() => {
+      //   import('../services/scheduler').then(({ ConnectionScheduler }) => {
+      //     ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+      //   })
+      // })
 
-    //   info('SQLite update hook loaded successfully')
-    // } catch (e) {
-    //   error('Failed to load SQLite update hook: ' + e)
-    // }
+      info('SQLite update hook loaded successfully')
+    } catch (e) {
+      error('Failed to load SQLite update hook: ' + e)
+    }
 
     return adapter
   },

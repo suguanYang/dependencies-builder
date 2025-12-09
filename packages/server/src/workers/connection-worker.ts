@@ -1,6 +1,7 @@
 import { parentPort } from 'node:worker_threads'
 import { optimizedAutoCreateConnections } from './create-connections'
 import { prisma } from '../database/prisma'
+import { info, error } from '../logging'
 
 /**
  * Worker function for connection auto-creation
@@ -16,6 +17,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
   }
   error?: string
 }> {
+  info(`Executing connection auto-create task (Action ID: ${actionId})`)
   try {
     // Update action status to running
     await prisma.action.update({
@@ -36,26 +38,27 @@ export default async function connectionWorker({ actionId }: { actionId: string 
       },
     })
 
+    info(`Completed connection auto-create task (Action ID: ${actionId})`)
+
     return {
       success: true,
       result,
     }
-  } catch (error) {
+  } catch (err) {
+    error(`Failed to execute connection auto-create task (Action ID: ${actionId})`)
     // Update action with error
-    if (prisma) {
-      try {
-        await prisma.action.update({
-          where: { id: actionId },
-          data: {
-            status: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error',
-            updatedAt: new Date(),
-          },
-        })
-      } catch (updateError) {
-        // Log but don't fail if update fails
-        console.error('Failed to update action status:', updateError)
-      }
+    try {
+      await prisma.action.update({
+        where: { id: actionId },
+        data: {
+          status: 'failed',
+          error: err instanceof Error ? err.message : 'Unknown error',
+          updatedAt: new Date(),
+        },
+      })
+    } catch (updateError) {
+      // Log but don't fail if update fails
+      error('Failed to update action status:' + (updateError instanceof Error ? updateError.message : 'Unknown error'))
     }
 
     return {
@@ -63,24 +66,7 @@ export default async function connectionWorker({ actionId }: { actionId: string 
       error: error instanceof Error ? error.message : 'Unknown error',
     }
   } finally {
-    // Clean up Prisma client
-    if (prisma) {
-      await prisma.$disconnect()
-    }
-  }
-}
 
-// Handle messages from parent thread
-if (parentPort) {
-  parentPort.on('message', async (message: { actionId: string }) => {
-    try {
-      const result = await connectionWorker({ actionId: message.actionId })
-      parentPort!.postMessage(result)
-    } catch (error) {
-      parentPort!.postMessage({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-  })
+    await prisma.$disconnect()
+  }
 }

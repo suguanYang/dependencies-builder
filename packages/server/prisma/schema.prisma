@@ -85,7 +85,6 @@ model Node {
 }
 
 model Connection {
-  id        String   @id @default(cuid())
   fromId    String
   toId      String
   createdAt DateTime @default(now())
@@ -97,7 +96,7 @@ model Connection {
   // Indexes
   @@index([fromId])
   @@index([toId])
-  @@unique([fromId, toId])
+  @@id([fromId, toId])
 }
 
 enum ActionType {

@@ -129,19 +129,25 @@ function connectionsRoutes(fastify: FastifyInstance) {
     },
   )
 
-  // DELETE /connections/:id - Delete connections by id
+  // DELETE /connections - Delete connection by fromId and toId
   fastify.delete(
-    '/connections/:id',
+    '/connections',
     {
       preHandler: [authenticate],
     },
     async (request, reply) => {
       try {
-        const { id } = request.params as Pick<Connection, 'id'>
-        const success = await repository.deleteConnection(id)
+        const { fromId, toId } = request.query as { fromId: string; toId: string }
+
+        if (!fromId || !toId) {
+          reply.code(400).send({ error: 'Missing fromId or toId query parameters' })
+          return
+        }
+
+        const success = await repository.deleteConnection(fromId, toId)
 
         if (!success) {
-          reply.code(404).send({ error: 'No connections found for the specified id' })
+          reply.code(404).send({ error: 'Connection not found' })
           return
         }
 

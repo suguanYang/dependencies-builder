@@ -207,17 +207,21 @@ export async function createConnection(fromId: string, toId: string) {
   })
 
   return {
-    id: connection.id,
     fromId: connection.fromId,
     toId: connection.toId,
     createdAt: connection.createdAt,
   }
 }
 
-export async function deleteConnection(id: string) {
+export async function deleteConnection(fromId: string, toId: string) {
   try {
     await prisma.connection.delete({
-      where: { id },
+      where: {
+        fromId_toId: {
+          fromId,
+          toId,
+        },
+      },
     })
     return true
   } catch {
