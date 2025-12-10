@@ -15,6 +15,7 @@ import {
   createConnection,
   createAction,
   getActionById,
+  triggerAutoConnectionCreation,
 } from '@/lib/api'
 import { NODE_TYPE_OPTIONS } from '@/lib/constants'
 import { VirtualTable } from '@/components/virtual-table'
@@ -173,11 +174,12 @@ function ConnectionsContent() {
       setError('')
       setSuccess('')
 
-      // Trigger async connection auto-creation
-      const action = await createAction({
-        type: 'connection_auto_create',
-      })
-      setCurrentActionId(action.id)
+      const result = await triggerAutoConnectionCreation()
+
+      setSuccess(
+        `Auto-creation completed: ${result.createdConnections} connections created, ${result.skippedConnections} skipped`,
+      )
+      mutateConnections()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger connection auto-creation')
     } finally {

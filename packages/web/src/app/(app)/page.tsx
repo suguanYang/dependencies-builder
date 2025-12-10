@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { swrConfig } from '@/lib/swr-config'
-import { getNodes, getConnectionsList, getActions } from '@/lib/api'
+import { getNodes, getConnectionsList, getActions, getAllProjectDependencies } from '@/lib/api'
 import { Node } from '@/lib/server-types'
 function HomeContent() {
   const { data: nodesResponse } = useSWR('dashboard-nodes', () => getNodes({ limit: 1 }))
@@ -29,7 +29,7 @@ function HomeContent() {
   )
   const { data: reportsesponse } = useSWR('dashboard-actions', () =>
     getActions({
-      type: 'report',
+      type: 'report' as any,
     }),
   )
 
@@ -47,14 +47,14 @@ function HomeContent() {
   const completedReports = reportActions.filter((action) => action.status === 'completed').length
   const failedReports = reportActions.filter((action) => action.status === 'failed').length
 
-  const { data: autoCreateAction } = useSWR('dashboard-auto-create-action', () =>
-    getActions({
-      type: 'connection_auto_create',
-      limit: 1,
-    }),
+  const { data: projectGraphs } = useSWR('dashboard-all-project-graphs', () =>
+    getAllProjectDependencies('test'),
   )
 
-  const cycles = (autoCreateAction?.data?.[0]?.result as any)?.cycles || []
+  const cycles = React.useMemo(() => {
+    if (!projectGraphs) return []
+    return projectGraphs.flatMap((g) => g.cycles || [])
+  }, [projectGraphs])
 
   // Find nodes with many dependencies (potential bottlenecks)
   const dependencyCounts: Record<string, number> = {}
@@ -157,15 +157,9 @@ function HomeContent() {
               Found {cycles.length} potential circular dependency chains. These can cause infinite
               loops and runtime errors.
               <div className="mt-2 text-sm">
-                {cycles.slice(0, 3).map((cycle, index) => (
+                {cycles.slice(0, 3).map((cycle: any[], index: number) => (
                   <div key={index} className="font-mono text-xs bg-red-100 p-2 rounded mt-1">
-                    Cycle {index + 1}:{' '}
-                    {cycle
-                      .map((id) => {
-                        const node = nodes.find((n) => n.id === id)
-                        return node?.name || id
-                      })
-                      .join(' → ')}
+                    Cycle {index + 1}: {cycle.map((node: any) => node.name || node.id).join(' → ')}
                   </div>
                 ))}
                 {cycles.length > 3 && (

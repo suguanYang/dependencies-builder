@@ -41,7 +41,7 @@ const actionSchema = z.object({
   projectName: z.string().min(1, 'Project is required'),
   projectAddr: z.string().min(1, 'Project address is required'),
   branch: z.string().min(1, 'Branch is required'),
-  type: z.enum(['static_analysis', 'report', 'connection_auto_create']),
+  type: z.enum(['static_analysis', 'report']),
   targetBranch: z.string().optional(),
   ignoreCallGraph: z.boolean().optional(),
 })
@@ -185,7 +185,7 @@ function ActionsContent() {
 
   const handleCreate = async (data: ActionFormData) => {
     try {
-      await createAction(data)
+      await createAction(data as any)
       resetCreateForm()
       setSelectedProject(undefined)
       // Refresh the actions data
@@ -286,7 +286,6 @@ function ActionsContent() {
                   <option value="">All Types</option>
                   <option value="static_analysis">Analysis</option>
                   <option value="report">Report</option>
-                  <option value="connection_auto_create">Auto-create Connections</option>
                 </select>
               </div>
               <div>
@@ -580,7 +579,6 @@ function ActionsContent() {
                         >
                           <option value="static_analysis">Analysis</option>
                           <option value="report">Report</option>
-                          <option value="connection_auto_create">Auto-create Connections</option>
                         </select>
                       )}
                     />

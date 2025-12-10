@@ -1,4 +1,4 @@
-import { NodeType, AppType, Node, Connection, Project, Action } from './server-types'
+import { NodeType, AppType, Node, Connection, Project, Action, ActionType } from './server-types'
 
 export interface SearchFilters {
   projectName?: string
@@ -201,13 +201,13 @@ export interface CreateActionData {
   projectAddr?: string
   projectName?: string
   branch?: string
-  type: 'static_analysis' | 'report' | 'connection_auto_create'
+  type: ActionType
   targetBranch?: string
   ignoreCallGraph?: boolean
 }
 
 export interface ActionFilters {
-  type?: 'static_analysis' | 'report' | 'connection_auto_create'
+  type?: ActionType
   status?: 'pending' | 'running' | 'completed' | 'failed'
   limit?: number
   offset?: number
@@ -510,6 +510,11 @@ export interface DependencyGraph {
     headnext: number
     tailnext: number
   }[]
+  cycles?: {
+    id: string
+    name: string
+    type: string
+  }[][]
 }
 
 export async function getProjectDependencies(
@@ -522,6 +527,12 @@ export async function getProjectDependencies(
   return apiRequest(`/dependencies/projects/${projectId}/${branch}?${params.toString()}`)
 }
 
+export async function getAllProjectDependencies(
+  branch: string = 'main',
+): Promise<DependencyGraph[]> {
+  return apiRequest(`/dependencies/projects/*/${branch}`)
+}
+
 export async function getNodeDependencies(
   nodeId: string,
   depth: number = 2,
@@ -529,4 +540,19 @@ export async function getNodeDependencies(
   const params = new URLSearchParams()
   params.append('depth', depth.toString())
   return apiRequest(`/dependencies/nodes/${nodeId}?${params.toString()}`)
+}
+
+export async function triggerAutoConnectionCreation(): Promise<{
+  createdConnections: number
+  skippedConnections: number
+  errors: string[]
+  cycles?: {
+    id: string
+    name: string
+    type: string
+  }[][]
+}> {
+  return apiRequest('/connections/all', {
+    method: 'POST',
+  })
 }

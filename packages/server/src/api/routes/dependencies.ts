@@ -52,9 +52,13 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { projectId, branch } = request.params as { projectId: string; branch: string }
       const { depth } = request.query as { depth?: number }
 
-      const graphJson = await DependencyBuilderWorkerPool.getPool().getProjectLevelDependencyGraph(projectId, branch, {
-        depth,
-      })
+      const graphJson = await DependencyBuilderWorkerPool.getPool().getProjectLevelDependencyGraph(
+        projectId,
+        branch,
+        {
+          depth,
+        },
+      )
 
       reply.header('Content-Type', 'application/json').send(graphJson)
     } catch (err) {

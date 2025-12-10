@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { Prisma } from '../generated/prisma/client'
+import { ActionType, Prisma } from '../generated/prisma/client'
 import { randomUUID } from 'node:crypto'
 
 export async function getNodes(query: Prisma.NodeFindManyArgs) {
@@ -318,7 +318,7 @@ export interface CreateActionData {
   projectAddr?: string
   projectName?: string
   branch?: string
-  type: 'static_analysis' | 'report' | 'connection_auto_create'
+  type: ActionType
   targetBranch?: string
   ignoreCallGraph?: boolean
   scheduledFor?: Date
@@ -359,7 +359,7 @@ export async function getActionById(id: string) {
 export async function createAction(actionData: CreateActionData) {
   const parameters: Record<string, any> = {}
 
-  // Only include project and branch if they exist (for connection_auto_create they won't)
+  // Only include project and branch if they exist
   if (actionData.branch) parameters.branch = actionData.branch
   if (actionData.targetBranch) parameters.targetBranch = actionData.targetBranch
   if (actionData.projectName) parameters.projectName = actionData.projectName
@@ -404,9 +404,7 @@ export async function countRunningActions(): Promise<number> {
   })
 }
 
-export async function findActiveActionByType(
-  type: 'static_analysis' | 'report' | 'connection_auto_create',
-) {
+export async function findActiveActionByType(type: ActionType) {
   return prisma.action.findFirst({
     where: {
       type,
@@ -417,9 +415,7 @@ export async function findActiveActionByType(
   })
 }
 
-export async function claimNextAvailableAction(
-  type: 'static_analysis' | 'report' | 'connection_auto_create',
-) {
+export async function claimNextAvailableAction(type: ActionType) {
   const now = new Date()
 
   const candidate = await prisma.action.findFirst({

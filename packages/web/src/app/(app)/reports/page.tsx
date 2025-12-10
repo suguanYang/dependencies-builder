@@ -21,7 +21,7 @@ function ReportsContent() {
 
   const { data: actionsResponse, isLoading } = useSWR('reports-actions', () =>
     getActions({
-      type: 'report',
+      type: 'report' as any,
     }),
   )
 

@@ -24,7 +24,6 @@ export enum AppType {
 export enum ActionType {
   static_analysis = 'static_analysis',
   report = 'report',
-  connection_auto_create = 'connection_auto_create',
 }
 
 export enum ActionStatus {

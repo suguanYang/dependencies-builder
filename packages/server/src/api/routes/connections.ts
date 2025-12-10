@@ -172,7 +172,7 @@ function connectionsRoutes(fastify: FastifyInstance) {
       if (!result.success) {
         reply.code(500).send({
           error: 'Connection auto-creation failed',
-          details: result.error
+          details: result.error,
         })
         return
       }

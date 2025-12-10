@@ -21,6 +21,5 @@ export default async () => {
   // Setup API routes
   await setupAPI(fastify)
 
-
   return fastify
 }

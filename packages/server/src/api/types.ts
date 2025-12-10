@@ -78,7 +78,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ActionQuery {
-  type?: 'static_analysis' | 'report' | 'connection_auto_create'
+  type?: 'static_analysis' | 'report'
   status?: 'pending' | 'running' | 'completed' | 'failed'
   limit?: number
   offset?: number

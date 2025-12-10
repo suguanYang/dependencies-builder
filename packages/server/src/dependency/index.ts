@@ -33,7 +33,7 @@ export const getProjectLevelDependencyGraph = async (
     `SELECT get_project_dependency_graph(?, ?, ?) as json`,
     projectId,
     branch,
-    depth
+    depth,
   )
 
   if (!result || result.length === 0 || !result[0].json) {

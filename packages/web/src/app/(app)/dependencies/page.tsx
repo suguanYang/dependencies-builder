@@ -3,13 +3,20 @@
 import React, { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import useSWR, { SWRConfig } from 'swr'
-import { GitBranch, Folder, AlertCircle } from 'lucide-react'
+import { GitBranch, Folder, AlertCircle, NetworkIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import DependencyGraphVisualizer from '@/components/dependency-visualizer/graph'
 import NodePanel from '@/components/dependency-visualizer/panel'
 import { ProjectSelector } from '@/components/project-selector'
 import { NodeIdInput } from '@/components/node-id-input'
 import { D3Node } from '@/components/types'
-import { getProjectById, getProjectDependencies, getNodeDependencies } from '@/lib/api'
+import {
+  getProjectById,
+  getProjectDependencies,
+  getNodeDependencies,
+  getAllProjectDependencies,
+  DependencyGraph,
+} from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
 import { Project } from '@/lib/server-types'
 
@@ -20,7 +27,7 @@ function DependenciesContent() {
   const [selectedNode, setSelectedNode] = useState<D3Node | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined)
   const [nodeId, setNodeId] = useState<string>('')
-  const [viewMode, setViewMode] = useState<'project' | 'node'>('project')
+  const [viewMode, setViewMode] = useState<'project' | 'node' | 'all-projects'>('project')
   const [depth, setDepth] = useState<number>(1)
   const [branch, setBranch] = useState<string>('test')
 
@@ -52,10 +59,58 @@ function DependenciesContent() {
     },
   )
 
+  // All projects dependencies SWR
+  const isAllProjects = viewMode === 'project' && searchParams.get('projectId') === '*'
+
+  const {
+    data: allProjectsGraphData,
+    error: allProjectsError,
+    isLoading: allProjectsLoading,
+  } = useSWR(
+    isAllProjects ? ['all-projects-dependencies', branch] : null,
+    () => getAllProjectDependencies(branch),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
+  )
+
+  // Merge all project graphs into one for visualization
+  const mergedGraphData = React.useMemo(() => {
+    if (!allProjectsGraphData) return undefined
+
+    // Check if it is an array (it should be)
+    if (!Array.isArray(allProjectsGraphData)) return undefined
+
+    const vertices: DependencyGraph['vertices'] = []
+    const edges: DependencyGraph['edges'] = []
+    const vertexIdSet = new Set<string>()
+
+    allProjectsGraphData.forEach((graph) => {
+      graph.vertices.forEach((v) => {
+        if (!vertexIdSet.has(v.data.id)) {
+          vertexIdSet.add(v.data.id)
+          vertices.push(v)
+        }
+      })
+      edges.push(...graph.edges)
+    })
+
+    return { vertices, edges }
+  }, [allProjectsGraphData])
+
   // Determine which data to use based on view mode
-  const graphData = viewMode === 'project' ? projectGraphData : nodeGraphData
-  const error = viewMode === 'project' ? projectError : nodeError
-  const loading = viewMode === 'project' ? projectLoading : nodeLoading
+  const graphData = isAllProjects
+    ? mergedGraphData
+    : viewMode === 'project'
+      ? projectGraphData
+      : nodeGraphData
+  const error = isAllProjects ? allProjectsError : viewMode === 'project' ? projectError : nodeError
+  const loading = isAllProjects
+    ? allProjectsLoading
+    : viewMode === 'project'
+      ? projectLoading
+      : nodeLoading
 
   // Initialize from query parameters
   useEffect(() => {
@@ -65,10 +120,13 @@ function DependenciesContent() {
     const depthParam = searchParams.get('depth')
     const branchParam = searchParams.get('branch')
 
-    if (projectId) {
+    if (projectId && projectId !== '*') {
       setViewMode('project')
       // Fetch the project by ID and set it in the selector
       getProjectById(projectId).then(setSelectedProject)
+    } else if (projectId === '*') {
+      setViewMode('project')
+      setSelectedProject(undefined)
     } else if (nodeIdParam) {
       setViewMode('node')
       setNodeId(nodeIdParam)
@@ -110,6 +168,16 @@ function DependenciesContent() {
       params.set('nodeId', newNodeId)
     }
     params.set('mode', 'node')
+    params.set('depth', depth.toString())
+    params.set('branch', branch)
+    router.replace(`/dependencies?${params.toString()}`, { scroll: false })
+  }
+
+  const handleAllProjects = () => {
+    setSelectedProject(undefined)
+    const params = new URLSearchParams()
+    params.set('projectId', '*')
+    params.set('mode', 'project')
     params.set('depth', depth.toString())
     params.set('branch', branch)
     router.replace(`/dependencies?${params.toString()}`, { scroll: false })
@@ -265,6 +333,14 @@ function DependenciesContent() {
               placeholder="Choose a project..."
             />
           </div>
+          <Button
+            variant={searchParams.get('projectId') === '*' ? 'secondary' : 'outline'}
+            onClick={handleAllProjects}
+            className="mt-6"
+          >
+            <NetworkIcon className="w-4 h-4 mr-2" />
+            All Projects
+          </Button>
         </div>
       )}
 
@@ -315,7 +391,9 @@ function DependenciesContent() {
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Graph Loaded</h3>
               <p className="text-gray-600">
                 {viewMode === 'project'
-                  ? 'Select a project to visualize its dependencies'
+                  ? searchParams.get('projectId') === '*'
+                    ? 'Loading all projects...'
+                    : 'Select a project to visualize its dependencies'
                   : 'Enter a node ID to visualize its dependency graph'}
               </p>
             </div>

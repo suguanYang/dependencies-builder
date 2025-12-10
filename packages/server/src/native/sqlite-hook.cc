@@ -208,7 +208,7 @@ OrthogonalGraph BuildOrthogonalGraph(const std::vector<GraphNode>& nodes, const 
 
 // DFS Cycle Detection
 // 0: White, 1: Gray, 2: Black
-void dfs_cycle(int u, const OrthogonalGraph& graph, std::vector<uint8_t>& visited, std::vector<int>& stack, std::vector<std::vector<std::string>>& cycles) {
+void dfs_cycle(int u, const OrthogonalGraph& graph, std::vector<uint8_t>& visited, std::vector<int>& stack, std::vector<std::vector<GraphNode>>& cycles) {
     visited[u] = 1; // Gray
     stack.push_back(u);
     
@@ -219,16 +219,16 @@ void dfs_cycle(int u, const OrthogonalGraph& graph, std::vector<uint8_t>& visite
         
         if (visited[v] == 1) {
             // Cycle detected
-            std::vector<std::string> cycle;
+            std::vector<GraphNode> cycle;
             bool record = false;
             for (int nodeIdx : stack) {
                 if (nodeIdx == v) record = true;
                 if (record) {
-                    cycle.push_back(graph.vertices[nodeIdx].data.id);
+                    cycle.push_back(graph.vertices[nodeIdx].data);
                 }
             }
             if (record) {
-                cycle.push_back(graph.vertices[v].data.id); // Close loop
+                cycle.push_back(graph.vertices[v].data); // Close loop
                 cycles.push_back(cycle);
             }
         } else if (visited[v] == 0) {
@@ -242,8 +242,8 @@ void dfs_cycle(int u, const OrthogonalGraph& graph, std::vector<uint8_t>& visite
     stack.pop_back();
 }
 
-std::vector<std::vector<std::string>> DetectCycles(const OrthogonalGraph& graph) {
-    std::vector<std::vector<std::string>> cycles;
+std::vector<std::vector<GraphNode>> DetectCycles(const OrthogonalGraph& graph) {
+    std::vector<std::vector<GraphNode>> cycles;
     std::vector<uint8_t> visited(graph.vertices.size(), 0);
     std::vector<int> stack;
     
@@ -255,7 +255,7 @@ std::vector<std::vector<std::string>> DetectCycles(const OrthogonalGraph& graph)
     return cycles;
 }
 
-std::string SerializeGraph(const OrthogonalGraph& graph, const std::vector<std::vector<std::string>>& cycles) {
+std::string SerializeGraph(const OrthogonalGraph& graph, const std::vector<std::vector<GraphNode>>& cycles) {
     JsonBuilder jb;
     jb.beginObject();
     
@@ -288,11 +288,7 @@ std::string SerializeGraph(const OrthogonalGraph& graph, const std::vector<std::
                 } else if (!v.data.addr.empty()) {
                     jb.key("addr"); jb.string(v.data.addr);
                 } else {
-                    // remove trailing comma if logic above didn't add last field
-                    // Hacky fix: always add empty property or manage comma better.
-                    // Let's just output a dummy field or ensure order.
-                    // Revising:
-                    jb.key("_"); jb.number(0); // Dummy to handle trailing comma easily
+                    jb.key("_"); jb.number(0); // Dummy
                 }
             jb.endObject();
             jb.comma();
@@ -339,7 +335,11 @@ std::string SerializeGraph(const OrthogonalGraph& graph, const std::vector<std::
             jb.beginArray();
             for (size_t j = 0; j < cycles[i].size(); ++j) {
                 if (j > 0) jb.comma();
-                jb.string(cycles[i][j]);
+                jb.beginObject();
+                    jb.key("id"); jb.string(cycles[i][j].id); jb.comma();
+                    jb.key("name"); jb.string(cycles[i][j].name); jb.comma();
+                    jb.key("type"); jb.string(cycles[i][j].type);
+                jb.endObject();
             }
             jb.endArray();
         }
@@ -626,7 +626,7 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
     }
 
     // 5.5 Cycle Detection
-    std::vector<std::vector<std::string>> cycles;
+    std::vector<std::vector<GraphNode>> cycles;
     {
         // Convert Nodes
         std::vector<GraphNode> graphNodes;
@@ -691,7 +691,11 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
             json += "[";
             for (size_t j = 0; j < cycles[i].size(); ++j) {
                 if (j > 0) json += ",";
-                json += "\"" + cycles[i][j] + "\"";
+                json += "{";
+                json += "\"id\":\"" + cycles[i][j].id + "\",";
+                json += "\"name\":\"" + cycles[i][j].name + "\",";
+                json += "\"type\":\"" + cycles[i][j].type + "\"";
+                json += "}";
             }
             json += "]";
         }
@@ -865,20 +869,13 @@ static void GetNodeDependencyGraph(sqlite3_context *context, int argc, sqlite3_v
     sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
 }
 
-// Get Project Dependency Graph
-static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite3_value **argv) {
-    if (argc < 2) {
-        sqlite3_result_error(context, "Requires projectId, branch", -1);
-        return;
-    }
-    
-    std::string startProjectId((const char*)sqlite3_value_text(argv[0]));
-    std::string branch((const char*)sqlite3_value_text(argv[1]));
-    int maxDepth = 100;
-    if (argc >= 3) maxDepth = sqlite3_value_int(argv[2]);
+// Helper struct for result
+struct ProjectGraphResult {
+    OrthogonalGraph graph;
+    std::vector<std::vector<GraphNode>> cycles;
+};
 
-    sqlite3 *db = sqlite3_context_db_handle(context);
-    
+static ProjectGraphResult BuildProjectGraphImpl(sqlite3* db, std::string startProjectId, std::string branch, int maxDepth) {
     std::unordered_set<std::string> visitedProjectIds;
     std::unordered_map<std::string, GraphNode> projectInfos;
     std::unordered_map<std::string, GraphConnection> projectConnections;
@@ -917,6 +914,8 @@ static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite
             idListParam += sql_quote(currentLevelIds[i]);
         }
         
+        if (idListParam.empty()) break;
+
         // Find connections between NODES where nodes belong to these projects
         // SELECT N1.projectId as fromPid, N2.projectId as toPid 
         // FROM Connection C 
@@ -1007,9 +1006,74 @@ static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite
     
     OrthogonalGraph og = BuildOrthogonalGraph(nodesList, connList);
     auto cycles = DetectCycles(og);
-    std::string json = SerializeGraph(og, cycles);
     
-    sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
+    return { og, cycles };
+}
+
+// Get Project Dependency Graph
+static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    if (argc < 2) {
+        sqlite3_result_error(context, "Requires projectId, branch", -1);
+        return;
+    }
+
+    std::string startProjectId((const char*)sqlite3_value_text(argv[0]));
+    std::string branch((const char*)sqlite3_value_text(argv[1]));
+    int maxDepth = 100;
+    if (argc >= 3) maxDepth = sqlite3_value_int(argv[2]);
+
+    sqlite3 *db = sqlite3_context_db_handle(context);
+    
+    if (startProjectId == "*") {
+        // Multi-graph mode
+        std::vector<std::string> allProjects;
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(db, "SELECT id FROM Project", -1, &stmt, NULL) == SQLITE_OK) {
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                allProjects.push_back((const char*)sqlite3_column_text(stmt, 0));
+            }
+            sqlite3_finalize(stmt);
+        }
+        
+        std::unordered_set<std::string> remainingProjects(allProjects.begin(), allProjects.end());
+        std::vector<std::string> graphJsons;
+        
+        // Just iterate through the original list to maintain a stable order
+        for (const auto& pid : allProjects) {
+            // Check if still in remaining (not yet covered by another graph)
+            if (remainingProjects.find(pid) == remainingProjects.end()) {
+                continue;
+            }
+            
+            // Build graph with unlimited depth for this project
+            // Using a large number for unlimited depth
+            ProjectGraphResult res = BuildProjectGraphImpl(db, pid, branch, 100000);
+            
+            // Remove contained projects from remaining
+            for (const auto& node : res.graph.vertices) {
+                remainingProjects.erase(node.data.id);
+            }
+            
+            // Serialize
+            graphJsons.push_back(SerializeGraph(res.graph, res.cycles));
+        }
+        
+        // Construct JSON Array
+        std::string json = "[";
+        for (size_t i = 0; i < graphJsons.size(); ++i) {
+            if (i > 0) json += ",";
+            json += graphJsons[i];
+        }
+        json += "]";
+        
+        sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
+        
+    } else {
+        // Single project mode
+        ProjectGraphResult res = BuildProjectGraphImpl(db, startProjectId, branch, maxDepth);
+        std::string json = SerializeGraph(res.graph, res.cycles);
+        sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
+    }
 }
 
 

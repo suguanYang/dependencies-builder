@@ -74,16 +74,13 @@ function actionsRoutes(fastify: FastifyInstance) {
           return
         }
 
-
         // Create the action record
         const action = await repository.createAction(actionData)
 
-        if (actionData.type === 'static_analysis' || actionData.type === 'report') {
-          executeCLI(action.id, actionData).catch((error) => {
-            repository.updateAction(action.id, { status: 'failed' })
-            logError('Failed to execute action' + error)
-          })
-        }
+        executeCLI(action.id, actionData).catch((error) => {
+          repository.updateAction(action.id, { status: 'failed' })
+          logError('Failed to execute action' + error)
+        })
 
         reply.code(201).send(action)
       } catch (err) {
@@ -177,7 +174,6 @@ function actionsRoutes(fastify: FastifyInstance) {
           reply.code(404).send({ error: 'Action not found' })
           return
         }
-
 
         const activeExecution = getActiveExecution(id)
 

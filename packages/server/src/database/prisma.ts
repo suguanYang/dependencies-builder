@@ -2,7 +2,7 @@ import path from 'node:path'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../generated/prisma/client'
 import { error, info } from '../logging'
-import { isMainThread } from 'node:worker_threads'
+import { isMainThread, threadId } from 'node:worker_threads'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -30,7 +30,7 @@ const proxyAdapter = {
 
       // Setup the NAPI callback
 
-      info('SQLite extension loaded successfully')
+      info('SQLite extension loaded successfully: ' + threadId)
     } catch (e) {
       error('Failed to load SQLite extension: ' + e)
       throw e

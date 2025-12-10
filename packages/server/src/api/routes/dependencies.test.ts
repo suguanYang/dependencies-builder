@@ -7,8 +7,13 @@ import { FastifyInstance } from 'fastify'
 vi.mock('../../workers/dependency-builder-pool', () => ({
   DependencyBuilderWorkerPool: {
     getPool: () => ({
-      getNodeDependencyGraph: async () => JSON.stringify({ vertices: [{ data: { id: 'n1' } }, { data: { id: 'n2' } }], edges: [{ from: 'n1', to: 'n2' }] }),
-      getProjectLevelDependencyGraph: async () => JSON.stringify({ vertices: [{ data: { id: 'p1' } }], edges: [] }),
+      getNodeDependencyGraph: async () =>
+        JSON.stringify({
+          vertices: [{ data: { id: 'n1' } }, { data: { id: 'n2' } }],
+          edges: [{ from: 'n1', to: 'n2' }],
+        }),
+      getProjectLevelDependencyGraph: async () =>
+        JSON.stringify({ vertices: [{ data: { id: 'p1' } }], edges: [] }),
     }),
   },
 }))

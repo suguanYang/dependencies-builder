@@ -4,12 +4,11 @@ import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
 import { getAuthHeaders } from '../../../test/auth-helper'
 
-
 // Mock cli-service
 vi.mock('../../services/cli-service', () => ({
   executeCLI: async () => ({ success: true, stdout: 'mock output', stderr: '' }),
   getActiveExecution: () => ({
-    stop: async () => { },
+    stop: async () => {},
   }),
 }))
 
@@ -159,7 +158,7 @@ describe('Actions API', () => {
 
     const created = await prisma.action.create({
       data: {
-        type: 'connection_auto_create',
+        type: 'static_analysis',
         status: 'running',
         parameters: {},
       },

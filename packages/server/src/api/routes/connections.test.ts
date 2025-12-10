@@ -10,7 +10,7 @@ vi.mock('../../workers/connection-pool', () => ({
     getPool: () => ({
       executeConnectionAutoCreation: async () => ({
         success: true,
-        result: { createdConnections: 10, errors: [] }
+        result: { createdConnections: 10, errors: [] },
       }),
     }),
   },
