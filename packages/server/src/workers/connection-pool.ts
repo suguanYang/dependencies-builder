@@ -20,7 +20,7 @@ export class ConnectionWorkerPool extends BaseWorkerPool {
                 __dirname,
                 process.env.NODE_ENV === 'production' ? 'connection-worker.js' : 'worker-wrapper.js',
             ),
-            maxThreads: 2,
+            maxThreads: 1, // Single threaded as requested
             minThreads: 1,
             idleTimeout: 60000,
             workerData: {
@@ -32,7 +32,7 @@ export class ConnectionWorkerPool extends BaseWorkerPool {
     /**
      * Execute connection auto-creation in a worker thread
      */
-    async executeConnectionAutoCreation(actionId: string): Promise<{
+    async executeConnectionAutoCreation(): Promise<{
         success: boolean
         result?: any
         error?: string
@@ -40,9 +40,8 @@ export class ConnectionWorkerPool extends BaseWorkerPool {
         const pool = this.getPoolOrThrow()
 
         try {
-            const abortController = new AbortController()
-            this.executionAbortControllers.set(actionId, abortController)
-            const result = await pool.run({ actionId }, { signal: abortController.signal })
+            // No arguments passed to worker
+            const result = await pool.run({})
             return result
         } catch (error) {
             return {
@@ -52,19 +51,7 @@ export class ConnectionWorkerPool extends BaseWorkerPool {
         }
     }
 
-    stopExecution(actionId: string) {
-        const abortController = this.executionAbortControllers.get(actionId)
-        if (abortController) {
-            abortController.abort()
-            this.executionAbortControllers.delete(actionId)
-            repository.updateAction(actionId, {
-                status: 'failed',
-            })
-            return true
-        }
-
-        return false
-    }
+    // stopExecution removed as we don't track by actionId anymore
 
     static getPool() {
         if (!connectionWorkerPool) {

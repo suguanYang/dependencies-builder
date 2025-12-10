@@ -4,6 +4,18 @@ import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
 import { getAuthHeaders } from '../../../test/auth-helper'
 
+// Mock worker pool
+vi.mock('../../workers/connection-pool', () => ({
+  ConnectionWorkerPool: {
+    getPool: () => ({
+      executeConnectionAutoCreation: async () => ({
+        success: true,
+        result: { createdConnections: 10, errors: [] }
+      }),
+    }),
+  },
+}))
+
 describe('Connections API', () => {
   let server: FastifyInstance
 
@@ -300,5 +312,20 @@ describe('Connections API', () => {
       where: { fromId: fromNode.id },
     })
     expect(count).toBe(0)
+  })
+
+  it('should trigger connection auto-creation', async () => {
+    const { headers } = await getAuthHeaders(server)
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/connections/all',
+      headers,
+    })
+
+    expect(response.statusCode).toBe(200)
+    const result = response.json()
+    // Mocked result returns 10
+    expect(result.createdConnections).toBe(10)
   })
 })

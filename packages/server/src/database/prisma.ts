@@ -29,15 +29,6 @@ const proxyAdapter = {
       db.loadExtension(extensionPath)
 
       // Setup the NAPI callback
-      // if (isMainThread) {
-      //   info('Loading NAPI callback...')
-      //   const addon = require('../../build/Release/sqlite_hook.node')
-      //   addon.setup(() => {
-      //     import('../services/scheduler').then(({ ConnectionScheduler }) => {
-      //       ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
-      //     })
-      //   })
-      // }
 
       info('SQLite extension loaded successfully')
     } catch (e) {

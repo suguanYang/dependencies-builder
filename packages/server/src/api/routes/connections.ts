@@ -6,6 +6,9 @@ import { formatStringToNumber } from '../request_parameter'
 import { authenticate } from '../../auth/middleware'
 import { onlyQuery } from '../../utils'
 
+import { ConnectionWorkerPool } from '../../workers/connection-pool'
+import { error as logError } from '../../logging'
+
 function connectionsRoutes(fastify: FastifyInstance) {
   // GET /connections - Get connections with query parameters
   fastify.get('/connections', async (request, reply) => {
@@ -160,6 +163,29 @@ function connectionsRoutes(fastify: FastifyInstance) {
       }
     },
   )
+
+  // POST /connections/all - Trigger connection auto creation manually
+  fastify.post('/connections/all', async (request, reply) => {
+    try {
+      const result = await ConnectionWorkerPool.getPool().executeConnectionAutoCreation()
+
+      if (!result.success) {
+        reply.code(500).send({
+          error: 'Connection auto-creation failed',
+          details: result.error
+        })
+        return
+      }
+
+      return result.result
+    } catch (err) {
+      logError(err)
+      reply.code(500).send({
+        error: 'Failed to trigger connection auto-creation',
+        details: err instanceof Error ? err.message : 'Unknown error',
+      })
+    }
+  })
 }
 
 export default connectionsRoutes

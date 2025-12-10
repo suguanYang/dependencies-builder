@@ -3,7 +3,6 @@ import * as repository from '../../database/repository'
 import { formatStringToNumber } from '../request_parameter'
 import { ActionData, executeCLI, getActiveExecution } from '../../services/cli-service'
 import { error as logError } from '../../logging'
-import { ConnectionWorkerPool } from '../../workers/connection-pool'
 import { authenticate } from '../../auth/middleware'
 import { ActionQuery } from '../types'
 import { onlyQuery } from '../../utils'
@@ -75,13 +74,6 @@ function actionsRoutes(fastify: FastifyInstance) {
           return
         }
 
-        // Check if there is already an active connection_auto_create action
-        if (actionData.type === 'connection_auto_create') {
-          const { ConnectionScheduler } = await import('../../services/scheduler')
-          const action = await ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(true)
-          reply.code(200).send(action)
-          return
-        }
 
         // Create the action record
         const action = await repository.createAction(actionData)
@@ -186,14 +178,6 @@ function actionsRoutes(fastify: FastifyInstance) {
           return
         }
 
-        if (action.type === 'connection_auto_create') {
-          const success = ConnectionWorkerPool.getPool().stopExecution(id)
-          if (!success) {
-            reply.code(404).send({ error: 'Connection auto-creation not found' })
-            return
-          }
-          return { success: true, message: 'Connection auto-creation stopped' }
-        }
 
         const activeExecution = getActiveExecution(id)
 

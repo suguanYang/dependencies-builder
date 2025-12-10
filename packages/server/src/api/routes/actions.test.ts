@@ -4,15 +4,6 @@ import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
 import { getAuthHeaders } from '../../../test/auth-helper'
 
-// Mock worker pool to avoid actual background processing
-vi.mock('../../workers/connection-pool', () => ({
-  ConnectionWorkerPool: {
-    getPool: () => ({
-      executeConnectionAutoCreation: async () => ({ success: true }),
-      stopExecution: () => true,
-    }),
-  },
-}))
 
 // Mock cli-service
 vi.mock('../../services/cli-service', () => ({
@@ -92,49 +83,6 @@ describe('Actions API', () => {
     expect(result.data).toHaveLength(1)
   })
 
-  it('should trigger connection auto create', async () => {
-    const { headers } = await getAuthHeaders(server)
-
-    const response = await server.inject({
-      method: 'POST',
-      url: '/actions',
-      headers,
-      payload: {
-        type: 'connection_auto_create',
-      },
-    })
-
-    expect(response.statusCode).toBe(200)
-    const action = response.json()
-    expect(action.type).toBe('connection_auto_create')
-  })
-
-  it('should return existing action if connection auto create is already running', async () => {
-    const { headers } = await getAuthHeaders(server)
-
-    // Create an initial action
-    await prisma.action.create({
-      data: {
-        type: 'connection_auto_create',
-        status: 'running',
-        parameters: {},
-      },
-    })
-
-    const response = await server.inject({
-      method: 'POST',
-      url: '/actions',
-      headers,
-      payload: {
-        type: 'connection_auto_create',
-      },
-    })
-
-    expect(response.statusCode).toBe(200)
-    const action = response.json()
-    expect(action.type).toBe('connection_auto_create')
-    expect(action.status).toBe('running')
-  })
   it('should get action by id', async () => {
     const { headers } = await getAuthHeaders(server)
 
