@@ -15,16 +15,15 @@ const TARGET_DB_PATH = path.join(DB_FOLDER, TARGET_DB_NAME)
 
 // Copy template to worker-specific DB inside the folder
 try {
-    if (fs.existsSync(TEMPLATE_DB)) {
-        fs.copyFileSync(TEMPLATE_DB, TARGET_DB_PATH)
+  if (fs.existsSync(TEMPLATE_DB)) {
+    fs.copyFileSync(TEMPLATE_DB, TARGET_DB_PATH)
 
-        // Set the environment variable for Prisma to use this new DB
-        process.env.DATABASE_URL = `file:${TARGET_DB_PATH}`
-
-    } else {
-        throw new Error(`Template DB not found at ${TEMPLATE_DB}.`)
-    }
+    // Set the environment variable for Prisma to use this new DB
+    process.env.DATABASE_URL = `file:${TARGET_DB_PATH}`
+  } else {
+    throw new Error(`Template DB not found at ${TEMPLATE_DB}.`)
+  }
 } catch (e) {
-    console.error('Failed to setup test database environment:', e)
-    throw e
+  console.error('Failed to setup test database environment:', e)
+  throw e
 }

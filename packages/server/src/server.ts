@@ -2,7 +2,7 @@ import Fastify, { FastifyBaseLogger } from 'fastify'
 import cors from '@fastify/cors'
 import { setupAPI } from './api'
 import process from 'node:process'
-import logger, { info } from './logging'
+import logger from './logging'
 
 export default async () => {
   const fastify = Fastify({
@@ -17,16 +17,13 @@ export default async () => {
     credentials: true,
     maxAge: 86400,
   })
-  info('CORS configured')
 
   // Setup API routes
   await setupAPI(fastify)
-  info('API routes registered')
 
   // Start connection scheduler polling
   const { ConnectionScheduler } = await import('./services/scheduler')
   ConnectionScheduler.getInstance().startPolling()
-  info('Connection scheduler started')
 
   return fastify
 }

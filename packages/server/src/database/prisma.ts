@@ -35,16 +35,17 @@ const proxyAdapter = {
       //   })
       // })
 
-      info('SQLite update hook loaded successfully')
+      info('SQLite extension loaded successfully')
     } catch (e) {
-      error('Failed to load SQLite update hook: ' + e)
+      error('Failed to load SQLite extension: ' + e)
+      throw e
     }
 
     return adapter
   },
   connectToShadowDb: async () => {
     return factory.connectToShadowDb()
-  }
+  },
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter: proxyAdapter })

@@ -12,7 +12,7 @@ export default defineConfig({
     globalSetup: './test/global-setup.ts',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     fileParallelism: true,
-    exclude: ['src/native/sqlite-hook.test.ts']
+    exclude: ['src/native/sqlite-hook.test.ts'],
   },
   resolve: {
     alias: {

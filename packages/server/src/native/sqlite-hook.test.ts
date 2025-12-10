@@ -15,8 +15,8 @@ describe('SQLite Update Hook (Native)', () => {
             data: {
                 name: 'Test Project',
                 addr: 'test-addr',
-                type: 'App'
-            }
+                type: 'App',
+            },
         })
         projectId = project.id
     })
@@ -41,10 +41,6 @@ describe('SQLite Update Hook (Native)', () => {
                 endColumn: 1,
                 meta: {},
                 projectId: projectId,
-                // x, y are NOT in schema? I recall schema scan didn't show x/y. 
-                // Wait, previous test had x/y. Let me check schema again? 
-                // Schema view ended at line 75. 
-                // x/y usually for UI layout.
             },
         })
 
@@ -88,7 +84,7 @@ describe('SQLite Update Hook (Native)', () => {
         await prisma.node.update({
             where: { id: node.id },
             data: {
-                name: 'Updated Name'
+                name: 'Updated Name',
             },
         })
 

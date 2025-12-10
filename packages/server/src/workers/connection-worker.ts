@@ -58,7 +58,10 @@ export default async function connectionWorker({ actionId }: { actionId: string 
       })
     } catch (updateError) {
       // Log but don't fail if update fails
-      error('Failed to update action status:' + (updateError instanceof Error ? updateError.message : 'Unknown error'))
+      error(
+        'Failed to update action status:' +
+          (updateError instanceof Error ? updateError.message : 'Unknown error'),
+      )
     }
 
     return {
@@ -66,7 +69,6 @@ export default async function connectionWorker({ actionId }: { actionId: string 
       error: error instanceof Error ? error.message : 'Unknown error',
     }
   } finally {
-
     await prisma.$disconnect()
   }
 }

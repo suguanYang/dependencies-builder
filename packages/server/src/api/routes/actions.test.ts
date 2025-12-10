@@ -18,7 +18,7 @@ vi.mock('../../workers/worker-pool', () => ({
 vi.mock('../../services/cli-service', () => ({
   executeCLI: async () => ({ success: true, stdout: 'mock output', stderr: '' }),
   getActiveExecution: () => ({
-    stop: async () => { },
+    stop: async () => {},
   }),
 }))
 

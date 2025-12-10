@@ -278,14 +278,15 @@ function HomeContent() {
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${action.status === 'completed'
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          action.status === 'completed'
                             ? 'text-green-600 bg-green-100'
                             : action.status === 'running'
                               ? 'text-blue-600 bg-blue-100'
                               : action.status === 'failed'
                                 ? 'text-red-600 bg-red-100'
                                 : 'text-yellow-600 bg-yellow-100'
-                          }`}
+                        }`}
                       >
                         {action.status}
                       </span>

@@ -244,7 +244,9 @@ describe('Connection Creation Worker', () => {
 
     // Create a cycle: Import (A) -> Export (B), and manually B -> A
     const importNode = await createNode(projectA, 'project-b.funcB', 'NamedImport')
-    const exportNode = await createNode(projectB, 'funcB', 'NamedExport', 'main', { entryName: 'index' })
+    const exportNode = await createNode(projectB, 'funcB', 'NamedExport', 'main', {
+      entryName: 'index',
+    })
 
     // Manually create the back-link to form a cycle
     await prisma.connection.create({
