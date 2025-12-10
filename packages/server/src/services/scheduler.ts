@@ -1,4 +1,4 @@
-import { ConnectionWorkerPool } from '../workers/worker-pool'
+import { ConnectionWorkerPool } from '../workers/connection-pool'
 import * as repository from '../database/repository'
 import { error as errlog, info } from '../logging'
 
@@ -8,7 +8,7 @@ export class ConnectionScheduler {
   private readonly DELAY_MS = 10 * 60 * 1000 // 10 minutes
   private readonly POLLING_INTERVAL_MS = 30 * 1000 // 30 seconds
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): ConnectionScheduler {
     if (!ConnectionScheduler.instance) {

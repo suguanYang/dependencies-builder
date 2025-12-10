@@ -2,6 +2,7 @@ import path from 'node:path'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../generated/prisma/client'
 import { error, info } from '../logging'
+import { isMainThread } from 'node:worker_threads'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -28,12 +29,15 @@ const proxyAdapter = {
       db.loadExtension(extensionPath)
 
       // Setup the NAPI callback
-      // const addon = require('../../build/Release/sqlite_hook.node')
-      // addon.setup(() => {
-      //   import('../services/scheduler').then(({ ConnectionScheduler }) => {
-      //     ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+      // if (isMainThread) {
+      //   info('Loading NAPI callback...')
+      //   const addon = require('../../build/Release/sqlite_hook.node')
+      //   addon.setup(() => {
+      //     import('../services/scheduler').then(({ ConnectionScheduler }) => {
+      //       ConnectionScheduler.getInstance().scheduleConnectionAutoCreate(false)
+      //     })
       //   })
-      // })
+      // }
 
       info('SQLite extension loaded successfully')
     } catch (e) {

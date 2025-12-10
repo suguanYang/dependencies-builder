@@ -5,7 +5,7 @@ import { FastifyInstance } from 'fastify'
 import { getAuthHeaders } from '../../../test/auth-helper'
 
 // Mock worker pool to avoid actual background processing
-vi.mock('../../workers/worker-pool', () => ({
+vi.mock('../../workers/connection-pool', () => ({
   ConnectionWorkerPool: {
     getPool: () => ({
       executeConnectionAutoCreation: async () => ({ success: true }),
@@ -18,7 +18,7 @@ vi.mock('../../workers/worker-pool', () => ({
 vi.mock('../../services/cli-service', () => ({
   executeCLI: async () => ({ success: true, stdout: 'mock output', stderr: '' }),
   getActiveExecution: () => ({
-    stop: async () => {},
+    stop: async () => { },
   }),
 }))
 

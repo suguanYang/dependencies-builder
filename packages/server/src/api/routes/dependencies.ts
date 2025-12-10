@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import * as dependencyManager from '../../dependency'
+import { DependencyBuilderWorkerPool } from '../../workers/dependency-builder-pool'
 import { error } from '../../logging'
 
 // Custom error class for not found errors
@@ -25,11 +25,12 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { nodeId } = request.params as { nodeId: string }
       const { depth } = request.query as { depth?: number }
 
-      const graph = await dependencyManager.getNodeDependencyGraph(nodeId, {
+      const graphJson = await DependencyBuilderWorkerPool.getPool().getNodeDependencyGraph(nodeId, {
         depth,
       })
 
-      return graph
+      // Send raw JSON string directly
+      reply.header('Content-Type', 'application/json').send(graphJson)
     } catch (error) {
       if (isNotFoundError(error)) {
         reply.code(404).send({
@@ -51,11 +52,11 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { projectId, branch } = request.params as { projectId: string; branch: string }
       const { depth } = request.query as { depth?: number }
 
-      const graph = await dependencyManager.getProjectLevelDependencyGraph(projectId, branch, {
+      const graphJson = await DependencyBuilderWorkerPool.getPool().getProjectLevelDependencyGraph(projectId, branch, {
         depth,
       })
 
-      return graph
+      reply.header('Content-Type', 'application/json').send(graphJson)
     } catch (err) {
       error(err)
       if (isNotFoundError(err)) {

@@ -36,4 +36,5 @@ export interface DependencyGraph {
     headnext: number
     tailnext: number
   }[]
+  cycles?: string[][]
 }

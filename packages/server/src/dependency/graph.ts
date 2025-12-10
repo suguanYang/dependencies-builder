@@ -162,17 +162,65 @@ const getOutgoingEdges = (graph: OrthogonalGraph, vertexIndex: number): GraphCon
   return edges
 }
 
+// 0: White (unvisited), 1: Gray (visiting), 2: Black (visited)
+const detectCycles = (graph: OrthogonalGraph): string[][] => {
+  const visited = new Uint8Array(graph.vertices.length)
+  const cycles: string[][] = []
+  const recursionStack: number[] = []
+
+  const dfs = (u: number) => {
+    visited[u] = 1 // Mark Gray
+    recursionStack.push(u)
+
+    let edgeIndex = graph.vertices[u].firstOut
+    while (edgeIndex !== -1) {
+      const edge = graph.edges[edgeIndex]
+      if (edge) {
+        const v = edge.headvertex
+        if (visited[v] === 1) {
+          // Cycle detected!
+          // Reconstruct cycle from recursion stack
+          const cycleStartIndex = recursionStack.indexOf(v)
+          if (cycleStartIndex !== -1) {
+            const cycleIndices = recursionStack.slice(cycleStartIndex)
+            // Map indices back to IDs and append the first node to close the loop
+            const cycleIds = cycleIndices.map((idx) => graph.vertices[idx].data.id)
+            cycleIds.push(cycleIds[0])
+            cycles.push(cycleIds)
+          }
+        } else if (visited[v] === 0) {
+          dfs(v)
+        }
+      }
+      edgeIndex = edge.tailnext
+    }
+
+    visited[u] = 2 // Mark Black
+    recursionStack.pop()
+  }
+
+  for (let i = 0; i < graph.vertices.length; i++) {
+    if (visited[i] === 0) {
+      dfs(i)
+    }
+  }
+
+  return cycles
+}
+
 export const buildDependencyGraph = (
   nodes: GraphNode[],
   connections: GraphConnection[],
 ): DependencyGraph => {
   const start = performance.now()
   const orthogonalGraph = buildOrthogonalGraph(nodes, connections)
+  const cycles = detectCycles(orthogonalGraph)
   info(`build dependency graph for ${nodes.length} nodes in ${performance.now() - start} ms`)
 
   return {
     vertices: orthogonalGraph.vertices,
     edges: orthogonalGraph.edges,
+    cycles: cycles.length > 0 ? cycles : undefined,
   }
 }
 

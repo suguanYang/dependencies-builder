@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ConnectionScheduler } from './scheduler'
 import { prisma } from '../database/prisma'
-import { ConnectionWorkerPool } from '../workers/worker-pool'
+import { ConnectionWorkerPool } from '../workers/connection-pool'
 
 // Only mock the worker pool, as it performs background processing we don't want to run in tests
-vi.mock('../workers/worker-pool', () => ({
+vi.mock('../workers/connection-pool', () => ({
   ConnectionWorkerPool: {
     getPool: vi.fn(() => ({
       executeConnectionAutoCreation: vi.fn(),
