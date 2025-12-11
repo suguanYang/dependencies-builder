@@ -49,7 +49,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 
@@ -138,6 +138,7 @@ const parseExportQuery = (queryResultDir: string) => {
           entry: tuple[0],
           entryName: entryName,
         },
+        export_entry: entryName, // Populate export_entry
       }
     })
   } catch (error) {
@@ -161,6 +162,8 @@ const parseES6ImportQuery = (queryResultDir: string) => {
       version: ctx.getVersion(),
       qlsVersion: ctx.getQlsVersion(),
       meta: {},
+      import_pkg: tuple[0], // packageName
+      import_name: tuple[1], // importName
     }))
   } catch (error) {
     console.warn('Failed to parse ES6 import query result:', error)
@@ -184,6 +187,9 @@ const parseLibsDynamicImportQuery = (queryResultDir: string) => {
       version: ctx.getVersion(),
       qlsVersion: ctx.getQlsVersion(),
       meta: {},
+      import_pkg: tuple[0], // packageName
+      import_subpkg: tuple[1], // subPackageName
+      import_name: tuple[2], // importName
     }))
   } catch (error) {
     console.warn('Failed to parse dynamic import query result:', error)
@@ -312,6 +318,8 @@ const parseRemoteLoaderQuery = (queryResultDir: string) => {
       version: ctx.getVersion(),
       qlsVersion: ctx.getQlsVersion(),
       meta: {},
+      import_pkg: tuple[0], // appName
+      import_name: tuple[1], // moduleName
     }))
   } catch (error) {
     console.warn('Failed to parse remote loader query result:', error)
@@ -421,6 +429,10 @@ type Node = {
   version: string
   qlsVersion: string
   meta: Record<string, any>
+  import_pkg?: string | null
+  import_name?: string | null
+  import_subpkg?: string | null
+  export_entry?: string | null
 }
 
 export type Results = ReturnType<typeof formatResults>

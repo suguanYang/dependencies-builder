@@ -68,6 +68,12 @@ model Node {
   updatedAt    DateTime @default(now()) @updatedAt
   qlsVersion   String   @default("0.1.0")
 
+  // Columns for Connection Creation Optimization
+  import_pkg     String?
+  import_name    String?
+  import_subpkg  String?
+  export_entry   String?
+
   // Relations
   fromConnections Connection[] @relation("FromNode")
   toConnections   Connection[] @relation("ToNode")
@@ -80,6 +86,11 @@ model Node {
   @@index([branch])
   @@index([version])
   @@index([qlsVersion])
+  
+  // Optimization Indexes
+  @@index([import_pkg, import_name, import_subpkg], map: "idx_node_import_match")
+  @@index([projectName, export_entry], map: "idx_node_export_match")
+  @@index([type, name, branch], map: "idx_node_generic_match")
 
   @@unique([projectId, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn, qlsVersion])
 }

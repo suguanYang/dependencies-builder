@@ -31,7 +31,7 @@ export type ExportQuery = {
 
 export type ImportQuery = {
   '#select': {
-    tuples: [moduleName: string, importName: string, usageLocation: string][]
+    tuples: [packageName: string, importName: string, usageLocation: string][]
   }
 }
 
