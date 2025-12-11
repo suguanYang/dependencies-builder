@@ -402,12 +402,16 @@ function ProjectsContent() {
                     width: '180',
                     render: (project: Project) => (
                       <div className="flex items-center gap-2">
-                        <Link href={`/dependencies?projectId=${project.id}&mode=project`}>
-                          <span title="View dependency graph">
+                        <Link href={`/projects/${project.id}`}>
+                          <span title="View project details">
                             <GitBranch className="h-4 w-4 text-gray-500 hover:text-blue-600 cursor-pointer" />
                           </span>
                         </Link>
-                        <div className="font-medium text-blue-600 truncate">{project.name}</div>
+                        <div className="font-medium text-blue-600 truncate">
+                          <Link href={`/projects/${project.id}`} className="hover:underline">
+                            {project.name}
+                          </Link>
+                        </div>
                       </div>
                     ),
                   },
@@ -417,11 +421,10 @@ function ProjectsContent() {
                     width: 100,
                     render: (project: Project) => (
                       <div
-                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${
-                          project.type === AppType.Lib
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}
+                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${project.type === AppType.Lib
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                          }`}
                       >
                         {project.type}
                       </div>

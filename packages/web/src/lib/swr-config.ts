@@ -8,6 +8,8 @@ export const swrConfig: SWRConfiguration = {
     console.error('SWR Error:', error)
   },
 
+  revalidateIfStale: false,
+
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
 

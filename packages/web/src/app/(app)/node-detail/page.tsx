@@ -9,6 +9,7 @@ import { AlertCircleIcon } from 'lucide-react'
 import { getNode } from '@/lib/api'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Node } from '@/lib/server-types'
+import { generatePermanentLink } from '@/lib/links'
 
 function NodeDetailContent() {
   const searchParams = useSearchParams()
@@ -183,6 +184,23 @@ function NodeDetailContent() {
                 <p className="text-sm">{node.endColumn || 'N/A'}</p>
               </div>
             </div>
+            {(() => {
+              const permanentLink = generatePermanentLink(node, node.project?.addr)
+              if (!permanentLink) return null
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Permanent Link</label>
+                  <a
+                    href={permanentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline break-all"
+                  >
+                    Open in Repository
+                  </a>
+                </div>
+              )
+            })()}
           </div>
         </div>
 

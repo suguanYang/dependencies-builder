@@ -2,10 +2,12 @@ import process from 'node:process'
 import { fatal, info } from './logging'
 import { prisma } from './database/prisma'
 import server from './server'
+import { FastifyInstance } from 'fastify'
 
 async function startServer() {
+  let fastify: FastifyInstance
   try {
-    const fastify = await server()
+    fastify = await server()
 
     // Start server
     const port = parseInt(process.env.PORT || '3001')
@@ -20,12 +22,14 @@ async function startServer() {
   // Graceful shutdown
   process.on('SIGINT', async () => {
     info('Shutting down gracefully...')
+    await fastify.close()
     await prisma.$disconnect()
     process.exit(0)
   })
 
   process.on('SIGTERM', async () => {
     info('Shutting down gracefully...')
+    await fastify.close()
     await prisma.$disconnect()
     process.exit(0)
   })
@@ -34,6 +38,7 @@ async function startServer() {
   if (import.meta.hot) {
     // @ts-ignore
     import.meta.hot.on('vite:beforeFullReload', async () => {
+      await fastify.close()
       await prisma.$disconnect()
     })
   }
