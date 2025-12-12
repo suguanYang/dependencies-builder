@@ -5,14 +5,14 @@ import { Node } from './server-types'
  * Format: {projectAddr}/-/blob/{version}/{relativePath}#L{startLine}
  */
 export function generatePermanentLink(node: Node, projectAddr?: string): string | null {
-    if (!projectAddr || !node.relativePath || node.startLine === undefined) {
-        return null
-    }
+  if (!projectAddr || !node.relativePath || node.startLine === undefined) {
+    return null
+  }
 
-    let baseAddr = projectAddr.replace(/\.git$/, '')
+  let baseAddr = projectAddr.replace(/\.git$/, '')
 
-    // Remove trailing slash if present
-    baseAddr = baseAddr.replace(/\/$/, '')
+  // Remove trailing slash if present
+  baseAddr = baseAddr.replace(/\/$/, '')
 
-    return `${baseAddr}/-/blob/${node.version}/${node.relativePath}#L${node.startLine}`
+  return `${baseAddr}/-/blob/${node.version}/${node.relativePath}#L${node.startLine}`
 }

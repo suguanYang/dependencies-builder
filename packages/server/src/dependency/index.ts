@@ -40,8 +40,8 @@ export const getProjectLevelDependencyGraph = async (
     const cacheFile = path.join(CACHE_DIR, `project-graph-${branch}.json`)
     try {
       if (fs.existsSync(cacheFile)) {
-        // Evaluate if cache is valid? 
-        // User request: "cache key should be branch name", implies simple key. 
+        // Evaluate if cache is valid?
+        // User request: "cache key should be branch name", implies simple key.
         // Invalidation logic isn't specified, assuming simple read/write.
         const cachedData = await fs.promises.readFile(cacheFile, 'utf-8')
         return cachedData

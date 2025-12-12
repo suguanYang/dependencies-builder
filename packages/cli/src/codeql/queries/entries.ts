@@ -92,7 +92,6 @@ const getEntriesInConfig = (wd: string) => {
       entry && validEntries.push({ name, path: entry })
     }
 
-
     return validEntries
   } catch (err) {
     error(`Failed to get entries in sy config: ${err as string}`)
@@ -114,8 +113,10 @@ const getEntries = () => {
   for (const predefinedEntry of ctx.getEntries()) {
     entries.push(predefinedEntry)
   }
-  console.log('entries: ', entries
-    .filter((entry) => existsSync(path.join(ctx.getWorkingDirectory(), 'dist', entry.path))))
+  console.log(
+    'entries: ',
+    entries.filter((entry) => existsSync(path.join(ctx.getWorkingDirectory(), 'dist', entry.path))),
+  )
 
   // ignore the entries that are not in the dist directory & reduplicate the entries that have the same name
   return entries

@@ -421,10 +421,11 @@ function ProjectsContent() {
                     width: 100,
                     render: (project: Project) => (
                       <div
-                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${project.type === AppType.Lib
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                          }`}
+                        className={`text-sm font-medium px-2 py-1 rounded-full text-center ${
+                          project.type === AppType.Lib
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
                       >
                         {project.type}
                       </div>

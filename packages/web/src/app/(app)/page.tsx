@@ -60,9 +60,7 @@ function HomeContent() {
   // Filter cycles to only include those from pure Lib projects
   const libOnlyCycles = React.useMemo(() => {
     if (!cycles) return []
-    return cycles.filter((cycle: any[]) =>
-      cycle.every((node: any) => node.type === 'Lib')
-    )
+    return cycles.filter((cycle: any[]) => cycle.every((node: any) => node.type === 'Lib'))
   }, [cycles])
 
   const router = useRouter()
@@ -176,7 +174,8 @@ function HomeContent() {
                 <div>
                   <CardTitle>Library Circular Dependencies Detected</CardTitle>
                   <CardDescription>
-                    Found {libOnlyCycles.length} circular dependency chains in library projects. Click on a cycle to view the project details.
+                    Found {libOnlyCycles.length} circular dependency chains in library projects.
+                    Click on a cycle to view the project details.
                   </CardDescription>
                 </div>
               </div>
@@ -190,7 +189,9 @@ function HomeContent() {
                     className="px-4 py-3 border-b last:border-b-0 hover:bg-white cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-gray-500 w-8 flex-shrink-0">#{index + 1}</span>
+                      <span className="font-mono text-xs text-gray-500 w-8 flex-shrink-0">
+                        #{index + 1}
+                      </span>
                       <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
                         {cycle.map((node: any) => node.name).join(' → ')}
                       </span>
@@ -227,16 +228,18 @@ function HomeContent() {
         )}
 
         {/* All Clear Message */}
-        {libOnlyCycles.length === 0 && standaloneNodesCount === 0 && highDependencyNodes.length === 0 && (
-          <Alert>
-            <CheckCircleIcon className="h-4 w-4" />
-            <AlertTitle>All Systems Clear</AlertTitle>
-            <AlertDescription>
-              No critical issues detected in your dependency graph. Your system appears to be
-              well-structured.
-            </AlertDescription>
-          </Alert>
-        )}
+        {libOnlyCycles.length === 0 &&
+          standaloneNodesCount === 0 &&
+          highDependencyNodes.length === 0 && (
+            <Alert>
+              <CheckCircleIcon className="h-4 w-4" />
+              <AlertTitle>All Systems Clear</AlertTitle>
+              <AlertDescription>
+                No critical issues detected in your dependency graph. Your system appears to be
+                well-structured.
+              </AlertDescription>
+            </Alert>
+          )}
       </div>
 
       {/* Recent Reports */}
@@ -278,14 +281,15 @@ function HomeContent() {
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${action.status === 'completed'
-                          ? 'text-green-600 bg-green-100'
-                          : action.status === 'running'
-                            ? 'text-blue-600 bg-blue-100'
-                            : action.status === 'failed'
-                              ? 'text-red-600 bg-red-100'
-                              : 'text-yellow-600 bg-yellow-100'
-                          }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          action.status === 'completed'
+                            ? 'text-green-600 bg-green-100'
+                            : action.status === 'running'
+                              ? 'text-blue-600 bg-blue-100'
+                              : action.status === 'failed'
+                                ? 'text-red-600 bg-red-100'
+                                : 'text-yellow-600 bg-yellow-100'
+                        }`}
                       >
                         {action.status}
                       </span>
