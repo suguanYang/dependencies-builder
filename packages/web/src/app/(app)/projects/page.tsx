@@ -402,8 +402,8 @@ function ProjectsContent() {
                     width: '180',
                     render: (project: Project) => (
                       <div className="flex items-center gap-2">
-                        <Link href={`/projects/${project.id}`}>
-                          <span title="View project details">
+                        <Link href={`/dependencies?projectId=${project.id}&mode=project`}>
+                          <span title="View dependency graph">
                             <GitBranch className="h-4 w-4 text-gray-500 hover:text-blue-600 cursor-pointer" />
                           </span>
                         </Link>

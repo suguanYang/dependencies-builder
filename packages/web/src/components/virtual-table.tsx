@@ -123,7 +123,7 @@ export function VirtualTable<T>({
 
       {/* Virtual List */}
       <List<{}>
-        style={{ height, minWidth: totalWidth }}
+        style={{ height, minWidth: totalWidth, width: '100%' }}
         rowCount={displayItems.length}
         rowHeight={itemHeight}
         rowComponent={Row}

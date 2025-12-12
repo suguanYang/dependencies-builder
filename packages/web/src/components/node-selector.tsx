@@ -136,6 +136,10 @@ export function NodeSelector({
     )
   }
 
+  // Calculated props for the list
+  const itemCount = nodes.length + (!isReachingEnd ? 1 : 0)
+  const listHeight = Math.min(400, itemCount * ITEM_HEIGHT)
+
   // Handle scroll to detect when to load more
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget
@@ -202,13 +206,8 @@ export function NodeSelector({
               <CommandGroup>
                 <List<{}>
                   onScroll={handleScroll}
-                  style={{
-                    height: Math.min(
-                      400,
-                      nodes.length * ITEM_HEIGHT + (!isReachingEnd ? ITEM_HEIGHT : 0),
-                    ),
-                  }}
-                  rowCount={nodes.length + (!isReachingEnd ? 1 : 0)}
+                  style={{ height: listHeight, width: '100%' }}
+                  rowCount={itemCount}
                   rowHeight={ITEM_HEIGHT}
                   rowComponent={NodeItem}
                   rowProps={{}}

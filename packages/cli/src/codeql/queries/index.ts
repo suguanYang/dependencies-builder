@@ -17,7 +17,7 @@ import {
 } from './type'
 import { PACKAGE_ROOT } from '../../utils/constant'
 import { projectNameToCodeQLName } from '../../utils/names'
-import { NodeType } from '../../server-types'
+import { Node, NodeType } from '../../server-types'
 
 const qlsDir = path.join(PACKAGE_ROOT, 'qls')
 
@@ -204,9 +204,9 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
     const globalVarResult = JSON.parse(
       readFileSync(path.join(queryResultDir, 'globalVariable.json'), 'utf-8'),
     ) as GlobalVariableQuery
-    const nodes: Node[] = []
-    globalVarResult['#select'].tuples.forEach((tuple: [string, 'Write' | 'Read', string]) => {
-      nodes.push({
+
+    return globalVarResult['#select'].tuples.map((tuple: [string, 'Write' | 'Read', string]) => {
+      return {
         projectName,
         branch: ctx.getBranch(),
         type: tuple[1] === 'Write' ? NodeType.GlobalVarWrite : NodeType.GlobalVarRead,
@@ -215,10 +215,8 @@ const parseGlobalVariableQuery = (queryResultDir: string) => {
         version: ctx.getVersion(),
         qlsVersion: ctx.getQlsVersion(),
         meta: {},
-      })
+      }
     })
-
-    return nodes
   } catch (error) {
     console.warn('Failed to parse global variable query result:', error)
     return []
@@ -414,25 +412,6 @@ const formatResults = (results: QueryResults) => {
     summary,
     nodes: allNodes,
   }
-}
-
-type Node = {
-  projectName: string
-  branch: string
-  type: NodeType
-  name: string
-  relativePath: string
-  startLine: number
-  startColumn: number
-  endLine: number
-  endColumn: number
-  version: string
-  qlsVersion: string
-  meta: Record<string, any>
-  import_pkg?: string | null
-  import_name?: string | null
-  import_subpkg?: string | null
-  export_entry?: string | null
 }
 
 export type Results = ReturnType<typeof formatResults>

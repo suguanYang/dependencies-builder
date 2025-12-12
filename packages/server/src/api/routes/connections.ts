@@ -168,7 +168,6 @@ function connectionsRoutes(fastify: FastifyInstance) {
   fastify.post('/connections/all', async (request, reply) => {
     try {
       const result = await ConnectionWorkerPool.getPool().executeConnectionAutoCreation()
-
       if (!result.success) {
         reply.code(500).send({
           error: 'Connection auto-creation failed',
@@ -177,9 +176,8 @@ function connectionsRoutes(fastify: FastifyInstance) {
         return
       }
 
-      return result.result
+      return result
     } catch (err) {
-      logError(err)
       reply.code(500).send({
         error: 'Failed to trigger connection auto-creation',
         details: err instanceof Error ? err.message : 'Unknown error',

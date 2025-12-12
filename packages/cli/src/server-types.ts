@@ -46,10 +46,14 @@ export interface Node {
   startColumn: number
   endLine: number
   endColumn: number
-  meta: any
+  meta: Record<string, any>
   createdAt: Date
   updatedAt: Date
   qlsVersion: string
+  import_pkg?: string | null
+  import_name?: string | null
+  import_subpkg?: string | null
+  export_entry?: string | null
 }
 
 export interface Project {

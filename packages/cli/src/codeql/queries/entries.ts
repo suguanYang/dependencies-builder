@@ -71,7 +71,7 @@ const getEntriesInConfig = (wd: string) => {
   }
   const fromCwd = (relative: string) => {
     if (existsSync(path.join(wd, relative)) && statSync(path.join(wd, relative)).isFile()) {
-      return path.join(wd, relative)
+      return path.relative(`${wd}/src`, path.join(wd, relative))
     }
     return null
   }
@@ -81,13 +81,18 @@ const getEntriesInConfig = (wd: string) => {
       ...syConfig.exports,
       ...(syConfig.control ? CONTROL_EXPORTS : {}),
       ...(syConfig.actions ? ACTION_EXPORTS : {}),
+      // need to fill the controls entries here
     }
+
+    console.log(syConfig.controls)
 
     const validEntries = []
     for (const name in allEntries) {
       const entry = fromCwd(allEntries[name])
       entry && validEntries.push({ name, path: entry })
     }
+
+
     return validEntries
   } catch (err) {
     error(`Failed to get entries in sy config: ${err as string}`)
@@ -109,6 +114,8 @@ const getEntries = () => {
   for (const predefinedEntry of ctx.getEntries()) {
     entries.push(predefinedEntry)
   }
+  console.log('entries: ', entries
+    .filter((entry) => existsSync(path.join(ctx.getWorkingDirectory(), 'dist', entry.path))))
 
   // ignore the entries that are not in the dist directory & reduplicate the entries that have the same name
   return entries

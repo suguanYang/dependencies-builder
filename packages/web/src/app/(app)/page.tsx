@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import useSWR, { SWRConfig } from 'swr'
 import {
   AlertCircleIcon,
@@ -55,6 +56,24 @@ function HomeContent() {
     if (!projectGraphs) return []
     return projectGraphs.flatMap((g) => g.cycles || [])
   }, [projectGraphs])
+
+  // Filter cycles to only include those from pure Lib projects
+  const libOnlyCycles = React.useMemo(() => {
+    if (!cycles) return []
+    return cycles.filter((cycle: any[]) =>
+      cycle.every((node: any) => node.type === 'Lib')
+    )
+  }, [cycles])
+
+  const router = useRouter()
+
+  // Handle cycle click to navigate to project detail
+  const handleCycleClick = (cycle: any[]) => {
+    const firstProject = cycle[0]
+    if (firstProject?.id) {
+      router.push(`/projects/${firstProject.id}`)
+    }
+  }
 
   // Find nodes with many dependencies (potential bottlenecks)
   const dependencyCounts: Record<string, number> = {}
@@ -127,8 +146,8 @@ function HomeContent() {
             <AlertCircleIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{cycles.length}</div>
-            <p className="text-xs text-muted-foreground">Potential cycles detected</p>
+            <div className="text-2xl font-bold">{libOnlyCycles.length}</div>
+            <p className="text-xs text-muted-foreground">Library cycles detected</p>
           </CardContent>
         </Card>
 
@@ -149,51 +168,38 @@ function HomeContent() {
       {/* Warnings and Issues */}
       <div className="space-y-6">
         {/* Circular Dependencies Warning */}
-        {cycles.length > 0 && (
-          <Alert variant="destructive">
-            <AlertCircleIcon className="h-4 w-4" />
-            <AlertTitle>Circular Dependencies Detected</AlertTitle>
-            <AlertDescription>
-              Found {cycles.length} potential circular dependency chains. These can cause infinite
-              loops and runtime errors.
-              <div className="mt-2 text-sm">
-                {cycles.slice(0, 3).map((cycle: any[], index: number) => (
-                  <div key={index} className="font-mono text-xs bg-red-100 p-2 rounded mt-1">
-                    Cycle {index + 1}: {cycle.map((node: any) => node.name || node.id).join(' → ')}
+        {libOnlyCycles.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertCircleIcon className="h-5 w-5 text-red-600" />
+                <div>
+                  <CardTitle>Library Circular Dependencies Detected</CardTitle>
+                  <CardDescription>
+                    Found {libOnlyCycles.length} circular dependency chains in library projects. Click on a cycle to view the project details.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[200px] overflow-y-auto border rounded-lg bg-gray-50">
+                {libOnlyCycles.map((cycle: any[], index: number) => (
+                  <div
+                    key={index}
+                    onClick={() => handleCycleClick(cycle)}
+                    className="px-4 py-3 border-b last:border-b-0 hover:bg-white cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-gray-500 w-8 flex-shrink-0">#{index + 1}</span>
+                      <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+                        {cycle.map((node: any) => node.name).join(' → ')}
+                      </span>
+                    </div>
                   </div>
                 ))}
-                {cycles.length > 3 && (
-                  <div className="text-xs text-gray-600 mt-1">
-                    ... and {cycles.length - 3} more cycles
-                  </div>
-                )}
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Standalone Nodes Warning */}
-        {standaloneNodesCount > 0 && (
-          <Alert>
-            <InfoIcon className="h-4 w-4" />
-            <AlertTitle>Standalone Nodes</AlertTitle>
-            <AlertDescription>
-              Found {standaloneNodesCount} nodes with no connections. These might be unused or
-              orphaned dependencies.
-              <div className="mt-2 text-sm">
-                {standaloneNodes.slice(0, 5).map((node) => (
-                  <div key={node.id} className="font-mono text-xs bg-blue-100 p-2 rounded mt-1">
-                    {node.name} ({node.type})
-                  </div>
-                ))}
-                {standaloneNodesCount > 5 && (
-                  <div className="text-xs text-gray-600 mt-1">
-                    ... and {standaloneNodesCount - 5} more standalone nodes
-                  </div>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
+            </CardContent>
+          </Card>
         )}
 
         {/* High Dependency Nodes Warning */}
@@ -221,7 +227,7 @@ function HomeContent() {
         )}
 
         {/* All Clear Message */}
-        {cycles.length === 0 && standaloneNodesCount === 0 && highDependencyNodes.length === 0 && (
+        {libOnlyCycles.length === 0 && standaloneNodesCount === 0 && highDependencyNodes.length === 0 && (
           <Alert>
             <CheckCircleIcon className="h-4 w-4" />
             <AlertTitle>All Systems Clear</AlertTitle>
@@ -272,15 +278,14 @@ function HomeContent() {
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          action.status === 'completed'
-                            ? 'text-green-600 bg-green-100'
-                            : action.status === 'running'
-                              ? 'text-blue-600 bg-blue-100'
-                              : action.status === 'failed'
-                                ? 'text-red-600 bg-red-100'
-                                : 'text-yellow-600 bg-yellow-100'
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${action.status === 'completed'
+                          ? 'text-green-600 bg-green-100'
+                          : action.status === 'running'
+                            ? 'text-blue-600 bg-blue-100'
+                            : action.status === 'failed'
+                              ? 'text-red-600 bg-red-100'
+                              : 'text-yellow-600 bg-yellow-100'
+                          }`}
                       >
                         {action.status}
                       </span>

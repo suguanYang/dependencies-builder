@@ -185,20 +185,48 @@ function NodeDetailContent() {
               </div>
             </div>
             {(() => {
+              // Create a permanent link if project addr exists
               const permanentLink = generatePermanentLink(node, node.project?.addr)
-              if (!permanentLink) return null
+
+              const fields = [
+                { label: 'Import Package', value: node.import_pkg },
+                { label: 'Import Name', value: node.import_name },
+                { label: 'Import Subpackage', value: node.import_subpkg },
+                { label: 'Export Entry', value: node.export_entry },
+              ].filter(f => f.value)
+
               return (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Permanent Link</label>
-                  <a
-                    href={permanentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline break-all"
-                  >
-                    Open in Repository
-                  </a>
-                </div>
+                <>
+                  {fields.length > 0 && (
+                    <div className="pt-4 mt-4 border-t border-gray-100">
+                      <h3 className="text-sm font-medium text-gray-900 mb-3">Import/Export Details</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {fields.map((field) => (
+                          <div key={field.label}>
+                            <label className="block text-sm font-medium text-gray-500 mb-1">{field.label}</label>
+                            <p className="text-sm font-mono bg-gray-50 p-2 rounded truncate" title={field.value as string}>
+                              {field.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {permanentLink && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <label className="block text-sm font-medium text-gray-500 mb-1">Permanent Link</label>
+                      <a
+                        href={permanentLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        Open in Repository
+                      </a>
+                    </div>
+                  )}
+                </>
               )
             })()}
           </div>

@@ -175,8 +175,16 @@ export async function getConnections(query: Prisma.ConnectionFindManyArgs) {
       take,
       skip,
       include: {
-        fromNode: true,
-        toNode: true,
+        fromNode: {
+          include: {
+            project: true,
+          },
+        },
+        toNode: {
+          include: {
+            project: true,
+          },
+        },
       },
     }),
     prisma.connection.count({ where }),

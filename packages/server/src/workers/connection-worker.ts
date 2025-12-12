@@ -1,39 +1,41 @@
-import { optimizedAutoCreateConnections } from './create-connections'
 import { prisma } from '../database/prisma'
-import { info, error } from '../logging'
 
-/**
- * Worker function for connection auto-creation
- * This runs in a separate thread to avoid blocking the main thread
- */
-export default async function connectionWorker(): Promise<{
+export default async function optimizedAutoCreateConnections(): Promise<{
   success: boolean
-  result?: {
-    createdConnections: number
-    skippedConnections: number
-    errors: string[]
-    cycles: string[][]
-  }
-  error?: string
+  createdConnections: number
+  skippedConnections: number
+  errors: string[]
 }> {
-  info(`Executing connection auto-create task`)
   try {
-    // Execute the optimized connection auto-creation
-    const result = await optimizedAutoCreateConnections()
+    // Call the native extension function
+    const resultRaw = await prisma.$queryRawUnsafe<Array<{ res: string }>>(
+      'SELECT auto_create_connections() as res',
+    )
 
-    info(`Completed connection auto-create task`)
+    if (!resultRaw || resultRaw.length === 0) {
+      return {
+        success: false,
+        createdConnections: 0,
+        skippedConnections: 0,
+        errors: ['No result from native extension'],
+      }
+    }
+
+    const jsonString = resultRaw[0].res
+    const result = JSON.parse(jsonString)
 
     return {
       success: true,
-      result,
+      createdConnections: result.createdConnections || 0,
+      skippedConnections: result.skippedConnections || 0,
+      errors: result.errors || [],
     }
   } catch (err) {
-    error(`Failed to execute connection auto-create task`)
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      createdConnections: 0,
+      skippedConnections: 0,
+      errors: [`Failed to auto-create connections (native): ${err}`],
     }
-  } finally {
-    await prisma.$disconnect()
   }
 }

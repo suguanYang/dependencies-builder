@@ -387,11 +387,363 @@ std::string SerializeGraph(const OrthogonalGraph& graph, const std::vector<std::
     return jb.str();
 }
 
-// --- New AutoCreateConnections Logic ---
 
-// AutoCreateConnections Removed - Logic moved to Node.js/Prisma
+struct Node {
+    std::string id;
+    std::string type;
+    std::string name;
+    std::string projectName;
+    std::string branch;
+    std::string meta; // format: {"entryName":"..."}
+};
 
+// Helper: Simple JSON string extraction for "entryName"
+// Extremely naive, assumes standard formatting but fast.
+std::string_view getEntryName(std::string_view meta) {
+    std::string_view key = "\"entryName\"";
+    size_t pos = meta.find(key);
+    if (pos == std::string_view::npos) return "";
+    
+    pos += key.length();
+    // skip until first quote
+    pos = meta.find('"', pos);
+    if (pos == std::string_view::npos) return "";
+    pos++; // start of value
+    
+    size_t end = meta.find('"', pos);
+    if (end == std::string_view::npos) return "";
+    
+    return meta.substr(pos, end - pos);
+}
 
+static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_value **argv) {
+    sqlite3 *db = sqlite3_context_db_handle(context);
+    
+    int createdCount = 0;
+    int skippedCount = 0;
+    std::vector<std::string> errors;
+    
+    // 1. Load Nodes
+    std::vector<Node> nodes;
+    std::unordered_map<std::string, std::vector<Node*>> nodesByType;
+    
+    // Indexes
+    std::unordered_map<std::string, std::vector<Node*>> namedExportsIndex; // Key: proj:name:branch
+    std::unordered_map<std::string, std::vector<Node*>> namedExportsByEntryIndex; // Key: proj:entry:branch
+    std::unordered_map<std::string, std::vector<Node*>> genericWriteIndex; // Key: type:name:branch
+
+    // Optimization: Reserve capacity to avoid reallocations
+    sqlite3_stmt *countStmt;
+    if (sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM Node", -1, &countStmt, NULL) == SQLITE_OK) {
+        if (sqlite3_step(countStmt) == SQLITE_ROW) {
+            int count = sqlite3_column_int(countStmt, 0);
+            nodes.reserve(count);
+        }
+        sqlite3_finalize(countStmt);
+    }
+
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, "SELECT id, type, name, projectName, branch, meta FROM Node", -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        std::string err = "Failed to select nodes: ";
+        err += sqlite3_errmsg(db);
+        sqlite3_result_error(context, err.c_str(), -1);
+        return;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        Node n;
+        n.id = (const char*)sqlite3_column_text(stmt, 0);
+        n.type = (const char*)sqlite3_column_text(stmt, 1);
+        n.name = (const char*)sqlite3_column_text(stmt, 2);
+        n.projectName = (const char*)sqlite3_column_text(stmt, 3);
+        n.branch = (const char*)sqlite3_column_text(stmt, 4);
+        const char* metaRaw = (const char*)sqlite3_column_text(stmt, 5);
+        n.meta = metaRaw ? metaRaw : "";
+        
+        nodes.push_back(n);
+    }
+    sqlite3_finalize(stmt);
+    
+    // Re-iterate pointers to build maps (avoid copying strings around too much in maps)
+    // Note: 'nodes' vector address might be unstable during push_back, but we finished pushing.
+    // So pointers are stable now.
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        Node* node = &nodes[i];
+        
+        nodesByType[node->type].push_back(node);
+        
+        if (node->type == "NamedExport") {
+            // Rule 1 & 2 Index
+            std::string key = node->projectName + ":" + node->name + ":" + node->branch;
+            namedExportsIndex[key].push_back(node);
+            
+            // Rule 6 Index (entryName)
+            std::string_view entryName = getEntryName(node->meta);
+            if (!entryName.empty()) {
+                std::string entryKey = node->projectName + ":" + std::string(entryName) + ":" + node->branch;
+                namedExportsByEntryIndex[entryKey].push_back(node);
+            }
+        } else if (node->type == "GlobalVarWrite" || 
+                   node->type == "WebStorageWrite" || 
+                   node->type == "UrlParamWrite" || 
+                   node->type == "EventEmit") {
+            std::string key = node->type + ":" + node->name + ":" + node->branch;
+            genericWriteIndex[key].push_back(node);
+        }
+    }
+
+    // 2. Load Existing Connections
+    std::unordered_set<std::string> existingConnectionSet;
+    rc = sqlite3_prepare_v2(db, "SELECT fromId, toId FROM Connection", -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+         // handle error
+    } else {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string from = (const char*)sqlite3_column_text(stmt, 0);
+            std::string to = (const char*)sqlite3_column_text(stmt, 1);
+            existingConnectionSet.insert(from + ":" + to);
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    // 3. Match Logic
+    struct NewConn { std::string from; std::string to; };
+    std::vector<NewConn> toCreate;
+
+    auto processMatch = [&](Node* fromNode, const std::vector<Node*>& toNodes) {
+        for (Node* toNode : toNodes) {
+            if (fromNode->projectName == toNode->projectName) continue;
+
+            // Rule 1 specific check: es6 imports from index/seeyon_ui_index
+            if (fromNode->type == "NamedImport" && toNode->type == "NamedExport") {
+                std::string_view entryName = getEntryName(toNode->meta);
+                if (entryName != "index" && entryName != "seeyon_ui_index" && entryName != "seeyon_mui_index") {
+                    continue;
+                }
+            }
+            
+            std::string connKey = fromNode->id + ":" + toNode->id;
+            if (existingConnectionSet.find(connKey) == existingConnectionSet.end()) {
+                toCreate.push_back({fromNode->id, toNode->id});
+                existingConnectionSet.insert(connKey); // Avoid dups in same batch
+            } else {
+                skippedCount++;
+            }
+        }
+    };
+
+    // Rule 1: NamedImport -> NamedExport
+    if (nodesByType.count("NamedImport")) {
+        for (Node* importNode : nodesByType["NamedImport"]) {
+            // Split name dot
+            size_t dotPos = importNode->name.find('.');
+            if (dotPos == std::string::npos) continue;
+            
+            std::string_view nameView(importNode->name);
+            std::string_view pkgName = nameView.substr(0, dotPos);
+            std::string_view impName = nameView.substr(dotPos + 1);
+            
+            std::string key = std::string(pkgName) + ":" + std::string(impName) + ":" + importNode->branch;
+            if (namedExportsIndex.count(key)) {
+                processMatch(importNode, namedExportsIndex[key]);
+            }
+        }
+    }
+    
+    // Rule 2: RuntimeDynamicImport -> NamedExport
+    if (nodesByType.count("RuntimeDynamicImport")) {
+        for (Node* importNode : nodesByType["RuntimeDynamicImport"]) {
+            // "packageName.something.importName" -> need parts[0] and parts[2]
+            
+            size_t pos1 = importNode->name.find('.');
+            if (pos1 == std::string::npos) continue;
+            
+            size_t pos2 = importNode->name.find('.', pos1 + 1);
+            if (pos2 == std::string::npos) continue;
+            
+            // parts[0] is 0..pos1
+            // parts[2] is diff based on if there is a 3rd dot
+            size_t pos3 = importNode->name.find('.', pos2 + 1);
+            
+            std::string_view nameView(importNode->name);
+            std::string_view pkgName = nameView.substr(0, pos1);
+            std::string_view impName;
+            
+            if (pos3 == std::string::npos) {
+                impName = nameView.substr(pos2 + 1);
+            } else {
+                impName = nameView.substr(pos2 + 1, pos3 - (pos2 + 1));
+            }
+            
+            std::string key = std::string(pkgName) + ":" + std::string(impName) + ":" + importNode->branch;
+            if (namedExportsIndex.count(key)) {
+                processMatch(importNode, namedExportsIndex[key]);
+            }
+        }
+    }
+    
+    // Rule 3: GlobalVarRead -> GlobalVarWrite
+    if (nodesByType.count("GlobalVarRead")) {
+        for (Node* readNode : nodesByType["GlobalVarRead"]) {
+            std::string key = "GlobalVarWrite:" + readNode->name + ":" + readNode->branch;
+            if (genericWriteIndex.count(key)) {
+                processMatch(readNode, genericWriteIndex[key]);
+            }
+        }
+    }
+
+    // Rule 4: WebStorageRead -> WebStorageWrite
+    if (nodesByType.count("WebStorageRead")) {
+        for (Node* readNode : nodesByType["WebStorageRead"]) {
+            std::string key = "WebStorageWrite:" + readNode->name + ":" + readNode->branch;
+            if (genericWriteIndex.count(key)) {
+                processMatch(readNode, genericWriteIndex[key]);
+            }
+        }
+    }
+
+    // Rule 5: EventOn -> EventEmit
+    if (nodesByType.count("EventOn")) {
+        for (Node* readNode : nodesByType["EventOn"]) {
+            std::string key = "EventEmit:" + readNode->name + ":" + readNode->branch;
+            if (genericWriteIndex.count(key)) {
+                processMatch(readNode, genericWriteIndex[key]);
+            }
+        }
+    }
+
+    // Rule 7: UrlParamRead -> UrlParamWrite
+    if (nodesByType.count("UrlParamRead")) {
+        for (Node* readNode : nodesByType["UrlParamRead"]) {
+            std::string key = "UrlParamWrite:" + readNode->name + ":" + readNode->branch;
+            if (genericWriteIndex.count(key)) {
+                processMatch(readNode, genericWriteIndex[key]);
+            }
+        }
+    }
+
+    // Rule 6: DynamicModuleFederationReference -> NamedExport
+    if (nodesByType.count("DynamicModuleFederationReference")) {
+        for (Node* refNode : nodesByType["DynamicModuleFederationReference"]) {
+            size_t dotPos = refNode->name.find('.');
+            if (dotPos == std::string::npos) continue;
+            
+            std::string_view nameView(refNode->name);
+            std::string_view refProj = nameView.substr(0, dotPos);
+            std::string_view refName = nameView.substr(dotPos + 1);
+            
+            std::string key = std::string(refProj) + ":" + std::string(refName) + ":" + refNode->branch;
+            if (namedExportsByEntryIndex.count(key)) {
+                processMatch(refNode, namedExportsByEntryIndex[key]);
+            }
+        }
+    }
+    
+    // 4. Batch Insert
+    if (!toCreate.empty()) {
+        sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, NULL);
+        // Removed 'id' column, using composite PK
+        rc = sqlite3_prepare_v2(db, "INSERT INTO Connection (fromId, toId) VALUES (?, ?)", -1, &stmt, NULL);
+        
+        for (const auto& c : toCreate) {
+            sqlite3_reset(stmt);
+            sqlite3_bind_text(stmt, 1, c.from.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, c.to.c_str(), -1, SQLITE_STATIC);
+            
+            if (sqlite3_step(stmt) != SQLITE_DONE) {
+                errors.push_back(sqlite3_errmsg(db));
+            } else {
+                createdCount++;
+            }
+        }
+        sqlite3_finalize(stmt);
+        sqlite3_exec(db, "COMMIT", NULL, NULL, NULL);
+    }
+
+    // 5.5 Cycle Detection
+    std::vector<std::vector<GraphNode>> cycles;
+    {
+        // Convert Nodes
+        std::vector<GraphNode> graphNodes;
+        graphNodes.reserve(nodes.size());
+        for (const auto& n : nodes) {
+            GraphNode gn;
+            gn.id = n.id;
+            gn.name = n.name;
+            gn.type = n.type;
+            gn.projectName = n.projectName;
+            gn.branch = n.branch;
+            // Other fields default
+            graphNodes.push_back(gn);
+        }
+
+        // Convert Connections
+        std::vector<GraphConnection> graphConnections;
+        graphConnections.reserve(existingConnectionSet.size() + toCreate.size());
+
+        // Existing
+        for (const auto& s : existingConnectionSet) {
+            size_t delim = s.find(':');
+            if (delim != std::string::npos) {
+                GraphConnection gc;
+                gc.fromId = s.substr(0, delim);
+                gc.toId = s.substr(delim + 1);
+                gc.id = gc.fromId + "-" + gc.toId;
+                graphConnections.push_back(gc);
+            }
+        }
+
+        // New
+        for (const auto& nc : toCreate) {
+             GraphConnection gc;
+             gc.fromId = nc.from;
+             gc.toId = nc.to;
+             gc.id = gc.fromId + "-" + gc.toId;
+             graphConnections.push_back(gc);
+        }
+
+        OrthogonalGraph og = BuildOrthogonalGraph(graphNodes, graphConnections);
+        cycles = DetectCycles(og);
+    }
+
+    // 6. Return Result JSON
+    std::string json = "{";
+    json += "\"createdConnections\":" + std::to_string(createdCount) + ",";
+    json += "\"skippedConnections\":" + std::to_string(skippedCount) + ",";
+
+    json += "\"errors\":[";
+    for (size_t i = 0; i < errors.size(); ++i) {
+        if (i > 0) json += ",";
+        json += "\"" + errors[i] + "\"";
+    }
+    json += "]";
+
+    // Cycles
+    if (!cycles.empty()) {
+        json += ",\"cycles\":[";
+        for (size_t i = 0; i < cycles.size(); ++i) {
+            if (i > 0) json += ",";
+            json += "[";
+            for (size_t j = 0; j < cycles[i].size(); ++j) {
+                if (j > 0) json += ",";
+                json += "{";
+                json += "\"id\":\"" + cycles[i][j].id + "\",";
+                json += "\"name\":\"" + cycles[i][j].name + "\",";
+                json += "\"type\":\"" + cycles[i][j].type + "\"";
+                json += "}";
+            }
+            json += "]";
+        }
+        json += "]";
+    } else {
+        json += ",\"cycles\":[]";
+    }
+
+    json += "}";
+    
+    sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
+}
 
 // helper to quote string for SQL
 std::string sql_quote(const std::string& s) {
@@ -404,83 +756,151 @@ std::string sql_quote(const std::string& s) {
     return res;
 }
 
+
 // Get Node Dependency Graph
-// Get Node Dependency Graph REWRITTEN with Recursive CTE
-// Get Node Dependency Graph REWRITTEN with Temp Table + Recursive CTE
 static void GetNodeDependencyGraph(sqlite3_context *context, int argc, sqlite3_value **argv) {
-    if (argc < 1) return;
-    std::string startNodeId((const char*)sqlite3_value_text(argv[0]));
-    int maxDepth = (argc >= 2) ? sqlite3_value_int(argv[1]) : 100;
+    if (argc < 1) {
+        sqlite3_result_error(context, "Requires nodeId", -1);
+        return;
+    }
     
+    const char* nodeIdRaw = (const char*)sqlite3_value_text(argv[0]);
+    if (!nodeIdRaw) {
+        sqlite3_result_null(context);
+        return;
+    }
+    std::string startNodeId(nodeIdRaw);
+    
+    int maxDepth = 100;
+    if (argc >= 2) {
+        maxDepth = sqlite3_value_int(argv[1]);
+    }
+
     sqlite3 *db = sqlite3_context_db_handle(context);
-
-    // 1. Create a Temp table
-    sqlite3_exec(db, "CREATE TEMPORARY TABLE IF NOT EXISTS TempGraphNodes (id TEXT PRIMARY KEY, depth INT)", NULL, NULL, NULL);
-    sqlite3_exec(db, "DELETE FROM TempGraphNodes", NULL, NULL, NULL);
-
-    // 2. Run CTE and insert
-    std::string cteSql = R"(
-        WITH RECURSIVE traverse(id, depth) AS (
-            SELECT id, 0 FROM Node WHERE id = ?
-            UNION
-            SELECT CASE WHEN C.fromId = t.id THEN C.toId ELSE C.fromId END, t.depth + 1
-            FROM traverse t
-            JOIN Connection C ON (C.fromId = t.id OR C.toId = t.id)
-            WHERE t.depth < ?
-        )
-        INSERT OR IGNORE INTO TempGraphNodes SELECT id, depth FROM traverse;
-    )";
-
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, cteSql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, startNodeId.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 2, maxDepth);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
-    }
-
-    // 3. Fetch Nodes via Join
-    std::vector<GraphNode> nodes;
-    if (sqlite3_prepare_v2(db, 
-        "SELECT n.id, n.name, n.type, n.projectName, n.branch, n.relativePath, n.startLine, n.startColumn "
-        "FROM Node n JOIN TempGraphNodes t ON n.id = t.id", 
-        -1, &stmt, NULL) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            GraphNode n;
-            n.id = (const char*)sqlite3_column_text(stmt, 0);
-            n.name = (const char*)sqlite3_column_text(stmt, 1);
-            n.type = (const char*)sqlite3_column_text(stmt, 2);
-            n.projectName = (const char*)sqlite3_column_text(stmt, 3);
-            n.branch = (const char*)sqlite3_column_text(stmt, 4);
-            const char* rp = (const char*)sqlite3_column_text(stmt, 5);
-            n.relativePath = rp ? rp : "";
-            n.startLine = sqlite3_column_int(stmt, 6);
-            n.startColumn = sqlite3_column_int(stmt, 7);
-            nodes.push_back(std::move(n));
+    
+    std::unordered_set<std::string> visitedNodeIds;
+    std::unordered_map<std::string, GraphNode> nodesMap;
+    std::unordered_map<std::string, GraphConnection> connectionsMap;
+    
+    std::vector<std::string> currentLevelIds;
+    currentLevelIds.push_back(startNodeId);
+    visitedNodeIds.insert(startNodeId);
+    
+    // Fetch Root Node
+    {
+        std::string sql = "SELECT id, name, type, projectName, branch, relativePath, startLine, startColumn FROM Node WHERE id = ?";
+        sqlite3_stmt* stmt;
+        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, startNodeId.c_str(), -1, SQLITE_STATIC);
+            if (sqlite3_step(stmt) == SQLITE_ROW) {
+                GraphNode n;
+                n.id = (const char*)sqlite3_column_text(stmt, 0);
+                n.name = (const char*)sqlite3_column_text(stmt, 1);
+                n.type = (const char*)sqlite3_column_text(stmt, 2);
+                n.projectName = (const char*)sqlite3_column_text(stmt, 3);
+                n.branch = (const char*)sqlite3_column_text(stmt, 4);
+                
+                const char* rp = (const char*)sqlite3_column_text(stmt, 5);
+                n.relativePath = rp ? rp : "";
+                n.startLine = sqlite3_column_int(stmt, 6);
+                n.startColumn = sqlite3_column_int(stmt, 7);
+                
+                nodesMap[n.id] = n;
+            }
+            sqlite3_finalize(stmt);
         }
-        sqlite3_finalize(stmt);
     }
-
-    // 4. Fetch Connections via Join with Temp Table
-    std::vector<GraphConnection> connections;
-    if (sqlite3_prepare_v2(db, 
-        "SELECT fromId, toId FROM Connection "
-        "WHERE fromId IN (SELECT id FROM TempGraphNodes) AND toId IN (SELECT id FROM TempGraphNodes)", 
-        -1, &stmt, NULL) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            GraphConnection c;
-            c.fromId = (const char*)sqlite3_column_text(stmt, 0);
-            c.toId = (const char*)sqlite3_column_text(stmt, 1);
-            c.id = c.fromId + "-" + c.toId;
-            connections.push_back(std::move(c));
+    
+    // BFS
+    int depth = 0;
+    while (!currentLevelIds.empty() && depth < maxDepth) {
+        std::string idListParam;
+        for (size_t i = 0; i < currentLevelIds.size(); ++i) {
+            if (i > 0) idListParam += ",";
+            idListParam += sql_quote(currentLevelIds[i]);
         }
-        sqlite3_finalize(stmt);
-    }
+        
+        if (idListParam.empty()) break;
+        
+        if (idListParam.empty()) break;
 
-    OrthogonalGraph og = BuildOrthogonalGraph(nodes, connections);
-    // Cycle detection optional, off by default for massive speed
-    std::vector<std::vector<GraphNode>> cycles; 
+        // Fetch Connections
+        std::string sql = "SELECT fromId, toId FROM Connection WHERE fromId IN (" + idListParam + ") OR toId IN (" + idListParam + ")";
+        
+        sqlite3_stmt* stmt;
+        std::vector<std::string> nextLevelIds;
+        std::unordered_set<std::string> newIdsToFetch;
+        
+        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                GraphConnection conn;
+                conn.fromId = (const char*)sqlite3_column_text(stmt, 0);
+                conn.toId = (const char*)sqlite3_column_text(stmt, 1);
+                conn.id = conn.fromId + "-" + conn.toId; // Synthesize ID
+                
+                if (connectionsMap.find(conn.id) == connectionsMap.end()) {
+                    connectionsMap[conn.id] = conn;
+                    
+                    std::string neighbor;
+                    if (visitedNodeIds.count(conn.fromId) && !visitedNodeIds.count(conn.toId)) {
+                        neighbor = conn.toId;
+                    } else if (visitedNodeIds.count(conn.toId) && !visitedNodeIds.count(conn.fromId)) {
+                        neighbor = conn.fromId;
+                    }
+                    
+                    if (!neighbor.empty()) {
+                        visitedNodeIds.insert(neighbor);
+                        newIdsToFetch.insert(neighbor);
+                        nextLevelIds.push_back(neighbor);
+                    }
+                }
+            }
+            sqlite3_finalize(stmt);
+        }
+        
+        // Fetch New Nodes Info
+        if (!newIdsToFetch.empty()) {
+             std::string newIdListParam;
+             bool first = true;
+             for (const auto& id : newIdsToFetch) {
+                 if (!first) newIdListParam += ",";
+                 newIdListParam += sql_quote(id);
+                 first = false;
+             }
+             
+             std::string nodesSql = "SELECT id, name, type, projectName, branch, relativePath, startLine, startColumn FROM Node WHERE id IN (" + newIdListParam + ")";
+             if (sqlite3_prepare_v2(db, nodesSql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+                 while (sqlite3_step(stmt) == SQLITE_ROW) {
+                     GraphNode n;
+                     n.id = (const char*)sqlite3_column_text(stmt, 0);
+                     n.name = (const char*)sqlite3_column_text(stmt, 1);
+                     n.type = (const char*)sqlite3_column_text(stmt, 2);
+                     n.projectName = (const char*)sqlite3_column_text(stmt, 3);
+                     n.branch = (const char*)sqlite3_column_text(stmt, 4);
+                     const char* rp = (const char*)sqlite3_column_text(stmt, 5);
+                     n.relativePath = rp ? rp : "";
+                     n.startLine = sqlite3_column_int(stmt, 6);
+                     n.startColumn = sqlite3_column_int(stmt, 7);
+                     
+                     nodesMap[n.id] = n;
+                 }
+                 sqlite3_finalize(stmt);
+             }
+        }
+        
+        currentLevelIds = nextLevelIds;
+        depth++;
+    }
+    
+    std::vector<GraphNode> nodesList;
+    for (const auto& p : nodesMap) nodesList.push_back(p.second);
+    std::vector<GraphConnection> connList;
+    for (const auto& p : connectionsMap) connList.push_back(p.second);
+    
+    OrthogonalGraph og = BuildOrthogonalGraph(nodesList, connList);
+    auto cycles = DetectCycles(og);
     std::string json = SerializeGraph(og, cycles);
+    
     sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
 }
 
@@ -491,85 +911,133 @@ struct ProjectGraphResult {
 };
 
 static ProjectGraphResult BuildProjectGraphImpl(sqlite3* db, std::string startProjectId, std::string branch, int maxDepth) {
-     // 1. Create Temp Table
-     sqlite3_exec(db, "CREATE TEMPORARY TABLE IF NOT EXISTS TempGraphProjects (id TEXT PRIMARY KEY, depth INT)", NULL, NULL, NULL);
-     sqlite3_exec(db, "DELETE FROM TempGraphProjects", NULL, NULL, NULL);
-
-     // 2. Recursive CTE
-     std::string sql = R"(
-        WITH RECURSIVE proj_traverse(projectId, depth) AS (
-            -- Start
-            SELECT id, 0 FROM Project WHERE id = ?
-            UNION
-            -- Recurse
-            SELECT DISTINCT 
-                CASE WHEN N1.projectId = pt.projectId THEN N2.projectId ELSE N1.projectId END,
-                pt.depth + 1
-            FROM proj_traverse pt
-            JOIN Node N1 ON N1.projectId = pt.projectId
-            JOIN Connection C ON (C.fromId = N1.id OR C.toId = N1.id)
-            JOIN Node N2 ON (C.fromId = N2.id OR C.toId = N2.id)
-            WHERE pt.depth < ?
-              AND N1.branch = ? 
-              AND N2.branch = ?
-              AND N1.projectId != N2.projectId
-        )
-        INSERT OR IGNORE INTO TempGraphProjects SELECT projectId, depth FROM proj_traverse;
-    )";
+    std::unordered_set<std::string> visitedProjectIds;
+    std::unordered_map<std::string, GraphNode> projectInfos;
+    std::unordered_map<std::string, GraphConnection> projectConnections;
     
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, startProjectId.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 2, maxDepth);
-        sqlite3_bind_text(stmt, 3, branch.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 4, branch.c_str(), -1, SQLITE_STATIC);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
+    std::vector<std::string> currentLevelIds;
+    currentLevelIds.push_back(startProjectId);
+    visitedProjectIds.insert(startProjectId);
+    
+    // 1. Fetch Root Project
+    {
+         // GraphNode reused for Project info: name, addr, type
+         std::string sql = "SELECT id, name, addr, type FROM Project WHERE id = ?";
+         sqlite3_stmt* stmt;
+         if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+             sqlite3_bind_text(stmt, 1, startProjectId.c_str(), -1, SQLITE_STATIC);
+             if (sqlite3_step(stmt) == SQLITE_ROW) {
+                 GraphNode p;
+                 p.id = (const char*)sqlite3_column_text(stmt, 0);
+                 p.name = (const char*)sqlite3_column_text(stmt, 1);
+                 p.addr = (const char*)sqlite3_column_text(stmt, 2);
+                 p.type = (const char*)sqlite3_column_text(stmt, 3);
+                 p.branch = branch;
+                 
+                 projectInfos[p.id] = p;
+             }
+             sqlite3_finalize(stmt);
+         }
     }
-
-    // 3. Fetch Vertices
-    std::vector<GraphNode> nodesList;
-    std::string vSql = "SELECT p.id, p.name, p.addr, p.type FROM Project p JOIN TempGraphProjects t ON p.id = t.id";
-    if (sqlite3_prepare_v2(db, vSql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-             GraphNode p;
-             p.id = (const char*)sqlite3_column_text(stmt, 0);
-             p.name = (const char*)sqlite3_column_text(stmt, 1);
-             p.addr = (const char*)sqlite3_column_text(stmt, 2);
-             p.type = (const char*)sqlite3_column_text(stmt, 3);
-             p.branch = branch;
-             nodesList.push_back(std::move(p));
+    
+    // BFS
+    int depth = 0;
+    while (!currentLevelIds.empty() && depth < maxDepth) {
+        std::string idListParam;
+        for (size_t i = 0; i < currentLevelIds.size(); ++i) {
+            if (i > 0) idListParam += ",";
+            idListParam += sql_quote(currentLevelIds[i]);
         }
-         sqlite3_finalize(stmt);
-    }
-    
-    // 4. Fetch Edges
-    // Using TempTable
-    std::vector<GraphConnection> connList;
-    std::string eSql = R"(
-        SELECT DISTINCT N1.projectId, N2.projectId 
-        FROM Connection C 
-        JOIN Node N1 ON C.fromId = N1.id 
-        JOIN Node N2 ON C.toId = N2.id 
-        JOIN TempGraphProjects T1 ON N1.projectId = T1.id 
-        JOIN TempGraphProjects T2 ON N2.projectId = T2.id
-        WHERE N1.branch = ? AND N2.branch = ? 
-          AND N1.projectId != N2.projectId
-    )";
-    
-    if (sqlite3_prepare_v2(db, eSql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, branch.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, branch.c_str(), -1, SQLITE_STATIC);
         
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-             GraphConnection gc;
-             gc.fromId = (const char*)sqlite3_column_text(stmt, 0);
-             gc.toId = (const char*)sqlite3_column_text(stmt, 1);
-             gc.id = gc.fromId + "-" + gc.toId;
-             connList.push_back(std::move(gc));
+        if (idListParam.empty()) break;
+
+        // Find connections between NODES where nodes belong to these projects
+        // SELECT N1.projectId as fromPid, N2.projectId as toPid 
+        // FROM Connection C 
+        // JOIN Node N1 ON C.fromId = N1.id 
+        // JOIN Node N2 ON C.toId = N2.id 
+        // WHERE (N1.projectId IN (...) OR N2.projectId IN (...)) 
+        // AND N1.branch = ? AND N2.branch = ?
+        
+        // Optimization: Single query 
+        std::string sql = 
+            "SELECT DISTINCT N1.projectId, N2.projectId "
+            "FROM Connection C "
+            "JOIN Node N1 ON C.fromId = N1.id "
+            "JOIN Node N2 ON C.toId = N2.id "
+            "WHERE (N1.projectId IN (" + idListParam + ") OR N2.projectId IN (" + idListParam + ")) "
+            "AND N1.branch = ? AND N2.branch = ? "
+            "AND N1.projectId != N2.projectId";
+            
+        sqlite3_stmt* stmt;
+        std::vector<std::string> nextLevelIds;
+        std::unordered_set<std::string> newProjectsToFetch;
+        
+        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+            sqlite3_bind_text(stmt, 1, branch.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, branch.c_str(), -1, SQLITE_STATIC);
+            
+            while (sqlite3_step(stmt) == SQLITE_ROW) {
+                 std::string fromPid = (const char*)sqlite3_column_text(stmt, 0);
+                 std::string toPid = (const char*)sqlite3_column_text(stmt, 1);
+                 
+                 std::string connId = fromPid + "-" + toPid;
+                 if (projectConnections.find(connId) == projectConnections.end()) {
+                     GraphConnection gc;
+                     gc.id = connId;
+                     gc.fromId = fromPid;
+                     gc.toId = toPid;
+                     projectConnections[connId] = gc;
+                     
+                     // Identify new discovery
+                     if (visitedProjectIds.find(fromPid) == visitedProjectIds.end()) {
+                         visitedProjectIds.insert(fromPid);
+                         newProjectsToFetch.insert(fromPid);
+                         nextLevelIds.push_back(fromPid);
+                     }
+                     if (visitedProjectIds.find(toPid) == visitedProjectIds.end()) {
+                         visitedProjectIds.insert(toPid);
+                         newProjectsToFetch.insert(toPid);
+                         nextLevelIds.push_back(toPid);
+                     }
+                 }
+            }
+            sqlite3_finalize(stmt);
         }
-        sqlite3_finalize(stmt);
+        
+        // Fetch newly discovered projects
+        if (!newProjectsToFetch.empty()) {
+             std::string pIds;
+             bool first = true;
+             for (const auto& pid : newProjectsToFetch) {
+                 if (!first) pIds += ",";
+                 pIds += sql_quote(pid);
+                 first = false;
+             }
+             
+             std::string pSql = "SELECT id, name, addr, type FROM Project WHERE id IN (" + pIds + ")";
+             if (sqlite3_prepare_v2(db, pSql.c_str(), -1, &stmt, NULL) == SQLITE_OK) {
+                 while (sqlite3_step(stmt) == SQLITE_ROW) {
+                     GraphNode p;
+                     p.id = (const char*)sqlite3_column_text(stmt, 0);
+                     p.name = (const char*)sqlite3_column_text(stmt, 1);
+                     p.addr = (const char*)sqlite3_column_text(stmt, 2);
+                     p.type = (const char*)sqlite3_column_text(stmt, 3);
+                     p.branch = branch;
+                     projectInfos[p.id] = p;
+                 }
+                 sqlite3_finalize(stmt);
+             }
+        }
+        
+        currentLevelIds = nextLevelIds;
+        depth++;
     }
+    
+    std::vector<GraphNode> nodesList;
+    for (const auto& p : projectInfos) nodesList.push_back(p.second);
+    std::vector<GraphConnection> connList;
+    for (const auto& p : projectConnections) connList.push_back(p.second);
     
     OrthogonalGraph og = BuildOrthogonalGraph(nodesList, connList);
     auto cycles = DetectCycles(og);
@@ -649,14 +1117,14 @@ extern "C" {
 #endif
     DLLEXPORT int sqlite3_extension_init(
         sqlite3 *db, 
-        char **pzErrMsg, 
+        char **pzErrMsg, Connection auto-creation failed
         const sqlite3_api_routines *pApi
     ) {
         SQLITE_EXTENSION_INIT2(pApi);
-        sqlite3_create_function(db, "auto_create_connections", 0, SQLITE_UTF8, NULL, NULL, NULL, NULL); // Removed
+        sqlite3_create_function(db, "auto_create_connections", 0, SQLITE_UTF8, NULL, AutoCreateConnections, NULL, NULL);
         
         // New Functions
-        sqlite3_create_function(db, "get_node_dependency_graph", 1, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL);
+        sqlite3_create_funConnection auto-creation failedction(db, "get_node_dependency_graph", 1, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL);
         sqlite3_create_function(db, "get_node_dependency_graph", 2, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL); // Optional depth
         
         sqlite3_create_function(db, "get_project_dependency_graph", 2, SQLITE_UTF8, NULL, GetProjectDependencyGraph, NULL, NULL);
