@@ -182,7 +182,7 @@ OrthogonalGraph BuildOrthogonalGraph(const std::vector<GraphNode>& nodes, const 
         nodeIndexMap[nodes[i].id] = (int)i;
         OGVertex v;
         v.data = nodes[i];
-        graph.vertices.push_back(v);
+        graph.vertices.push_back(std::move(v));
     }
     
     // 2. Create Edges
@@ -214,7 +214,7 @@ OrthogonalGraph BuildOrthogonalGraph(const std::vector<GraphNode>& nodes, const 
         edge.headnext = currentFirstIn;
         edge.tailnext = currentFirstOut;
         
-        graph.edges.push_back(edge);
+        graph.edges.push_back(std::move(edge));
     }
     
     return graph;
@@ -524,9 +524,9 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
             }
             
             std::string connKey = fromNode->id + ":" + toNode->id;
-            if (existingConnectionSet.find(connKey) == existingConnectionSet.end()) {
+            auto [it, inserted] = existingConnectionSet.insert(connKey);
+            if (inserted) {
                 toCreate.push_back({fromNode->id, toNode->id});
-                existingConnectionSet.insert(connKey); // Avoid dups in same batch
             } else {
                 skippedCount++;
             }
@@ -690,7 +690,7 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
                 gc.fromId = s.substr(0, delim);
                 gc.toId = s.substr(delim + 1);
                 gc.id = gc.fromId + "-" + gc.toId;
-                graphConnections.push_back(gc);
+                graphConnections.push_back(std::move(gc));
             }
         }
 
@@ -700,7 +700,7 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
              gc.fromId = nc.from;
              gc.toId = nc.to;
              gc.id = gc.fromId + "-" + gc.toId;
-             graphConnections.push_back(gc);
+             graphConnections.push_back(std::move(gc));
         }
 
         OrthogonalGraph og = BuildOrthogonalGraph(graphNodes, graphConnections);
@@ -708,51 +708,62 @@ static void AutoCreateConnections(sqlite3_context *context, int argc, sqlite3_va
     }
 
     // 6. Return Result JSON
-    std::string json = "{";
-    json += "\"createdConnections\":" + std::to_string(createdCount) + ",";
-    json += "\"skippedConnections\":" + std::to_string(skippedCount) + ",";
+    JsonBuilder jb;
+    jb.beginObject();
+    
+    jb.key("createdConnections");
+    jb.number(createdCount);
+    jb.comma();
+    
+    jb.key("skippedConnections");
+    jb.number(skippedCount);
+    jb.comma();
 
-    json += "\"errors\":[";
+    jb.key("errors");
+    jb.beginArray();
     for (size_t i = 0; i < errors.size(); ++i) {
-        if (i > 0) json += ",";
-        json += "\"" + errors[i] + "\"";
+        if (i > 0) jb.comma();
+        jb.string(errors[i]);
     }
-    json += "]";
+    jb.endArray();
 
     // Cycles
     if (!cycles.empty()) {
-        json += ",\"cycles\":[";
+        jb.comma();
+        jb.key("cycles");
+        jb.beginArray();
         for (size_t i = 0; i < cycles.size(); ++i) {
-            if (i > 0) json += ",";
-            json += "[";
+            if (i > 0) jb.comma();
+            jb.beginArray();
             for (size_t j = 0; j < cycles[i].size(); ++j) {
-                if (j > 0) json += ",";
-                json += "{";
-                json += "\"id\":\"" + cycles[i][j].id + "\",";
-                json += "\"name\":\"" + cycles[i][j].name + "\",";
-                json += "\"type\":\"" + cycles[i][j].type + "\"";
-                json += "}";
+                if (j > 0) jb.comma();
+                jb.beginObject();
+                    jb.key("id"); jb.string(cycles[i][j].id); jb.comma();
+                    jb.key("name"); jb.string(cycles[i][j].name); jb.comma();
+                    jb.key("type"); jb.string(cycles[i][j].type);
+                jb.endObject();
             }
-            json += "]";
+            jb.endArray();
         }
-        json += "]";
-    } else {
-        json += ",\"cycles\":[]";
+        jb.endArray();
     }
 
-    json += "}";
+    jb.endObject();
+    std::string json = jb.str();
     
     sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
 }
 
 // helper to quote string for SQL
 std::string sql_quote(const std::string& s) {
-    std::string res = "'";
+    std::string res;
+    res.reserve(s.size() + 10);  // Pre-allocate: string + quotes + potential escapes
+    res += '\'';
     for (char c : s) {
-        if (c == '\'') res += "''";
-        else res += c;
+        res += c;
+        if (c == '\'') res += '\'';  // Escape single quote by doubling it
     }
-    res += "'";
+    res += '\'';
     return res;
 }
 
@@ -1117,14 +1128,14 @@ extern "C" {
 #endif
     DLLEXPORT int sqlite3_extension_init(
         sqlite3 *db, 
-        char **pzErrMsg, Connection auto-creation failed
+        char **pzErrMsg,
         const sqlite3_api_routines *pApi
     ) {
         SQLITE_EXTENSION_INIT2(pApi);
         sqlite3_create_function(db, "auto_create_connections", 0, SQLITE_UTF8, NULL, AutoCreateConnections, NULL, NULL);
         
         // New Functions
-        sqlite3_create_funConnection auto-creation failedction(db, "get_node_dependency_graph", 1, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL);
+        sqlite3_create_function(db, "get_node_dependency_graph", 1, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL);
         sqlite3_create_function(db, "get_node_dependency_graph", 2, SQLITE_UTF8, NULL, GetNodeDependencyGraph, NULL, NULL); // Optional depth
         
         sqlite3_create_function(db, "get_project_dependency_graph", 2, SQLITE_UTF8, NULL, GetProjectDependencyGraph, NULL, NULL);

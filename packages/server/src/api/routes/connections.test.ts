@@ -323,9 +323,10 @@ describe('Connections API', () => {
       headers,
     })
 
+
     expect(response.statusCode).toBe(200)
-    const result = response.json()
+    const res = response.json()
     // Mocked result returns 10
-    expect(result.createdConnections).toBe(10)
+    expect(res.result.createdConnections).toBe(10)
   })
 })

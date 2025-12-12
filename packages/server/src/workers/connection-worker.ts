@@ -12,6 +12,8 @@ export default async function optimizedAutoCreateConnections(): Promise<{
       'SELECT auto_create_connections() as res',
     )
 
+    console.log('resultRaw: ', resultRaw)
+
     if (!resultRaw || resultRaw.length === 0) {
       return {
         success: false,
