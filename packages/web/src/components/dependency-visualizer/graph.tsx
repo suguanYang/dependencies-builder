@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useCallback, useState } from 'react'
 import * as d3 from 'd3'
 import { DependencyGraph, D3Node, D3Link, EntityType } from '../types'
 import { parseDependencyGraph } from '../utils/graphUtils'
-import { ZoomIn, ZoomOut, Maximize, Box, NetworkIcon } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, Box, NetworkIcon, Minimize } from 'lucide-react'
 import { NODE_CONFIG } from '@/lib/constants'
 import { AppType, NodeType } from '@/lib/server-types'
 
@@ -45,6 +45,7 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Refs
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null)
@@ -426,10 +427,18 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
     }
   }
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+  }
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-slate-50 overflow-hidden rounded-xl border border-slate-200 shadow-inner"
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-[9999] w-screen h-screen bg-slate-50 overflow-hidden shadow-inner rounded-none border-0'
+          : 'relative w-full h-full bg-slate-50 overflow-hidden rounded-xl border border-slate-200 shadow-inner'
+      }
     >
       <canvas ref={canvasRef} className="block w-full h-full touch-none" />
       <div className="absolute bottom-4 left-4 pointer-events-none select-none">
@@ -451,13 +460,25 @@ const DependencyGraphVisualizer: React.FC<DependencyGraphVisualizerProps> = ({
           </div>
         </div>
       </div>
-      {/* Controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+      {/* Controls - Top Right */}
+      <div className="absolute top-4 right-4 flex flex-col gap-2">
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 bg-white rounded-lg shadow hover:bg-slate-50 border border-slate-200"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        >
+          {isFullscreen ? (
+            <Minimize size={20} className="text-slate-600" />
+          ) : (
+            <Maximize size={20} className="text-slate-600" />
+          )}
+        </button>
         <button
           onClick={handleFit}
           className="p-2 bg-white rounded-lg shadow hover:bg-slate-50 border border-slate-200"
+          title="Fit to View"
         >
-          <Maximize size={20} className="text-slate-600" />
+          <Box size={20} className="text-slate-600" />
         </button>
         <div className="flex flex-col bg-white rounded-lg shadow border border-slate-200">
           <button
