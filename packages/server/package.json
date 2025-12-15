@@ -13,12 +13,6 @@
     "build:addon": "node-gyp rebuild"
   },
   "type": "module",
-  "exports": {
-    "./core": {
-      "types": "./src/core.ts",
-      "default": "./dist/core.js"
-    }
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",

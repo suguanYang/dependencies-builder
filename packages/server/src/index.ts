@@ -20,19 +20,19 @@ async function startServer() {
   }
 
   // Graceful shutdown
-  process.on('SIGINT', async () => {
-    info('Shutting down gracefully...')
-    await fastify.close()
-    await prisma.$disconnect()
-    process.exit(0)
-  })
+  // process.on('SIGINT', async () => {
+  //   info('Shutting down gracefully...')
+  //   await fastify.close()
+  //   await prisma.$disconnect()
+  //   process.exit(0)
+  // })
 
-  process.on('SIGTERM', async () => {
-    info('Shutting down gracefully...')
-    await fastify.close()
-    await prisma.$disconnect()
-    process.exit(0)
-  })
+  // process.on('SIGTERM', async () => {
+  //   info('Shutting down gracefully...')
+  //   await fastify.close()
+  //   await prisma.$disconnect()
+  //   process.exit(0)
+  // })
 
   // @ts-ignore
   if (import.meta.hot) {
