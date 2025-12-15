@@ -87,10 +87,30 @@ model Node {
   @@index([version])
   @@index([qlsVersion])
   
-  // Optimization Indexes
-  @@index([import_pkg, import_name, import_subpkg], map: "idx_node_import_match")
-  @@index([projectName, export_entry], map: "idx_node_export_match")
-  @@index([type, name, branch], map: "idx_node_generic_match")
+    // 1. FOR nFrom (Scanner)
+  // Purpose: Instantly grab all 'NamedImport' nodes and provide their join keys.
+  // Fix: Starts with 'type'. Includes 'id' to support the SELECT.
+  @@index([type, import_pkg, import_name, branch, projectName, id], map: "idx_scan_named_imports")
+  
+  // 2. FOR nFrom (Scanner - Dynamic)
+  // Purpose: Instantly grab all 'RuntimeDynamicImport' nodes.
+  @@index([type, import_pkg, import_subpkg, import_name, branch, projectName, id], map: "idx_scan_dynamic_imports")
+
+  // 3. FOR nTo (Lookup - Standard)
+  // Purpose: Used by Rule 1 & 2. Matches Join keys perfectly + checks Type + returns ID.
+  // Note: 'export_entry' is included to distinguish specific exports if needed, 
+  // but 'name' is the primary join key here.
+  @@index([projectName, branch, name, type, id, export_entry], map: "idx_lookup_named_exports")
+
+  // 4. FOR nTo (Lookup - Rule 6 Special Case)
+  // Purpose: Used by Rule 6. Skips 'name', joins on 'export_entry'.
+  // We need a separate index where 'export_entry' comes before 'name' (or without 'name').
+  @@index([projectName, branch, export_entry, type, id], map: "idx_lookup_federation_exports")
+
+  // 5. FOR Generic Rules (Hybrid)
+  // Purpose: Efficiently join on name/branch, then filter by type.
+  // Putting 'type' in the index prevents table lookups to check if it's 'GlobalVarRead' etc.
+  @@index([name, branch, type, projectName, id], map: "idx_join_generics")
 
   @@unique([projectId, branch, relativePath, type, name, startLine, startColumn, endLine, endColumn, qlsVersion])
 }
