@@ -4,7 +4,7 @@ import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import getEntries from './entries'
 import { getContext } from '../../context'
 import { callChainQuery, entryExportsQuery } from './query.ql'
-import { ensureDirectoryExistsSync } from '../../utils/fs-helper'
+import { ensureDirectoryExistsSync, fileExistsSync } from '../../utils/fs-helper'
 import {
   ExportQuery,
   ImportQuery,
@@ -111,9 +111,17 @@ const parseExportQuery = (queryResultDir: string) => {
   const ctx = getContext()
   let projectName = ctx.getMetadata().name
   const entries = getEntries()
+
+  const exportResultPath = path.join(queryResultDir, 'export.json')
+
+  // the project may do not have entry
+  if (!fileExistsSync(exportResultPath)) {
+    return []
+  }
+
   try {
     const entryQueryResult = JSON.parse(
-      readFileSync(path.join(queryResultDir, 'export.json'), 'utf-8'),
+      readFileSync(exportResultPath, 'utf-8'),
     ) as ExportQuery
     return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => {
       const entryName = entries.find((entry) => entry.path === tuple[0])?.name
