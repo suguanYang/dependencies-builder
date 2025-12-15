@@ -408,7 +408,10 @@ function ProjectsContent() {
                           </span>
                         </Link>
                         <div className="font-medium text-blue-600 truncate">
-                          <Link href={`/projects/${project.id}`} className="hover:underline">
+                          <Link
+                            href={`/projects/detail?id=${project.id}`}
+                            className="hover:underline"
+                          >
                             {project.name}
                           </Link>
                         </div>

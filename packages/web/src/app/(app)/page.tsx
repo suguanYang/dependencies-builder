@@ -69,7 +69,7 @@ function HomeContent() {
   const handleCycleClick = (cycle: any[]) => {
     const firstProject = cycle[0]
     if (firstProject?.id) {
-      router.push(`/projects/${firstProject.id}`)
+      router.push(`/projects/detail?id=${firstProject.id}`)
     }
   }
 

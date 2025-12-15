@@ -10,6 +10,8 @@ import { getNode } from '@/lib/api'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Node } from '@/lib/server-types'
 import { generatePermanentLink } from '@/lib/links'
+import { SWRConfig } from 'swr'
+import { swrConfig } from '@/lib/swr-config'
 
 function NodeDetailContent() {
   const searchParams = useSearchParams()
@@ -259,8 +261,12 @@ function NodeDetailContent() {
 
 export default function NodeDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading node details...</div>}>
-      <NodeDetailContent />
-    </Suspense>
+    <SWRConfig value={swrConfig}>
+      <Suspense
+        fallback={<div className="min-h-screen bg-gray-50 p-6">Loading node details...</div>}
+      >
+        <NodeDetailContent />
+      </Suspense>
+    </SWRConfig>
   )
 }

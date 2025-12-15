@@ -125,7 +125,7 @@ const CycleRow = ({ index, style, cycles, onInspect }: RowProps) => {
             <React.Fragment key={`${node.id}-${i}`}>
               {i > 0 && <ArrowRight className="w-3 h-3 text-gray-300 flex-shrink-0" />}
               <Link
-                href={`/projects/${node.id}`}
+                href={`/projects/detail?id=${node.id}`}
                 className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-gray-200 text-xs hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm flex-shrink-0"
                 title={node.name}
                 onClick={(e) => e.stopPropagation()}
