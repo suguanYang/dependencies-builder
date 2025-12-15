@@ -45,7 +45,6 @@ const nodeConfig = defineConfig({
   ...sharedNodeOptions,
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
-    core: path.resolve(__dirname, 'src/core.ts'),
     'workers/connection-worker': path.resolve(__dirname, 'src/workers/connection-worker.ts'),
     'workers/dependency-builder-worker': path.resolve(__dirname, 'src/workers/dependency-builder-worker.ts'),
   },

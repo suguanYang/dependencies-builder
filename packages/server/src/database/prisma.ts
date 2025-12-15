@@ -43,7 +43,20 @@ const proxyAdapter = {
   },
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter: proxyAdapter })
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter: proxyAdapter,
+    log: [
+      { emit: 'event', level: 'query' },
+      { emit: 'event', level: 'error' },
+      { emit: 'event', level: 'warn' },
+    ],
+  })
+
+prisma.$on('query', (e) => {
+  info(`prisma Query: ${e.query} Duration: ${e.duration}ms`)
+})
 
 prisma.$on('error', (e) => {
   error('prisma Error: ' + e.message)
