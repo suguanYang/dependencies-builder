@@ -168,6 +168,11 @@ function connectionsRoutes(fastify: FastifyInstance) {
   fastify.post('/connections/all', async (request, reply) => {
     try {
       const result = await ConnectionWorkerPool.getPool().executeConnectionAutoCreation()
+
+      // Clear project dependency graph cache
+      const { cache } = await import('../../cache/instance')
+      await cache.clear('projects/graphs')
+
       if (!result.success) {
         reply.code(500).send({
           error: 'Connection auto-creation failed',

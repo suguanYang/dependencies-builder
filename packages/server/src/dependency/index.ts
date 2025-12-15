@@ -1,10 +1,8 @@
 import { prisma } from '../database/prisma'
-import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 
-const DMS_LOCAL_DIR = process.env.DMS_LOCAL_DIR || path.join(os.homedir(), '.dms')
-const CACHE_DIR = path.join(DMS_LOCAL_DIR, 'cache')
+import { cache } from '../cache/instance'
 
 export const getNodeDependencyGraph = async (
   nodeId: string,
@@ -35,15 +33,12 @@ export const getProjectLevelDependencyGraph = async (
 ): Promise<string> => {
   const depth = opts?.depth ?? 100
   const useCache = projectId === '*'
+  const cacheKey = `projects/graphs/${branch}`
 
   if (useCache) {
-    const cacheFile = path.join(CACHE_DIR, `project-graph-${branch}.json`)
     try {
-      if (fs.existsSync(cacheFile)) {
-        // Evaluate if cache is valid?
-        // User request: "cache key should be branch name", implies simple key.
-        // Invalidation logic isn't specified, assuming simple read/write.
-        const cachedData = await fs.promises.readFile(cacheFile, 'utf-8')
+      const cachedData = await cache.get(cacheKey)
+      if (cachedData) {
         return cachedData
       }
     } catch (e) {
@@ -66,10 +61,9 @@ export const getProjectLevelDependencyGraph = async (
   const json = result[0].json
 
   if (useCache) {
-    const cacheFile = path.join(CACHE_DIR, `project-graph-${branch}.json`)
     try {
-      await fs.promises.mkdir(CACHE_DIR, { recursive: true })
-      await fs.promises.writeFile(cacheFile, json, 'utf-8')
+      // json is already a string
+      await cache.set(cacheKey, json)
     } catch (e) {
       console.warn(`Failed to write cache: ${e}`)
     }
