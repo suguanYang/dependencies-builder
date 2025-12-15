@@ -120,9 +120,7 @@ const parseExportQuery = (queryResultDir: string) => {
   }
 
   try {
-    const entryQueryResult = JSON.parse(
-      readFileSync(exportResultPath, 'utf-8'),
-    ) as ExportQuery
+    const entryQueryResult = JSON.parse(readFileSync(exportResultPath, 'utf-8')) as ExportQuery
     return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => {
       const entryName = entries.find((entry) => entry.path === tuple[0])?.name
       let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)

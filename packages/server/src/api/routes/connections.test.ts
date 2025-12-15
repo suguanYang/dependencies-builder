@@ -323,7 +323,6 @@ describe('Connections API', () => {
       headers,
     })
 
-
     expect(response.statusCode).toBe(200)
     const res = response.json()
     // Mocked result returns 10
