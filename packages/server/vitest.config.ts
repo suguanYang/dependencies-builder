@@ -8,11 +8,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./test/setup-env.ts', './test/setup.ts'],
+    setupFiles: ['./test/setup.ts'],
     globalSetup: './test/global-setup.ts',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     fileParallelism: true,
-    exclude: ['src/native/sqlite-hook.test.ts'],
+    exclude: ['src/native/sqlite-hook.test.ts', 'test/prod-db-tests'],
   },
   resolve: {
     alias: {
