@@ -49,7 +49,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 
@@ -109,7 +109,6 @@ const processQuery = (queryResultDir: string) => {
 
 const parseExportQuery = (queryResultDir: string) => {
   const ctx = getContext()
-  let projectName = ctx.getMetadata().name
   const entries = getEntries()
 
   const exportResultPath = path.join(queryResultDir, 'export.json')
@@ -123,6 +122,7 @@ const parseExportQuery = (queryResultDir: string) => {
     const entryQueryResult = JSON.parse(readFileSync(exportResultPath, 'utf-8')) as ExportQuery
     return entryQueryResult['#select'].tuples.map((tuple: [string, string, string]) => {
       const entryName = entries.find((entry) => entry.path === tuple[0])?.name
+      let projectName = ctx.getMetadata().name
       let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)
       if (entryName === 'seeyon_ui_index') {
         name = tuple[1]
