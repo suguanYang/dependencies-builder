@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <algorithm>
 #include <set>
 #include <map>
@@ -220,75 +221,70 @@ OrthogonalGraph BuildOrthogonalGraph(const std::vector<GraphNode>& nodes, const 
     return graph;
 }
 
-// DFS Cycle Detection
-// 0: White, 1: Gray, 2: Black
-// Iterative DFS Cycle Detection to prevent stack overflow
-void dfs_cycle_iterative(int startNode, const OrthogonalGraph& graph, std::vector<uint8_t>& visited, std::vector<std::vector<GraphNode>>& cycles) {
-    struct Frame {
-        int u;
-        int edgeIndex;
+// Simple DFS-based cycle detection that finds all elementary cycles
+// Much faster than Johnson's algorithm - explores from each vertex independently
+
+void find_cycles_from_vertex(int start, const OrthogonalGraph& graph, std::vector<std::vector<GraphNode>>& cycles) {
+    std::vector<bool> visited(graph.vertices.size(), false);
+    std::vector<bool> on_stack(graph.vertices.size(), false);
+    std::vector<int> path;
+    
+    struct StackFrame {
+        int node;
+        int edge_idx;
+        bool first_visit;
     };
     
-    std::vector<int> pathStack;      // Tracks nodes in current traversal path
-    std::vector<uint8_t> onStack(graph.vertices.size(), 0); // O(1) lookup if node is in current path
-    std::vector<Frame> callStack;    // simulates recursion
-
-    callStack.push_back({startNode, graph.vertices[startNode].firstOut});
-    visited[startNode] = 1; // Gray
-    onStack[startNode] = 1;
-    pathStack.push_back(startNode);
-
-    while (!callStack.empty()) {
-        Frame& frame = callStack.back();
-
-        if (frame.edgeIndex == -1) {
-            // Post-visit (Black)
-            onStack[frame.u] = 0;
-            visited[frame.u] = 2; // Black
-            pathStack.pop_back();
-            callStack.pop_back();
+    std::vector<StackFrame> stack;
+    stack.push_back({start, graph.vertices[start].firstOut, true});
+    
+    while (!stack.empty()) {
+        StackFrame& frame = stack.back();
+        
+        if (frame.first_visit) {
+            // First visit to this node
+            visited[frame.node] = true;
+            on_stack[frame.node] = true;
+            path.push_back(frame.node);
+            frame.first_visit = false;
+        }
+        
+        if (frame.edge_idx == -1) {
+            // No more edges, backtrack
+            on_stack[frame.node] = false;
+            path.pop_back();
+            stack.pop_back();
             continue;
         }
-
-        const OGEdge& edge = graph.edges[frame.edgeIndex];
-        int v = edge.headvertex;
         
-        // Advance current frame's edge index for when we return
-        frame.edgeIndex = edge.tailnext;
-
-        if (visited[v] == 1 && onStack[v]) {
-            // Cycle Detected
+        const OGEdge& edge = graph.edges[frame.edge_idx];
+        int next = edge.headvertex;
+        frame.edge_idx = edge.tailnext; // Advance for next iteration
+        
+        if (next == start && path.size() > 1) {
+            // Found cycle back to start
             std::vector<GraphNode> cycle;
-            bool record = false;
-            for (int nodeIdx : pathStack) {
-                if (nodeIdx == v) record = true;
-                if (record) {
-                    cycle.push_back(graph.vertices[nodeIdx].data); // copy
-                }
+            for (int idx : path) {
+                cycle.push_back(graph.vertices[idx].data);
             }
-            cycle.push_back(graph.vertices[v].data);
-            cycles.push_back(std::move(cycle));
-        } 
-        else if (visited[v] == 0) {
-            // Recurse
-            visited[v] = 1; // Gray
-            onStack[v] = 1;
-            pathStack.push_back(v);
-            callStack.push_back({v, graph.vertices[v].firstOut});
+            cycle.push_back(graph.vertices[start].data);
+            cycles.push_back(cycle);
+        } else if (!visited[next]) {
+            // Explore this path
+            stack.push_back({next, graph.vertices[next].firstOut, true});
         }
     }
 }
 
 std::vector<std::vector<GraphNode>> DetectCycles(const OrthogonalGraph& graph) {
     std::vector<std::vector<GraphNode>> cycles;
-    std::vector<uint8_t> visited(graph.vertices.size(), 0);
-    std::vector<int> stack;
     
+    // Find cycles by starting DFS from each vertex
+    // Each vertex can be the "root" of cycles that return to it
     for (size_t i = 0; i < graph.vertices.size(); ++i) {
-        if (visited[i] == 0) {
-            dfs_cycle_iterative((int)i, graph, visited, cycles);
-        }
+        find_cycles_from_vertex(i, graph, cycles);
     }
+    
     return cycles;
 }
 

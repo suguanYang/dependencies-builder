@@ -26,14 +26,14 @@ export async function optimizedAutoCreateConnections(): Promise<{
     createdCount += rule1Count
 
     // Rule 2: RuntimeDynamicImport -> NamedExport
-    // Matches: DynImport(pkg=projectName, subpkg=entryName, name=name) -> Export(projectName, export_entry, name)
+    // Matches: DynImport(pkg = projectName, subpkg = entryName, name = name) -> Export(projectName, export_entry, name)
     const rule2Count = await prisma.$executeRaw`
         INSERT OR IGNORE INTO Connection (fromId, toId)
         SELECT nFrom.id, nTo.id
         FROM Node nFrom
         JOIN Node nTo ON 
             nFrom.import_pkg = nTo.projectName 
-            AND nFrom.import_subpkg = nTo.export_entry
+            AND (nFrom.import_subpkg = nTo.export_entry OR (nFrom.import_subpkg = 'Nil' AND nTo.export_entry = 'index'))
             AND nFrom.import_name = nTo.name
             AND nFrom.branch = nTo.branch
         WHERE nFrom.type = 'RuntimeDynamicImport' 
@@ -43,8 +43,8 @@ export async function optimizedAutoCreateConnections(): Promise<{
     createdCount += rule2Count
 
     // Rule 6: DynamicModuleFederationReference -> NamedExport
-    // Matches: RemoteLoader(appName=projectName, moduleName=entryName) -> Export(projectName, export_entry)
-    // Note: RemoteLoader 'import_name' maps to 'export_entry' (the exposed module name)
+    // Matches: RemoteLoader(appName = projectName, moduleName = entryName) -> Export(projectName, export_entry)
+    // Note: RemoteLoader 'import_name' maps to 'export_entry'(the exposed module name)
     const rule6Count = await prisma.$executeRaw`
         INSERT OR IGNORE INTO Connection (fromId, toId)
         SELECT nFrom.id, nTo.id
