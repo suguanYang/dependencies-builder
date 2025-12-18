@@ -64,6 +64,10 @@ export function buildCallGraphQuery(nodes: Results['nodes']) {
       node.type === 'EventEmit',
   )
 
+  if (toNodes.length === 0) {
+    return null
+  }
+
   const queryContent = callChainQuery.replace(
     '$$nodeQuery$$',
     toNodes

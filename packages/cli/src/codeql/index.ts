@@ -28,8 +28,10 @@ export const runCodeQL = async () => {
 
   if (!ignoreCallGraph) {
     const callGraphQuery = buildCallGraphQuery(results.nodes)
-    await codeql.runSingleQuery(callGraphQuery, 'callGraph')
-    callGraphResults = await codeql.decodeSingleResult<[string, string]>('callGraph')
+    if (callGraphQuery) {
+      await codeql.runSingleQuery(callGraphQuery, 'callGraph')
+      callGraphResults = await codeql.decodeSingleResult<[string, string]>('callGraph')
+    }
   }
 
   return {
