@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR, { SWRConfig } from 'swr'
-import { getProjectById, getAllProjectDependencies, DependencyGraph } from '@/lib/api'
+import { getProjectById, getAllProjectDependencies } from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, Box, Folder } from 'lucide-react'
@@ -26,9 +26,7 @@ function ProjectDetailContent() {
 
   const cycles = useMemo(() => {
     if (!graphs || !id) return []
-    const graph = Array.isArray(graphs) ? graphs[0] : (graphs as any as DependencyGraph)
-
-    if (!graph?.cycles) return []
+    const cycles = graphs.map((g) => g.cycles).flat()
 
     // Filter cycles:
     // 1. Must involve current projectId
@@ -36,7 +34,9 @@ function ProjectDetailContent() {
     // 3. Rotate so projectId is first
     const relevantCycles: Cycle[] = []
 
-    for (const c of graph.cycles) {
+    for (const c of cycles) {
+      if (!c) continue
+
       // Check if involved
       const index = c.findIndex((node) => node.id === id)
       if (index === -1) continue
@@ -70,7 +70,7 @@ function ProjectDetailContent() {
       // Note: rotated array includes start/end duplicate.
       if (rotated.some((node) => node.type === 'App')) continue
 
-      relevantCycles.push(rotated as any as Cycle)
+      relevantCycles.push(rotated as Cycle)
     }
 
     return relevantCycles

@@ -519,7 +519,7 @@ export interface DependencyGraph {
 
 export async function getProjectDependencies(
   projectId: string,
-  depth: number = 2,
+  depth: number = 1,
   branch: string = 'test',
 ): Promise<DependencyGraph> {
   const params = new URLSearchParams()

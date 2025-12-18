@@ -579,7 +579,7 @@ struct ProjectGraphResult {
     std::vector<std::vector<GraphNode>> cycles;
 };
 
-static ProjectGraphResult BuildProjectGraphImpl(sqlite3* db, std::string startProjectId, std::string branch, int maxDepth) {
+static ProjectGraphResult BuildProjectGraphImpl(sqlite3* db, std::string startProjectId, std::string branch, int maxDepth, bool detectCycles = true) {
     std::unordered_set<std::string> visitedProjectIds;
     std::unordered_map<std::string, GraphNode> projectInfos;
     std::unordered_map<std::string, GraphConnection> projectConnections;
@@ -709,7 +709,10 @@ static ProjectGraphResult BuildProjectGraphImpl(sqlite3* db, std::string startPr
     for (const auto& p : projectConnections) connList.push_back(p.second);
     
     OrthogonalGraph og = BuildOrthogonalGraph(nodesList, connList);
-    auto cycles = DetectCycles(og);
+    std::vector<std::vector<GraphNode>> cycles;
+    if (detectCycles) {
+        cycles = DetectCycles(og);
+    }
     
     return { og, cycles };
 }
@@ -751,7 +754,7 @@ static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite
             
             // Build graph with unlimited depth for this project
             // Using a large number for unlimited depth
-            ProjectGraphResult res = BuildProjectGraphImpl(db, pid, branch, 100000);
+            ProjectGraphResult res = BuildProjectGraphImpl(db, pid, branch, 100000, true); // Detect cycles for * mode
             
             // Remove contained projects from remaining
             for (const auto& node : res.graph.vertices) {
@@ -774,7 +777,7 @@ static void GetProjectDependencyGraph(sqlite3_context *context, int argc, sqlite
         
     } else {
         // Single project mode
-        ProjectGraphResult res = BuildProjectGraphImpl(db, startProjectId, branch, maxDepth);
+        ProjectGraphResult res = BuildProjectGraphImpl(db, startProjectId, branch, maxDepth, false); // Skip cycles for single project
         std::string json = SerializeGraph(res.graph, res.cycles);
         sqlite3_result_text(context, json.c_str(), -1, SQLITE_TRANSIENT);
     }
