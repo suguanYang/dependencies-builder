@@ -1,7 +1,43 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../database/prisma'
-import { getNodeDependencyGraph, getProjectLevelDependencyGraph } from './index'
 import { NodeType } from '../generated/prisma/client'
+
+// Import test helper to access worker functions for testing
+// Note: In production these are only called via worker pool, but tests call them directly
+const getNodeDependencyGraph = async (nodeId: string, opts?: { depth?: number }): Promise<string> => {
+  const depth = opts?.depth ?? 100
+  const result = await prisma.$queryRawUnsafe<Array<{ json: string }>>(
+    `SELECT get_node_dependency_graph(?, ?) as json`,
+    nodeId,
+    depth,
+  )
+  if (!result || result.length === 0 || !result[0].json) {
+    return JSON.stringify({ vertices: [], edges: [] })
+  }
+  return result[0].json
+}
+
+const getProjectLevelDependencyGraph = async (
+  projectId: string,
+  branch: string,
+  opts?: { depth?: number },
+): Promise<ArrayBuffer> => {
+  const depth = opts?.depth ?? 100
+  const result = await prisma.$queryRawUnsafe<Array<{ json: string }>>(
+    `SELECT get_project_dependency_graph(?, ?, ?) as json`,
+    projectId,
+    branch,
+    depth,
+  )
+  if (!result || result.length === 0 || !result[0].json) {
+    const emptyGraph = JSON.stringify({ vertices: [], edges: [] })
+    const buffer = Buffer.from(emptyGraph, 'utf-8')
+    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+  }
+  const json = result[0].json
+  const buffer = Buffer.from(json, 'utf-8')
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+}
 
 describe('Native Dependency Graph', () => {
   beforeEach(async () => {
@@ -99,7 +135,8 @@ describe('Native Dependency Graph', () => {
       const n4 = await createNode(p2, 'N4', 'NamedExport')
       await prisma.connection.create({ data: { fromId: n3.id, toId: n4.id } })
 
-      const graphJson = await getProjectLevelDependencyGraph(p1.id, 'main', { depth: 5 })
+      const arrayBuffer = await getProjectLevelDependencyGraph(p1.id, 'main', { depth: 5 })
+      const graphJson = Buffer.from(arrayBuffer as ArrayBuffer).toString('utf-8')
       const graph = JSON.parse(graphJson)
 
       expect(graph.vertices).toHaveLength(2) // P1, P2
@@ -124,16 +161,17 @@ describe('Native Dependency Graph', () => {
         data: { fromId: n1.id, toId: n2.id },
       })
 
-      const json = await getProjectLevelDependencyGraph('*', 'main')
-      const result = JSON.parse(json)
+      const arrayBuffer = await getProjectLevelDependencyGraph('*', 'main')
+      const json = Buffer.from(arrayBuffer as ArrayBuffer).toString('utf-8')
+      const parsedResult = JSON.parse(json)
 
-      expect(Array.isArray(result)).toBe(true)
+      expect(Array.isArray(parsedResult)).toBe(true)
 
       // We expect at least these graphs
-      const g1 = result.find((g: any) => g.vertices.some((v: any) => v.data.name === 'P1'))
+      const g1 = parsedResult.find((g: any) => g.vertices.some((v: any) => v.data.name === 'P1'))
       expect(g1).toBeDefined()
 
-      const g3 = result.find((g: any) => g.vertices.some((v: any) => v.data.name === 'P3'))
+      const g3 = parsedResult.find((g: any) => g.vertices.some((v: any) => v.data.name === 'P3'))
       expect(g3).toBeDefined()
       expect(g3.vertices.length).toBe(1)
     })

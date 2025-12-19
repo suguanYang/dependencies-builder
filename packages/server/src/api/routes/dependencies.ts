@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { DependencyBuilderWorkerPool } from '../../workers/dependency-builder-pool'
 import { error } from '../../logging'
+import { cache } from '../../cache/instance'
 
 // Custom error class for not found errors
 class NotFoundError extends Error {
@@ -52,7 +53,23 @@ function dependenciesRoutes(fastify: FastifyInstance) {
       const { projectId, branch } = request.params as { projectId: string; branch: string }
       const { depth } = request.query as { depth?: number }
 
-      const graphJson = await DependencyBuilderWorkerPool.getPool().getProjectLevelDependencyGraph(
+      const useCache = projectId === '*'
+      const cacheKey = `projects/graphs/${branch}`
+
+      // Cache-first strategy: check cache before calling worker
+      if (useCache) {
+        const cacheExists = await cache.has(cacheKey)
+        if (cacheExists) {
+          // Stream cached file directly to HTTP response
+          const readStream = cache.createReadStream(cacheKey)
+
+          reply.header('Content-Type', 'application/json')
+          return reply.send(readStream)
+        }
+      }
+
+      // Cache miss: fetch from worker (returns ArrayBuffer)
+      const result = await DependencyBuilderWorkerPool.getPool().getProjectLevelDependencyGraph(
         projectId,
         branch,
         {
@@ -60,7 +77,15 @@ function dependenciesRoutes(fastify: FastifyInstance) {
         },
       )
 
-      reply.header('Content-Type', 'application/json').send(graphJson)
+      // Write to cache asynchronously (fire and forget)
+      if (useCache) {
+        cache.set(cacheKey, result).catch((e) => {
+          console.warn(`Failed to write cache: ${e}`)
+        })
+      }
+
+      // Send Buffer directly to response (more efficient than converting to string)
+      reply.header('Content-Type', 'application/json').send(result)
     } catch (err) {
       error(err)
       if (isNotFoundError(err)) {

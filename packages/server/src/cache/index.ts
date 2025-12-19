@@ -42,4 +42,12 @@ export class Cache implements ICache {
   async clear(prefix: string): Promise<void> {
     await this.storage.clear(prefix)
   }
+
+  async has(key: string): Promise<boolean> {
+    return this.storage.has(key)
+  }
+
+  createReadStream(key: string) {
+    return this.storage.createReadStream(key)
+  }
 }

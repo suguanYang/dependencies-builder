@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import fss from 'node:fs'
 import path from 'node:path'
 import { IStorage } from '../interface'
 import { constants } from 'node:fs'
@@ -64,5 +65,20 @@ export class FileStorage implements IStorage {
     } catch (error) {
       // Ignore if path doesn't exist
     }
+  }
+
+  async has(key: string): Promise<boolean> {
+    const filePath = this.getFilePath(key)
+    try {
+      await fs.access(filePath, constants.F_OK)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  createReadStream(key: string) {
+    const filePath = this.getFilePath(key)
+    return fss.createReadStream(filePath, { encoding: 'utf-8' })
   }
 }
