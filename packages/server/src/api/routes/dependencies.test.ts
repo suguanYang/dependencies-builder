@@ -4,27 +4,19 @@ import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
 
 // Mock dependency builder worker pool
-vi.mock('../../workers/dependency-builder-pool', () => {
-  const createArrayBuffer = (data: any) => {
-    const json = JSON.stringify(data)
-    const buffer = Buffer.from(json, 'utf-8')
-    return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
-  }
-
-  return {
-    DependencyBuilderWorkerPool: {
-      getPool: () => ({
-        getNodeDependencyGraph: async () =>
-          JSON.stringify({
-            vertices: [{ data: { id: 'n1' } }, { data: { id: 'n2' } }],
-            edges: [{ from: 'n1', to: 'n2' }],
-          }),
-        getProjectLevelDependencyGraph: async () =>
-          createArrayBuffer({ vertices: [{ data: { id: 'p1' } }], edges: [] }),
-      }),
-    },
-  }
-})
+vi.mock('../../workers/dependency-builder-pool', () => ({
+  DependencyBuilderWorkerPool: {
+    getPool: () => ({
+      getNodeDependencyGraph: async () =>
+        JSON.stringify({
+          vertices: [{ data: { id: 'n1' } }, { data: { id: 'n2' } }],
+          edges: [{ from: 'n1', to: 'n2' }],
+        }),
+      getProjectLevelDependencyGraph: async () =>
+        JSON.stringify({ vertices: [{ data: { id: 'p1' } }], edges: [] }),
+    }),
+  },
+}))
 
 describe('Dependencies API', () => {
   let server: FastifyInstance
