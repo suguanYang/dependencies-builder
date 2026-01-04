@@ -8,12 +8,15 @@ import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
 import { uploadReport } from '../upload'
 import { getConnectionsByToNode } from '../api'
+import { Connection, Node } from '../server-types'
+import { analyzeImpact, type ImpactReport } from '../llm/analyzer'
 
 interface ReportResult {
-  affectedToNodes: unknown[]
+  affectedToNodes: Node[]
   version: string
   targetVersion: string
-  affecatedConnections: unknown[]
+  affecatedConnections: Connection[]
+  impactAnalysis?: ImpactReport | null
 }
 
 export async function generateReport(): Promise<void> {
@@ -45,13 +48,37 @@ export async function generateReport(): Promise<void> {
     )
     debug('Affected to nodes: %d', affectedToNodes.length)
 
+    const affecatedConnections = (
+      await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))
+    ).flat()
+
+    // Perform LLM-based impact analysis if enabled
+    let impactAnalysis: ImpactReport | null = null
+    try {
+      debug('Starting LLM-based impact analysis...')
+      impactAnalysis = await analyzeImpact({
+        projectName: ctx.getProjectName(),
+        sourceBranch: ctx.getBranch(),
+        targetBranch,
+        affectedToNodes,
+        affectedConnections: affecatedConnections,
+      })
+
+      if (impactAnalysis) {
+        debug('Impact analysis completed: %o', impactAnalysis)
+      } else {
+        debug('Impact analysis skipped (LLM integration not enabled)')
+      }
+    } catch (error) {
+      debug('Impact analysis failed, continuing without it: %o', error)
+    }
+
     const reportResult: ReportResult = {
       affectedToNodes,
       version: ctx.getVersion()!,
       targetVersion: results.version,
-      affecatedConnections: (
-        await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))
-      ).flat(),
+      affecatedConnections,
+      impactAnalysis,
     }
 
     await uploadReport(reportResult)
@@ -155,7 +182,7 @@ async function findAffectedToNodes(
   nodes: Results['nodes'],
   callGraph: [string, string][],
   changedLines: ChangedLine[],
-): Promise<any[]> {
+): Promise<Node[]> {
   const seen = new Set()
   const affectedNodes = new Set<any>()
 
