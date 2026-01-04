@@ -1,3 +1,4 @@
+import { Connection } from './server-types'
 import debug from './utils/debug'
 
 const API_BASE = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
@@ -115,7 +116,7 @@ export const getConnectionsByToNode = async (node: {
   name: string
   projectName: string
   type: string
-}) => {
+}): Promise<Connection[]> => {
   return apiRequest(
     `connections?toNodeName=${node.name}&toNodeProjectName=${node.projectName}&toNodeType=${node.type}`,
     {

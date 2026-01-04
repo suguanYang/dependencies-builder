@@ -71,6 +71,8 @@ export interface Connection {
   fromId: string
   toId: string
   createdAt: Date
+  fromNode: Node
+  toNode: Node
 }
 
 export interface Action {

@@ -49,7 +49,7 @@ const buildQueries = () => {
   writeFileSync(
     path.join(ctx.getWorkingDirectory(), 'queries', 'qlpack.yml'),
     `name: ${projectNameToCodeQLName(ctx.getMetadata().name)}\n` +
-    readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
+      readFileSync(path.join(qlsDir, 'qlpack.yml'), 'utf-8'),
   )
 }
 
