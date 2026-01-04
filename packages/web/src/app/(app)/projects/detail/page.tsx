@@ -4,15 +4,21 @@ import useSWR, { SWRConfig } from 'swr'
 import { getProjectById, getAllProjectDependencies } from '@/lib/api'
 import { swrConfig } from '@/lib/swr-config'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, Box, Folder } from 'lucide-react'
+import { AlertCircle, Box, Folder, GitBranch } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { CyclesList, Cycle } from '@/components/cycles-list'
-import React, { useMemo, Suspense } from 'react'
+import React, { useMemo, Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 function ProjectDetailContent() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
+
+  // Branch state management
+  const [branchInput, setBranchInput] = useState('test')
+  const [selectedBranch, setSelectedBranch] = useState('test')
 
   const { data: project, error: projectError } = useSWR(id ? ['project', id] : null, () =>
     getProjectById(id!),
@@ -22,7 +28,20 @@ function ProjectDetailContent() {
     data: graphs,
     error: graphsError,
     isLoading: graphsLoading,
-  } = useSWR(['all-project-dependencies', 'test'], () => getAllProjectDependencies('test'))
+    mutate,
+  } = useSWR(['all-project-dependencies', selectedBranch], () => getAllProjectDependencies(selectedBranch))
+
+  const handleApplyBranch = () => {
+    setSelectedBranch(branchInput)
+    // Mutate will revalidate the data with the new branch
+    mutate()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleApplyBranch()
+    }
+  }
 
   const cycles = useMemo(() => {
     if (!graphs || !id) return []
@@ -131,6 +150,37 @@ function ProjectDetailContent() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Branch Input Section */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <GitBranch className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Branch:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={branchInput}
+                onChange={(e) => setBranchInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter branch name"
+                className="w-64 h-9 text-sm"
+              />
+              <Button
+                onClick={handleApplyBranch}
+                size="sm"
+                className="h-9"
+                disabled={!branchInput || branchInput === selectedBranch}
+              >
+                Apply
+              </Button>
+              {selectedBranch && (
+                <Badge variant="secondary" className="font-mono text-xs">
+                  {selectedBranch}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
