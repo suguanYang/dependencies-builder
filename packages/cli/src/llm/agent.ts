@@ -32,6 +32,13 @@ export async function invokeLLMAgent(
     apiKey: config.apiKey,
     configuration: {
       baseURL: config.baseUrl,
+      logLevel: 'debug',
+      logger: {
+        debug: debug,
+        info: debug,
+        warn: debug,
+        error: debug,
+      }
     },
     temperature: config.temperature,
   })
