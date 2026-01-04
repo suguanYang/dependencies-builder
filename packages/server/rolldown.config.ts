@@ -46,7 +46,10 @@ const nodeConfig = defineConfig({
   input: {
     index: path.resolve(__dirname, 'src/index.ts'),
     'workers/connection-worker': path.resolve(__dirname, 'src/workers/connection-worker.ts'),
-    'workers/dependency-builder-worker': path.resolve(__dirname, 'src/workers/dependency-builder-worker.ts'),
+    'workers/dependency-builder-worker': path.resolve(
+      __dirname,
+      'src/workers/dependency-builder-worker.ts',
+    ),
   },
   external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 })

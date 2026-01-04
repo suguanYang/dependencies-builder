@@ -4,7 +4,10 @@ import { NodeType } from '../generated/prisma/client'
 
 // Import test helper to access worker functions for testing
 // Note: In production these are only called via worker pool, but tests call them directly
-const getNodeDependencyGraph = async (nodeId: string, opts?: { depth?: number }): Promise<string> => {
+const getNodeDependencyGraph = async (
+  nodeId: string,
+  opts?: { depth?: number },
+): Promise<string> => {
   const depth = opts?.depth ?? 100
   const result = await prisma.$queryRawUnsafe<Array<{ json: string }>>(
     `SELECT get_node_dependency_graph(?, ?) as json`,

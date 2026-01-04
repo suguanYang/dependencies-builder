@@ -29,7 +29,9 @@ function ProjectDetailContent() {
     error: graphsError,
     isLoading: graphsLoading,
     mutate,
-  } = useSWR(['all-project-dependencies', selectedBranch], () => getAllProjectDependencies(selectedBranch))
+  } = useSWR(['all-project-dependencies', selectedBranch], () =>
+    getAllProjectDependencies(selectedBranch),
+  )
 
   const handleApplyBranch = () => {
     setSelectedBranch(branchInput)

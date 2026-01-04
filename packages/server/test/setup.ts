@@ -29,11 +29,8 @@ try {
   throw e
 }
 
-
 afterAll(async () => {
-  import('../src/database/prisma').then(
-    ({ prisma }) => {
-      prisma.$disconnect()
-    }
-  )
+  import('../src/database/prisma').then(({ prisma }) => {
+    prisma.$disconnect()
+  })
 })

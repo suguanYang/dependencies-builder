@@ -43,7 +43,6 @@ const getProjectLevelDependencyGraph = async (
 
   const json = result[0].json
 
-
   return json
 }
 
