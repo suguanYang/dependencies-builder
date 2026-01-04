@@ -128,13 +128,13 @@ const parseExportQuery = (queryResultDir: string) => {
       const entryName = entries.find((entry) => entry.path === tuple[0])?.name
       let projectName = ctx.getMetadata().name
       let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)
-      if (entryName === 'seeyon_ui_index') {
+      if (entryName === 'company_ui_index') {
         name = tuple[1]
-        projectName = '@seeyon/ui'
+        projectName = '@company/ui'
       }
-      if (entryName === 'seeyon_mui_index') {
+      if (entryName === 'company_mui_index') {
         name = tuple[1]
-        projectName = '@seeyon/mui'
+        projectName = '@company/mui'
       }
       return {
         name,

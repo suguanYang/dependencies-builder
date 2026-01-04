@@ -5,9 +5,9 @@ import libs.location
 
 private class DynamicImportSourceNode extends DataFlow::Node {
   DynamicImportSourceNode() {
-    this = DataFlow::moduleMember("@seeyon/global", "dynamicImport")
+    this = DataFlow::moduleMember("@company/global", "dynamicImport")
     or
-    this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("dynamicImport")
+    this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("dynamicImport")
   }
 }
 

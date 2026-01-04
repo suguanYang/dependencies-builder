@@ -3,8 +3,8 @@ import libs.location
 
 from string packageName, string importedMember, AstNode locationNode, string location
 where
-  // Global filter: Package name matches @seeyon/%
-  packageName.matches("@seeyon/%") and
+  // Global filter: Package name matches @company/%
+  packageName.matches("@company/%") and
   (
     exists(API::Node pkg, DataFlow::Node usage |
       pkg = API::moduleImport(packageName) and

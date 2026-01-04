@@ -11,9 +11,9 @@ private class EventSourceNode extends DataFlow::Node {
   EventSourceNode() {
     (
         (
-            this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("eventOn")
+            this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("eventOn")
             or
-            this = DataFlow::moduleMember("@seeyon/global", "eventOn")
+            this = DataFlow::moduleMember("@company/global", "eventOn")
         )
         and
         type = "eventOn"
@@ -21,9 +21,9 @@ private class EventSourceNode extends DataFlow::Node {
     or
     (
         (
-            this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("eventOnOnce")
+            this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("eventOnOnce")
             or
-            this = DataFlow::moduleMember("@seeyon/global", "eventOnOnce")
+            this = DataFlow::moduleMember("@company/global", "eventOnOnce")
         )
         and
         type = "eventOn"
@@ -31,9 +31,9 @@ private class EventSourceNode extends DataFlow::Node {
     or
     (
         (
-            this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("eventEmit")
+            this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("eventEmit")
             or
-            this = DataFlow::moduleMember("@seeyon/global", "eventEmit")
+            this = DataFlow::moduleMember("@company/global", "eventEmit")
         )
         and
         type = "eventEmit"
@@ -41,9 +41,9 @@ private class EventSourceNode extends DataFlow::Node {
     or
     (
         (
-            this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("eventEmitAsyncResult")
+            this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("eventEmitAsyncResult")
             or
-            this = DataFlow::moduleMember("@seeyon/global", "eventEmitAsyncResult")
+            this = DataFlow::moduleMember("@company/global", "eventEmitAsyncResult")
         )
         and
         type = "eventEmit"
@@ -51,9 +51,9 @@ private class EventSourceNode extends DataFlow::Node {
     or
     (
         (
-            this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("eventEmitBroadcast")
+            this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("eventEmitBroadcast")
             or
-            this = DataFlow::moduleMember("@seeyon/global", "eventEmitBroadcast")
+            this = DataFlow::moduleMember("@company/global", "eventEmitBroadcast")
         )
         and
         type = "eventEmit"

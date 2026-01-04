@@ -16,21 +16,21 @@ private class ReactJsxElement extends JsxElement {
 // RemotePageLoader, RemoteLoader, UDCRuntimePage, 
 private class RemoteLoaderSourceNode extends DataFlow::Node {
     RemoteLoaderSourceNode() {
-        this = DataFlow::moduleMember("@seeyon/global", "RemotePageLoader")
+        this = DataFlow::moduleMember("@company/global", "RemotePageLoader")
         or
-        this = DataFlow::moduleMember("@seeyon/global", "RemoteLoader")
+        this = DataFlow::moduleMember("@company/global", "RemoteLoader")
         or
-        this = DataFlow::moduleMember("@seeyon/global", "UDCRuntimePage")
+        this = DataFlow::moduleMember("@company/global", "UDCRuntimePage")
         or
-        this = DataFlow::moduleMember("@seeyon/global", "UDCRuntime")
+        this = DataFlow::moduleMember("@company/global", "UDCRuntime")
         or
-        this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("RemotePageLoader")
+        this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("RemotePageLoader")
         or
-        this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("RemoteLoader")
+        this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("RemoteLoader")
         or
-        this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("UDCRuntimePage")
+        this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("UDCRuntimePage")
         or
-        this = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("UDCRuntime")
+        this = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("UDCRuntime")
     }
 
     DataFlow::SourceNode getSourceNode() { result = this }

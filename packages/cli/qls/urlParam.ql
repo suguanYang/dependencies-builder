@@ -15,7 +15,7 @@ import libs.location
 // ============================================================================
 
 /**
- * Pattern 1: getSearchParams() from @seeyon/global
+ * Pattern 1: getSearchParams() from @company/global
  * Usage: getSearchParams('key') or getSearchParams()
  */
 class GetSearchParamsRead extends DataFlow::Node {
@@ -25,8 +25,8 @@ class GetSearchParamsRead extends DataFlow::Node {
   GetSearchParamsRead() {
     exists(DataFlow::CallNode call |
       (
-        call = DataFlow::moduleMember("@seeyon/global", "getSearchParams").getACall() or
-        call = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("getSearchParams").getACall()
+        call = DataFlow::moduleMember("@company/global", "getSearchParams").getACall() or
+        call = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("getSearchParams").getACall()
       ) and
       this = call and
       (
@@ -149,9 +149,9 @@ class UrlParamWriteConfig extends TaintTracking::Configuration {
         call.getCalleeName() = "OpenWindow" or
         call.getCalleeName() = "OpenChildFrameWindow" or
         call.getCalleeName() = "openWindow" or
-        call = DataFlow::moduleMember("@seeyon/global", "OpenWindow").getACall() or
-        call = DataFlow::moduleMember("@seeyon/global", "openWindow").getACall() or
-        call = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("OpenWindow").getACall()
+        call = DataFlow::moduleMember("@company/global", "OpenWindow").getACall() or
+        call = DataFlow::moduleMember("@company/global", "openWindow").getACall() or
+        call = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("OpenWindow").getACall()
       ) and
       sink = call.getArgument(0)
     )

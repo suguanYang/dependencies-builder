@@ -10,9 +10,9 @@ private module PersistentWebStorage {
     or
     (
         (
-            result = DataFlow::moduleMember("@seeyon/global", "storage")
+            result = DataFlow::moduleMember("@company/global", "storage")
             or
-            result = DataFlow::globalVarRef("SeeyonGlobal").getAPropertyRead("storage")
+            result = DataFlow::globalVarRef("CompanyGlobal").getAPropertyRead("storage")
         )
         and
         kind = "localStorage"
