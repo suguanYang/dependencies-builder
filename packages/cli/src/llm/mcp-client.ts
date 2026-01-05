@@ -22,7 +22,7 @@ export async function initMCPClient(config: GitLabConfig) {
       transport: 'stdio',
       command: 'node',
       args: [
-        require.resolve('@zereight/mcp-gitlab/dist/index.js')
+        require.resolve('@zereight/mcp-gitlab/build/index.js')
       ],
       env: {
         GITLAB_PERSONAL_ACCESS_TOKEN: config.accessToken,
