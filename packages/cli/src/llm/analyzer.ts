@@ -66,7 +66,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
     await initMCPClient(config.gitlab)
 
     // Prepare context for the LLM
-    const context = prepareContext(input)
+    const context = await prepareContext(input)
     const instruction = prepareInstruction()
 
     // Invoke the agent
@@ -100,16 +100,103 @@ const getProjectIDFromRepositoryAddr = (addr: string) => {
 /**
  * Prepare the context string for the LLM
  */
-function prepareContext(input: ImpactAnalysisInput): string {
-  const affectedFromNodes = input.affectedConnections.map((conn) => ({
-    projectName: conn.fromNode?.projectName,
-    name: conn.fromNode?.name,
-    relativePath: conn.fromNode?.relativePath,
-    startLine: conn.fromNode?.startLine,
-    branch: conn.fromNode?.branch,
-  }))
+async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
+  const { getProjectByName } = await import('../api')
+
+  // Validate input project address
+  if (!input.projectAddr) {
+    throw new Error('Project address is required for LLM analysis')
+  }
+
+  // Validate branches
+  if (!input.sourceBranch || !input.targetBranch) {
+    throw new Error('Source and target branches are required for LLM analysis')
+  }
+
+  // Get unique project names and fetch their addresses
+  const uniqueProjectNames = [...new Set(
+    input.affectedConnections
+      .map(conn => conn.fromNode?.projectName)
+      .filter((name): name is string => !!name)
+  )]
+
+  if (uniqueProjectNames.length === 0) {
+    throw new Error('No affected projects found - cannot perform LLM analysis')
+  }
+
+  // Fetch project addresses in parallel
+  const projectAddressMap = new Map<string, string>()
+  const failedProjects: string[] = []
+
+  await Promise.all(
+    uniqueProjectNames.map(async (projectName) => {
+      try {
+        const project = await getProjectByName(projectName)
+        if (project?.addr) {
+          projectAddressMap.set(projectName, project.addr)
+        } else {
+          failedProjects.push(projectName)
+          debug(`Project ${projectName} has no address`)
+        }
+      } catch (error) {
+        failedProjects.push(projectName)
+        debug(`Failed to fetch project address for ${projectName}: %o`, error)
+      }
+    })
+  )
+
+  // Throw if too many projects failed to resolve
+  if (failedProjects.length > 0) {
+    const failureRate = failedProjects.length / uniqueProjectNames.length
+    if (failureRate > 0.5) {
+      throw new Error(
+        `Failed to resolve repository addresses for ${failedProjects.length}/${uniqueProjectNames.length} affected projects. ` +
+        `Projects: ${failedProjects.join(', ')}`
+      )
+    } else {
+      debug(`Warning: ${failedProjects.length} projects failed to resolve: ${failedProjects.join(', ')}`)
+    }
+  }
+
+  const affectedFromNodes = input.affectedConnections
+    .map((conn) => {
+      const projectAddr = conn.fromNode?.projectName
+        ? projectAddressMap.get(conn.fromNode.projectName)
+        : undefined
+
+      // Extract project ID from repository address
+      const projectID = projectAddr ? getProjectIDFromRepositoryAddr(projectAddr) : undefined
+
+      return {
+        projectName: conn.fromNode?.projectName,
+        projectAddr,
+        projectID,
+        name: conn.fromNode?.name,
+        relativePath: conn.fromNode?.relativePath,
+        startLine: conn.fromNode?.startLine,
+        branch: conn.fromNode?.branch,
+      }
+    })
+    // Filter out nodes with missing critical data
+    .filter((node) => {
+      const isValid = node.projectName && node.projectID && node.relativePath && node.name
+      if (!isValid) {
+        debug(`Filtering out invalid node: ${JSON.stringify(node)}`)
+      }
+      return isValid
+    })
+
+  // Validate we still have nodes after filtering
+  if (affectedFromNodes.length === 0) {
+    throw new Error('No valid affected nodes after filtering - cannot perform LLM analysis')
+  }
 
   const projectID = getProjectIDFromRepositoryAddr(input.projectAddr)
+
+  // Validate main project ID
+  if (!projectID) {
+    throw new Error(`Failed to extract project ID from repository address: ${input.projectAddr}`)
+  }
 
   return `
 Project ID: ${projectID}
@@ -117,7 +204,16 @@ Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
 
 Affected From Nodes (${affectedFromNodes.length}):
-${affectedFromNodes.map((node) => `  - Project: ${node.projectName}, Path: ${node.relativePath}:${node.startLine}, Name: ${node.name}`).join('\n')}
+${affectedFromNodes.map((node) => {
+    const parts = [
+      `Project: ${node.projectName}`,
+      node.projectID ? `ID: ${node.projectID}` : null,
+      `Path: ${node.relativePath}:${node.startLine}`,
+      `Name: ${node.name}`,
+      node.branch ? `Branch: ${node.branch}` : null,
+    ].filter(Boolean)
+    return `  - ${parts.join(', ')}`
+  }).join('\n')}
 `.trim()
 }
 
@@ -135,13 +231,18 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 **Context Provided:**
 - Project ID (already extracted from repository URL - use this directly!)
 - Source and target branches
-- List of affected projects that depend on this code(this dependency is comes from static analysis, mainly consists of these types: 1. ES6 import/export, 2. global variables, local storage, session storage read/write, 3. events. 4. URL parameters. The changed code may be a part of the call stack of the dependency)
+- List of affected projects that depend on this code
+  - Each project includes: name, **project ID (ID)**, file path, line number, and branch
+  - **Project IDs are already extracted** - use them directly for GitLab API calls
+- This dependency is comes from static analysis, mainly consists of these types: 1. ES6 import/export, 2. global variables, local storage, session storage read/write, 3. events. 4. URL parameters. The changed code may be a part of the call stack of the dependency
 
 **Efficient Analysis Strategy:**
 1. **Use the Project ID from context** (don't call list_projects for the main project)
 2. Get the merge request ID for the given source and target branches
 3. Get the merge request diffs to see what actually changed
-4. **BATCH PROCESS**: For affected projects, get their project IDs
+4. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
+   - Each affected node has an "ID" field (e.g., "group/project")
+   - **Use this ID directly** - no need to parse URLs or search by name
    - Make multiple tool calls in one response when possible
    - Focus on top 5-10 most critical projects if there are many
 5. **BATCH PROCESS**: Get relevant file contents from affected projects in parallel

@@ -52,25 +52,32 @@ export async function generateReport(): Promise<void> {
       await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))
     ).flat()
 
-    // Perform LLM-based impact analysis if enabled
+    // Perform LLM-based impact analysis if configured
     let impactAnalysis: ImpactReport | null = null
+    // Assuming llmEnabled is determined by the analyzeImpact function itself returning null or throwing,
+    // or by a separate configuration check. For now, we'll assume analyzeImpact handles the "enabled" state.
     try {
-      debug('Starting LLM-based impact analysis...')
-      impactAnalysis = await analyzeImpact({
-        projectAddr: ctx.getRepository(),
-        sourceBranch: ctx.getBranch(),
-        targetBranch,
-        affectedToNodes,
-        affectedConnections: affecatedConnections,
-      })
-
-      if (impactAnalysis) {
-        debug('Impact analysis completed: %o', impactAnalysis)
+      // Pre-check: skip LLM analysis if there are no affected nodes
+      if (!affectedToNodes || affectedToNodes.length === 0) {
+        debug('Skipping LLM analysis - no affected nodes found')
       } else {
-        debug('Impact analysis skipped (LLM integration not enabled)')
+        debug('Starting LLM-based impact analysis...')
+        impactAnalysis = await analyzeImpact({
+          projectAddr: ctx.getRepository(),
+          sourceBranch: ctx.getBranch(),
+          targetBranch,
+          affectedToNodes,
+          affectedConnections: affecatedConnections,
+        })
+        if (impactAnalysis) {
+          debug('Impact analysis completed: %o', impactAnalysis)
+        } else {
+          debug('Impact analysis skipped (LLM integration not enabled)')
+        }
       }
     } catch (error) {
-      debug('Impact analysis failed, continuing without it: %o', error)
+      debug('LLM analysis failed: %o', error)
+      // Continue with report generation even if LLM analysis fails
     }
 
     const reportResult: ReportResult = {

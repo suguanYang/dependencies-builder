@@ -1,4 +1,4 @@
-import { Connection } from './server-types'
+import { Connection, Project } from './server-types'
 import debug from './utils/debug'
 
 const API_BASE = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
@@ -38,10 +38,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 
 export const getProjectByName = async (name: string) => {
   try {
-    const project = await apiRequest<{
-      entries: { name: string; path: string }[]
-      type: 'Lib' | 'App'
-    }>(`projects/name/${encodeURIComponent(name)}`, {
+    const project = await apiRequest<Project>(`projects/name/${encodeURIComponent(name)}`, {
       method: 'GET',
     })
 
