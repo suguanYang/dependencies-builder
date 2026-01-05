@@ -87,14 +87,6 @@ export default function ReportDetailPage() {
           <AlertTitle>无法加载报告</AlertTitle>
           <AlertDescription>
             {error || '未找到报告'}
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-2 mt-2"
-              onClick={() => router.push('/reports')}
-            >
-              返回报告列表
-            </Button>
           </AlertDescription>
         </Alert>
       </div>
@@ -111,11 +103,6 @@ export default function ReportDetailPage() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => router.push('/reports')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                返回报告列表
-              </Button>
-              <div className="h-6 w-px bg-gray-300" />
               <h1 className="text-xl font-semibold text-gray-900">报告详情</h1>
             </div>
 
@@ -139,7 +126,7 @@ export default function ReportDetailPage() {
               {hasImpactAnalysis && (
                 <span className="flex items-center gap-2 text-sm font-normal text-purple-600">
                   <Sparkles className="h-4 w-4" />
-                  AI 分析完成
+                  AI
                 </span>
               )}
             </CardTitle>
@@ -158,21 +145,6 @@ export default function ReportDetailPage() {
                   <div className="font-medium text-gray-900">
                     {new Date(report.createdAt).toLocaleDateString()}
                   </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">操作</div>
-                  {mrLink ? (
-                    <a
-                      href={mrLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline font-medium text-sm flex items-center"
-                    >
-                      创建合并请求
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 text-sm">-</span>
-                  )}
                 </div>
               </div>
             </CardDescription>
@@ -213,13 +185,12 @@ export default function ReportDetailPage() {
               {hasImpactAnalysis && report.result.impactAnalysis?.level ? (
                 <>
                   <div
-                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${
-                      report.result.impactAnalysis.level === 'low'
-                        ? 'bg-green-100 text-green-700'
-                        : report.result.impactAnalysis.level === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                    }`}
+                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${report.result.impactAnalysis.level === 'low'
+                      ? 'bg-green-100 text-green-700'
+                      : report.result.impactAnalysis.level === 'medium'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}
                   >
                     {report.result.impactAnalysis.level.toUpperCase()}
                   </div>
@@ -242,62 +213,6 @@ export default function ReportDetailPage() {
           </div>
         )}
 
-        {/* Affected Nodes */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>受影响的导出节点</CardTitle>
-            <CardDescription>可能会影响依赖项目的代码变更</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {report.result?.affectedToNodes?.length > 0 ? (
-              <div className="space-y-2">
-                {report.result.affectedToNodes.map((node: any, index: number) => {
-                  const permalink = generatePermanentLink(node, report.parameters.projectAddr)
-                  return (
-                    <div
-                      key={node.id || index}
-                      className="bg-gray-50 p-3 rounded-md border border-gray-200"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-gray-900">{node.name}</div>
-                          <div className="text-xs text-gray-600 mt-1 flex items-center gap-2">
-                            {permalink ? (
-                              <a
-                                href={permalink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="font-mono text-blue-600 hover:underline"
-                              >
-                                {node.relativePath}
-                              </a>
-                            ) : (
-                              <span className="font-mono">{node.relativePath}</span>
-                            )}
-                            {node.startLine && (
-                              <span className="text-gray-400">
-                                行 {node.startLine}-{node.endLine}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          {node.type}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <Alert>
-                <AlertCircleIcon className="h-4 w-4" />
-                <AlertDescription>未发现受影响的节点</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Impacted Connections */}
         <Card className="mb-6">
           <CardHeader>
@@ -307,31 +222,45 @@ export default function ReportDetailPage() {
           <CardContent>
             {report.result?.affecatedConnections?.length > 0 ? (
               <div className="space-y-2">
-                {report.result.affecatedConnections.slice(0, 20).map((conn: any, index: number) => (
-                  <div
-                    key={conn.id || index}
-                    className="bg-gray-50 p-3 rounded-md border border-gray-200"
-                  >
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900">
-                        {conn.fromNode?.projectName || '未知'}
-                      </span>
-                      <span className="text-gray-400 mx-2">→</span>
-                      <span className="font-medium text-gray-900">
-                        {conn.toNode?.projectName || '未知'}
-                      </span>
+                {/* TODO need paginations */}
+                {report.result.affecatedConnections.map((conn: any, index: number) => {
+                  const fromNodePermalink = generatePermanentLink(conn.fromNode, report.parameters.projectAddr)
+
+                  return (
+                    <div
+                      key={conn.id || index}
+                      className="bg-gray-50 p-3 rounded-md border border-gray-200"
+                    >
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-900">
+                          {conn.fromNode?.projectName || '未知'}
+                        </span>
+                        <span className="text-gray-400 mx-2">→</span>
+                        <span className="font-medium text-gray-900">
+                          {conn.toNode?.projectName || '未知'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1 flex items-center gap-1 flex-wrap">
+                        {fromNodePermalink ? (
+                          <a
+                            href={fromNodePermalink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline font-mono"
+                          >
+                            {conn.fromNode?.name}
+                          </a>
+                        ) : (
+                          <span className="font-mono">{conn.fromNode?.name}</span>
+                        )}
+                        <span className="text-gray-500">({conn.fromNode?.type})</span>
+                        <span className="text-gray-400 mx-1">→</span>
+                        <span className="font-mono">{conn.toNode?.name}</span>
+                        <span className="text-gray-500">({conn.toNode?.type})</span>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {conn.fromNode?.name} ({conn.fromNode?.type}) → {conn.toNode?.name} (
-                      {conn.toNode?.type})
-                    </div>
-                  </div>
-                ))}
-                {report.result.affecatedConnections.length > 20 && (
-                  <div className="text-center text-sm text-gray-500 py-2">
-                    ... 还有 {report.result.affecatedConnections.length - 20} 个连接
-                  </div>
-                )}
+                  )
+                })}
               </div>
             ) : (
               <Alert>
