@@ -3,7 +3,7 @@ import type { BaseMessage } from '@langchain/core/messages'
 import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import type { LLMConfig } from './config'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import debug from '../utils/debug'
+import debug, { error } from '../utils/debug'
 
 /**
  * State for the agent
@@ -49,8 +49,10 @@ export async function invokeLLMAgent(
   const tools = await mcpClient.getTools()
   debug(`Agent using ${tools.length} tools from MCP`)
 
-  // Bind tools to the model
-  const modelWithTools = llm.bindTools(tools)
+  // Bind tools to the model with retry logic
+  const modelWithTools = llm.bindTools(tools).withRetry({
+    stopAfterAttempt: 3,
+  })
 
   // Create the initial messages
   const messages: BaseMessage[] = [
@@ -79,28 +81,29 @@ export async function invokeLLMAgent(
     // Log current conversation state with full content
     debug('\nCurrent conversation has %d messages:', currentMessages.length)
     currentMessages.forEach((msg, idx) => {
-      const type = msg._getType()
-      const content = typeof msg.content === 'string'
+      const type = msg.type
+      let content = typeof msg.content === 'string'
         ? msg.content
         : JSON.stringify(msg.content, null, 2)
 
       debug(`\n[${idx}] ${type.toUpperCase()}:`)
-      debug('─'.repeat(60))
-      // Log full content with indentation for readability
-      content.split('\n').forEach((line: string) => {
-        debug(`  ${line}`)
-      })
-      debug('─'.repeat(60))
+      if (type !== 'tool') {
+        debug('─'.repeat(60))
+        // Log content with indentation for readability
+        content.split('\n').forEach((line: string) => {
+          debug(`  ${line}`)
+        })
+        debug('─'.repeat(60))
+      }
     })
 
     // Call the model
-    debug('\n🤖 Calling LLM...')
     const response = await modelWithTools.invoke(currentMessages)
 
     // Log the full response
     debug('\n📥 LLM Response:')
     debug('─'.repeat(60))
-    debug('Type: %s', response._getType())
+    debug('Type: %s', response.type)
 
     const responseContent = typeof response.content === 'string'
       ? response.content
@@ -170,35 +173,22 @@ export async function invokeLLMAgent(
             return `${lineNumber}: ${line}`
           })
           processedResult = numberedLines.join('\n')
-          debug(`    ℹ Added line numbers to file content (${lines.length} lines)`)
         }
 
         // Check if the result is already a ToolMessage
-        if (processedResult && typeof processedResult === 'object' && '_getType' in processedResult) {
-          // It's likely a LangChain message object
-          const resultContent = typeof processedResult.content === 'string'
-            ? processedResult.content
-            : JSON.stringify(processedResult.content, null, 2)
+        if (processedResult && typeof processedResult === 'object' && 'type' in processedResult) {
           debug(`    ✓ Result (ToolMessage):`)
-          resultContent.split('\n').forEach((line: string) => {
-            debug(`      ${line}`)
-          })
           toolMessages.push(processedResult)
         } else {
           // Create a ToolMessage with proper tool_call_id
           const resultStr = typeof processedResult === 'string' ? processedResult : JSON.stringify(processedResult, null, 2)
-          debug(`    ✓ Result (raw):`)
-          resultStr.split('\n').forEach((line: string) => {
-            debug(`      ${line}`)
-          })
+          // Logging handled above
           const toolMessage = new ToolMessage({
             content: resultStr,
             tool_call_id: toolCall.id || '',
           })
           toolMessages.push(toolMessage)
         }
-
-        debug(`    ✓ Success`)
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
         debug(`    ✗ Error: ${errorMsg}`)
@@ -217,7 +207,7 @@ export async function invokeLLMAgent(
   }
 
   // Max iterations reached
-  debug('\n⚠️  Max iterations (%d) reached', maxIterations)
+  error('\n⚠️  Max iterations (%d) reached', maxIterations)
   debug('Returning last message in conversation')
   const lastMessage = currentMessages[currentMessages.length - 1]
   return typeof lastMessage.content === 'string'

@@ -2,7 +2,7 @@ import type { Connection, Node } from '../server-types'
 import { loadLLMConfig, validateLLMConfig } from './config'
 import { createMCPClient } from './mcp-client'
 import { invokeLLMAgent } from './agent'
-import debug from '../utils/debug'
+import debug, { error } from '../utils/debug'
 
 /**
  * Impact analysis report structure
@@ -138,11 +138,11 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
           projectAddressMap.set(projectName, project.addr)
         } else {
           failedProjects.push(projectName)
-          debug(`Project ${projectName} has no address`)
+          error(`Project ${projectName} has no address`)
         }
-      } catch (error) {
+      } catch (err) {
         failedProjects.push(projectName)
-        debug(`Failed to fetch project address for ${projectName}: %o`, error)
+        error(`Failed to fetch project address for ${projectName}: %o`, err)
       }
     })
   )
@@ -358,15 +358,15 @@ function parseAgentResult(result: string): ImpactReport {
       affectedProjects: parsed.affectedProjects,
       message: parsed.message,
     } as ImpactReport
-  } catch (error) {
-    debug('Failed to parse agent result: %o', error)
+  } catch (err) {
+    error('Failed to parse agent result: %o', err)
     // Return a fallback report
     return {
       success: false,
       impaction: 'Failed to parse analysis result',
       level: 'medium',
       suggestion: 'Manual review recommended',
-      message: `Parse error: ${error instanceof Error ? error.message : String(error)}. Raw result: ${result.substring(0, 200)}...`,
+      message: `Parse error: ${err instanceof Error ? err.message : String(err)}. Raw result: ${result.substring(0, 200)}...`,
     }
   }
 }
