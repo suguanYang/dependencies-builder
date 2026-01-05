@@ -46,7 +46,7 @@ export function loadLLMConfig(): LLMIntegrationConfig {
       apiKey: apiKey || 'sk-placeholder',
       baseUrl: process.env.OPENAI_BASE_URL || 'http://localhost:11434/v1',
       modelName: process.env.OPENAI_MODEL_NAME || 'gpt-4o',
-      temperature: 1,
+      temperature: Number(process.env.OPENAI_TEMPERATURE) || 1,
     },
     gitlab: {
       accessToken: gitlabToken,

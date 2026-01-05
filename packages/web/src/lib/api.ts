@@ -1,4 +1,13 @@
-import { NodeType, AppType, Node, Connection, Project, Action, ActionType } from './server-types'
+import {
+  NodeType,
+  AppType,
+  Node,
+  Connection,
+  Project,
+  Action,
+  ActionType,
+  LLMConfig,
+} from './server-types'
 
 export interface SearchFilters {
   projectName?: string
@@ -554,5 +563,16 @@ export async function triggerAutoConnectionCreation(): Promise<{
 }> {
   return apiRequest('/connections/all', {
     method: 'POST',
+  })
+}
+
+export async function getLLMConfig(): Promise<LLMConfig> {
+  return apiRequest('/llm/config')
+}
+
+export async function updateLLMConfig(config: Partial<LLMConfig>): Promise<LLMConfig> {
+  return apiRequest('/llm/config', {
+    method: 'PUT',
+    body: JSON.stringify(config),
   })
 }

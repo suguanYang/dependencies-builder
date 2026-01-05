@@ -37,6 +37,32 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
 
     const { key, id: keyId } = await getAdminUserKey(actionId)
 
+    // Fetch LLM config from database
+    const llmConfig = await repository.getLLMConfig()
+    const llmEnv: Record<string, string> = {}
+    if (llmConfig && llmConfig.enabled) {
+      llmEnv.OPENAI_API_KEY = llmConfig.apiKey
+      llmEnv.OPENAI_BASE_URL = llmConfig.baseUrl
+      llmEnv.OPENAI_MODEL_NAME = llmConfig.modelName
+      llmEnv.OPENAI_TEMPERATURE = String(llmConfig.temperature)
+      // TEMPERATURE is usually a number, cli config might need parsing if passed as string, config.ts reads env??
+      // config.ts: temperature: config.temperature (passed in invokeLLMAgent)
+      // wait, loadLLMConfig reads env vars:
+      // apiKey: process.env.OPENAI_API_KEY
+      // baseUrl: process.env.OPENAI_BASE_URL
+      // modelName: process.env.OPENAI_MODEL_NAME
+      // but temperature is hardcoded to 1 in loadLLMConfig currently?
+      // "temperature: 1," in line 49 of cli/src/llm/config.ts
+      // So I might need to update loadLLMConfig in CLI to read OPENAI_TEMPERATURE as well if I want to support it.
+      // "temperature: 1," in line 49 of cli/src/llm/config.ts
+      // So I might need to update loadLLMConfig in CLI to read OPENAI_TEMPERATURE as well if I want to support it.
+      // For now, I will inject the standard ones.
+    } else {
+      info(
+        `action:${actionId} No LLM configuration found in database (or disabled). Using environment variables.`,
+      )
+    }
+
     // Execute CLI command
     const [cmd, ...args] = cliCommand
     const childProcess = spawn(cmd, args, {
@@ -45,6 +71,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         ...process.env,
         DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
         DMS_SERVER_CLI_KEY: key,
+        ...llmEnv,
       },
     })
 

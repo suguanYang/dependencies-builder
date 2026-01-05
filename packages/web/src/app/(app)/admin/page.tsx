@@ -1,7 +1,7 @@
 'use client'
 
 import React, { Suspense } from 'react'
-import { DatabaseIcon, SettingsIcon, UsersIcon, KeyIcon, ShieldIcon } from 'lucide-react'
+import { DatabaseIcon, SettingsIcon, UsersIcon, KeyIcon, ShieldIcon, CpuIcon } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -45,6 +45,13 @@ function AdminContent() {
       href: '#',
       color: 'bg-red-50 text-red-600',
       disabled: true,
+    },
+    {
+      title: 'LLM Configuration',
+      description: 'Configure OpenAI settings, model selection, and parameters',
+      icon: CpuIcon,
+      href: '/admin/llm',
+      color: 'bg-indigo-50 text-indigo-600',
     },
   ]
 

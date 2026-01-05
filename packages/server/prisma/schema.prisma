@@ -278,3 +278,14 @@ model Lock {
   acquiredAt DateTime @default(now())
   expiresAt  DateTime
 }
+
+model LLMConfig {
+  id          String   @id @default(cuid())
+  apiKey      String
+  baseUrl     String
+  modelName   String
+  temperature Float
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}

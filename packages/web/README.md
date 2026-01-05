@@ -8,6 +8,7 @@ This is a Next.js application for visualizing and managing dependency graphs. It
 - **Project Query Interface**: Search and filter projects/nodes in the dependency graph
 - **Graph Visualization**: Interactive dependency graph visualization using d3.js
 - **Server Integration**: Connects to the backend dependency API for real-time data
+- **Admin Configuration**: Interface for managing system settings, including LLM configuration
 
 ### Technical Stack
 - **Framework**: Next.js 14+ with App Router and SSR
@@ -45,6 +46,10 @@ This is a Next.js application for visualizing and managing dependency graphs. It
 - Responsive design for desktop and mobile
 - Loading indicators for async operations
 - Error boundaries and user-friendly error messages
+
+### 5. Admin Interface
+- **LLM Configuration**: Form to configure OpenAI/LLM settings (API Key, Base URL, Model)
+- Secure storage and validation of settings
 
 
 ## Implementation Guide

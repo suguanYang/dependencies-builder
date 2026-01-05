@@ -131,6 +131,25 @@ present the graph.
 - /GET /actions/:id/result
 
 
+### LLM Configuration
+Manage LLM settings for the system.
+
+- /GET /llm/config
+  - Get the current LLM configuration.
+- /PUT /llm/config
+  - Update the LLM configuration.
+  - Body:
+    ```json
+    {
+      "apiKey": "sk-...",
+      "baseUrl": "https://api.openai.com/v1",
+      "modelName": "gpt-4",
+      "temperature": 0.7,
+      "enabled": true
+    }
+    ```
+
+
 ## Main Technical Stack
 - Fastify
 - Typescript

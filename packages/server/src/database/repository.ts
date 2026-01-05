@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { ActionType, Prisma } from '../generated/prisma/client'
+import { ActionType, Prisma, LLMConfig } from '../generated/prisma/client'
 import { randomUUID } from 'node:crypto'
 
 export async function getNodes(query: Prisma.NodeFindManyArgs) {
@@ -520,4 +520,26 @@ export async function releaseLock(key: string, token: string): Promise<boolean> 
     },
   })
   return result.count > 0
+}
+
+export async function getLLMConfig(): Promise<LLMConfig | null> {
+  return await prisma.lLMConfig.findFirst({
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export type UpdateLLMConfigData = Omit<LLMConfig, 'id' | 'createdAt' | 'updatedAt'>
+
+export async function updateLLMConfig(data: UpdateLLMConfigData): Promise<LLMConfig> {
+  const existing = await getLLMConfig()
+  if (existing) {
+    return await prisma.lLMConfig.update({
+      where: { id: existing.id },
+      data,
+    })
+  } else {
+    return await prisma.lLMConfig.create({
+      data,
+    })
+  }
 }

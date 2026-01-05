@@ -132,3 +132,13 @@ export interface ImpactReport {
   /** Additional messages or error details */
   message: string
 }
+
+// LLM Configuration API
+export interface LLMConfig {
+  id?: string
+  apiKey: string
+  baseUrl: string
+  modelName: string
+  temperature: number
+  enabled: boolean
+}
