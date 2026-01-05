@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Share2Icon, Sparkles, AlertCircleIcon, AlertTriangle } from 'lucide-react'
@@ -25,7 +25,7 @@ type ReportResult = {
   affecatedConnections: Connection[]
 }
 
-export default function ReportDetailPage() {
+function ReportDetailPage() {
   const searchParams = useSearchParams()
   const actionId = searchParams.get('id')
 
@@ -320,5 +320,13 @@ export default function ReportDetailPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 p-6">Loading projects...</div>}>
+      <ReportDetailPage />
+    </Suspense>
   )
 }

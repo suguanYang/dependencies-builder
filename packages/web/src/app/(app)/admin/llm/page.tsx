@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Field, FieldLabel, FieldDescription, FieldError } from '@/components/ui/field'
-import { getLLMConfig, updateLLMConfig, type LLMConfig } from '@/lib/api'
+import { getLLMConfig, updateLLMConfig } from '@/lib/api'
 import { useErrorStore } from '@/hooks/use-error-store'
 import { SettingsIcon, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { LLMConfig } from '@/lib/server-types'
 
 export default function LLMConfigPage() {
   const [config, setConfig] = useState<LLMConfig>({
