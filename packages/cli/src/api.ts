@@ -28,8 +28,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error ||
-        errorData.message ||
-        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+      errorData.message ||
+      `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 
@@ -116,11 +116,13 @@ export const getConnectionsByToNode = async (node: {
   name: string
   projectName: string
   type: string
-}): Promise<Connection[]> => {
-  return apiRequest(
+}) => {
+  return apiRequest<{
+    data: Connection[]
+  }>(
     `connections?toNodeName=${node.name}&toNodeProjectName=${node.projectName}&toNodeType=${node.type}`,
     {
       method: 'GET',
     },
-  )
+  ).then(res => res.data)
 }

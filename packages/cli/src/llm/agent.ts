@@ -159,20 +159,33 @@ export async function invokeLLMAgent(
         // Invoke the tool
         const toolResult = await tool.invoke(toolCall.args || {})
 
+        // Post-process tool results: add line numbers to file contents
+        let processedResult = toolResult
+        if (toolCall.name === 'get_file_contents' && toolResult && typeof toolResult === 'string') {
+          // Add line numbers to file content for better LLM comprehension
+          const lines = toolResult.split('\n')
+          const numberedLines = lines.map((line, index) => {
+            const lineNumber = (index + 1).toString().padStart(4, ' ')
+            return `${lineNumber}: ${line}`
+          })
+          processedResult = numberedLines.join('\n')
+          debug(`    ℹ Added line numbers to file content (${lines.length} lines)`)
+        }
+
         // Check if the result is already a ToolMessage
-        if (toolResult && typeof toolResult === 'object' && '_getType' in toolResult) {
+        if (processedResult && typeof processedResult === 'object' && '_getType' in processedResult) {
           // It's likely a LangChain message object
-          const resultContent = typeof toolResult.content === 'string'
-            ? toolResult.content
-            : JSON.stringify(toolResult.content, null, 2)
+          const resultContent = typeof processedResult.content === 'string'
+            ? processedResult.content
+            : JSON.stringify(processedResult.content, null, 2)
           debug(`    ✓ Result (ToolMessage):`)
           resultContent.split('\n').forEach((line: string) => {
             debug(`      ${line}`)
           })
-          toolMessages.push(toolResult)
+          toolMessages.push(processedResult)
         } else {
           // Create a ToolMessage with proper tool_call_id
-          const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)
+          const resultStr = typeof processedResult === 'string' ? processedResult : JSON.stringify(processedResult, null, 2)
           debug(`    ✓ Result (raw):`)
           resultStr.split('\n').forEach((line: string) => {
             debug(`      ${line}`)

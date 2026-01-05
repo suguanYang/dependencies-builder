@@ -127,6 +127,8 @@ ${affectedFromNodes.map((node) => `  - Project: ${node.projectName}, Path: ${nod
 function prepareInstruction(): string {
   return `You are reviewing a merge request and analyzing its potential impact on dependent projects.
 
+**IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields (impaction, impact, suggestions, message) should be in Chinese.**
+
 **Your Task:**
 Analyze the impact of these code changes on dependent projects and generate a JSON report WITH PER-PROJECT SUGGESTIONS.
 
@@ -143,44 +145,48 @@ Analyze the impact of these code changes on dependent projects and generate a JS
    - Make multiple tool calls in one response when possible
    - Focus on top 5-10 most critical projects if there are many
 5. **BATCH PROCESS**: Get relevant file contents from affected projects in parallel
+   - **NOTE**: File contents will have line numbers added (e.g., "   1: code here")
+   - Use these line numbers to locate the exact code referenced in "Affected From Nodes"
 6. **For EACH affected project**, analyze:
    - What specific functionality in that project is impacted
    - What actions that project needs to take
-7. Generate your impact report with per-project suggestions
+   - Reference specific line numbers when describing the impact
+7. Generate your impact report with per-project suggestions **IN CHINESE**
 
 **IMPORTANT Instructions:**
 - The Project ID is already provided in the context - use it directly
 - Process multiple projects at once (make several tool calls in one response)
 - **Provide specific suggestions for EACH affected project**
+- **All analysis text must be in CHINESE (中文)**
 - If one project fails, continue with others
 - Be efficient: avoid redundant tool calls
 - Focus on the most impactful changes
 
-**Output Format (JSON only):**
+**Output Format (JSON only, text content in CHINESE):**
 \`\`\`json
 {
   "success": true,
-  "impaction": "Overall business-level impact summary",
+  "impaction": "整体业务层面的影响总结 (用中文)",
   "level": "low|medium|high",
-  "suggestion": "Overall recommendations or general guidance",
+  "suggestion": "整体建议或一般性指导 (用中文)",
   "affectedProjects": [
     {
       "projectName": "project-name-1",
-      "impact": "Specific impact on this project",
+      "impact": "该项目的具体影响 (用中文)",
       "suggestions": [
-        "Action item 1 for this project",
-        "Action item 2 for this project"
+        "该项目的行动项 1 (用中文)",
+        "该项目的行动项 2 (用中文)"
       ]
     },
     {
       "projectName": "project-name-2",
-      "impact": "Specific impact on this project",
+      "impact": "该项目的具体影响 (用中文)",
       "suggestions": [
-        "Action item 1 for this project"
+        "该项目的行动项 1 (用中文)"
       ]
     }
   ],
-  "message": "Additional context or error details"
+  "message": "附加上下文或错误详情 (用中文)"
 }
 \`\`\`
 
@@ -189,7 +195,7 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 - **medium**: Non-breaking changes with potential issues, deprecated features
 - **low**: Minor changes, internal refactoring, documentation updates
 
-Start your analysis now. Make tool calls efficiently in batches and provide SPECIFIC suggestions for each affected project.`
+Start your analysis now. Make tool calls efficiently in batches and provide SPECIFIC suggestions for each affected project **IN CHINESE (中文)**.`
 }
 
 /**
