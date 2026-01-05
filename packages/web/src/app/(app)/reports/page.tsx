@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
-import { EyeIcon, AlertCircleIcon, AlertTriangleIcon } from 'lucide-react'
+import { EyeIcon, AlertCircleIcon, AlertTriangleIcon, Sparkles, Share2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { swrConfig } from '@/lib/swr-config'
 import { DeleteButton } from '@/components/delete-button'
 import { getActions, getActionById, getConnectionsList, getNodes, deleteAction } from '@/lib/api'
-import { Action, Node } from '@/lib/server-types'
+import { Action, Node, ImpactReport } from '@/lib/server-types'
+import { ImpactAnalysisCard } from '@/components/ImpactAnalysisCard'
 function ReportsContent() {
   const [error, setError] = useState<string>('')
   const [viewingReport, setViewingReport] = useState<{
@@ -119,13 +120,24 @@ function ReportsContent() {
             const hasNodes = action.result?.affectedToNodes?.length > 0
             const hasConnections = action.result?.connections?.length > 0
             const hasWarnings = hasNodes || hasConnections
+            const hasImpactAnalysis = !!action.result?.impactAnalysis
+            const impactLevel = action.result?.impactAnalysis?.level
 
             return (
               <Card key={action.id} className="hover:shadow-lg transition-shadow relative">
                 {/* Warning indicator for reports with affected nodes or connections */}
                 {hasWarnings && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {hasImpactAnalysis && (
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                    )}
                     <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />
+                  </div>
+                )}
+                {/* AI indicator when no warnings */}
+                {!hasWarnings && hasImpactAnalysis && (
+                  <div className="absolute top-2 right-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
                   </div>
                 )}
 
@@ -145,6 +157,23 @@ function ReportsContent() {
                         {action.status}
                       </span>
                     </div>
+
+                    {/* Impact Level Badge */}
+                    {hasImpactAnalysis && impactLevel && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Impact:</span>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${impactLevel === 'low'
+                            ? 'bg-green-100 text-green-700'
+                            : impactLevel === 'medium'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-red-100 text-red-700'
+                            }`}
+                        >
+                          {impactLevel.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex space-x-2">
                       <Button
@@ -328,6 +357,29 @@ function ReportsContent() {
                   </AlertDescription>
                 </Alert>
               )}
+            </div>
+
+            {/* LLM Impact Analysis Section */}
+            <div className="mb-6">
+              <ImpactAnalysisCard
+                impactAnalysis={viewingReport.result.impactAnalysis as ImpactReport}
+              />
+            </div>
+
+            {/* Share Button */}
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  const url = `${window.location.origin}/reports/detail?id=${viewingReport.actionId}`
+                  navigator.clipboard.writeText(url)
+                  alert('Shareable link copied to clipboard!')
+                }}
+              >
+                <Share2Icon className="h-4 w-4 mr-2" />
+                Copy Shareable Link
+              </Button>
             </div>
 
             {/* Raw Report Data (Collapsible) */}
