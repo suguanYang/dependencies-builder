@@ -240,8 +240,8 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 
 **Efficient Analysis Strategy:**
 1. **Use the Project ID from context** (don't call list_projects for the main project)
-2. Get the merge request ID for the given source and target branches
-3. Get the merge request diffs to see what actually changed
+2. Get the merge request ID for the given source and target branches by list_merge_requests(project_id: Project ID, source_branch: source_branch, target_branch: target_branch) *Do Not Specify The State of the MR*
+3. Get the merge request diffs to see what actually changed by get_merge_request_diffs(project_id: Project ID, merge_request_iid: merge_request_iid, view: "inline")
 4. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
    - Each affected node has an "ID" field (e.g., "group/project")
    - **Use this ID directly** - no need to parse URLs or search by name
@@ -258,6 +258,7 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 
 **IMPORTANT Instructions:**
 - The Project ID is already provided in the context - use it directly
+- Do Not Diff the Changes commit by commit, get the diff at the MR level instead
 - Process multiple projects at once (make several tool calls in one response)
 - **Provide specific suggestions for EACH affected project**
 - **All analysis text must be in CHINESE (中文)**
