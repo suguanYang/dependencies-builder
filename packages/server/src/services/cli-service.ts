@@ -176,7 +176,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       status: 'failed',
       error: `Failed to excute cli: ${err instanceof Error ? err.message : err}`,
     })
-    throw error
+    throw err
   }
 }
 
