@@ -40,8 +40,10 @@ export async function createMCPClient(config: GitLabConfig): Promise<DisposableM
   const mcpClient = new MultiServerMCPClient({
     gitlab: {
       transport: 'stdio',
-      command: 'npx',
-      args: ['-y', '@zereight/mcp-gitlab'],
+      command: 'node',
+      args: [
+        require.resolve('@zereight/mcp-gitlab/dist/index.js')
+      ],
       env: {
         GITLAB_PERSONAL_ACCESS_TOKEN: config.accessToken,
         GITLAB_API_URL: config.apiUrl,
