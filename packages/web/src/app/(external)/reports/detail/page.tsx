@@ -178,7 +178,7 @@ export default function ReportDetailPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {report.result?.affectedToNodes?.length || 0}
               </div>
-              <p className="text-xs text-gray-500 mt-1">个被依赖节点被修改</p>
+              <p className="text-xs text-gray-500 mt-1">个被依赖代码被修改</p>
             </CardContent>
           </Card>
 
@@ -190,7 +190,7 @@ export default function ReportDetailPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {report.result?.affecatedConnections?.length || 0}
               </div>
-              <p className="text-xs text-gray-500 mt-1">个项目间依赖项受到影响</p>
+              <p className="text-xs text-gray-500 mt-1">个项目间代码依赖项受到影响</p>
             </CardContent>
           </Card>
 
