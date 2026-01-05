@@ -128,9 +128,7 @@ function ReportsContent() {
                 {/* Warning indicator for reports with affected nodes or connections */}
                 {hasWarnings && (
                   <div className="absolute top-2 right-2 flex gap-1">
-                    {hasImpactAnalysis && (
-                      <Sparkles className="h-5 w-5 text-purple-500" />
-                    )}
+                    {hasImpactAnalysis && <Sparkles className="h-5 w-5 text-purple-500" />}
                     <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />
                   </div>
                 )}
@@ -163,12 +161,13 @@ function ReportsContent() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Impact:</span>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${impactLevel === 'low'
-                            ? 'bg-green-100 text-green-700'
-                            : impactLevel === 'medium'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-red-100 text-red-700'
-                            }`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            impactLevel === 'low'
+                              ? 'bg-green-100 text-green-700'
+                              : impactLevel === 'medium'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
+                          }`}
                         >
                           {impactLevel.toUpperCase()}
                         </span>

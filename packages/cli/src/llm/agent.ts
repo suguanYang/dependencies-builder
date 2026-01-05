@@ -38,7 +38,7 @@ export async function invokeLLMAgent(
         info: debug,
         warn: debug,
         error: debug,
-      }
+      },
     },
     temperature: config.temperature,
   })
@@ -81,9 +81,8 @@ export async function invokeLLMAgent(
     debug('\nCurrent conversation has %d messages:', currentMessages.length)
     currentMessages.forEach((msg, idx) => {
       const type = msg.type
-      let content = typeof msg.content === 'string'
-        ? msg.content
-        : JSON.stringify(msg.content, null, 2)
+      let content =
+        typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)
 
       debug(`\n[${idx}] ${type.toUpperCase()}:`)
       if (type !== 'tool') {
@@ -104,9 +103,10 @@ export async function invokeLLMAgent(
     debug('─'.repeat(60))
     debug('Type: %s', response.type)
 
-    const responseContent = typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content, null, 2)
+    const responseContent =
+      typeof response.content === 'string'
+        ? response.content
+        : JSON.stringify(response.content, null, 2)
     debug('Content:')
     responseContent.split('\n').forEach((line: string) => {
       debug(`  ${line}`)
@@ -148,9 +148,11 @@ export async function invokeLLMAgent(
       debug(`\n  ▶ Tool: ${toolCall.name}`)
       debug(`    ID: ${toolCall.id}`)
       debug(`    Args:`)
-      JSON.stringify(toolCall.args, null, 2).split('\n').forEach((line: string) => {
-        debug(`      ${line}`)
-      })
+      JSON.stringify(toolCall.args, null, 2)
+        .split('\n')
+        .forEach((line: string) => {
+          debug(`      ${line}`)
+        })
 
       try {
         // Find the tool by name
@@ -180,7 +182,10 @@ export async function invokeLLMAgent(
           toolMessages.push(processedResult)
         } else {
           // Create a ToolMessage with proper tool_call_id
-          const resultStr = typeof processedResult === 'string' ? processedResult : JSON.stringify(processedResult, null, 2)
+          const resultStr =
+            typeof processedResult === 'string'
+              ? processedResult
+              : JSON.stringify(processedResult, null, 2)
           // Logging handled above
           const toolMessage = new ToolMessage({
             content: resultStr,

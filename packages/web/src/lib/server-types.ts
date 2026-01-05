@@ -117,7 +117,7 @@ export interface Apikey {
  */
 export interface ImpactReport {
   /** Whether the analysis was successful */
-  success: boolean  /** Summary of business-level impacts */
+  success: boolean /** Summary of business-level impacts */
   impaction: string
   /** Severity level of the impact */
   level: 'low' | 'medium' | 'high'

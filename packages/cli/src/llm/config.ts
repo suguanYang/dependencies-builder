@@ -73,7 +73,7 @@ export function validateLLMConfig(config: LLMIntegrationConfig, porjectAddr: str
 
   if (configuredAPI.hostname != inputAPI.hostname) {
     throw new Error(
-      `Can not report on repo: ${inputAPI.hostname}, only support ${configuredAPI.hostname}`
+      `Can not report on repo: ${inputAPI.hostname}, only support ${configuredAPI.hostname}`,
     )
   }
 }

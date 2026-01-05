@@ -97,7 +97,9 @@ const getProjectIDFromRepositoryAddr = (addr: string) => {
 
     return url.pathname.substring(1, url.pathname.length).replace('.git', '')
   } catch (error) {
-    throw new Error(`Failed to extract project ID from repository address: ${addr}`, { cause: error })
+    throw new Error(`Failed to extract project ID from repository address: ${addr}`, {
+      cause: error,
+    })
   }
 }
 
@@ -118,11 +120,13 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
   }
 
   // Get unique project names and fetch their addresses
-  const uniqueProjectNames = [...new Set(
-    input.affectedConnections
-      .map(conn => conn.fromNode?.projectName)
-      .filter((name): name is string => !!name)
-  )]
+  const uniqueProjectNames = [
+    ...new Set(
+      input.affectedConnections
+        .map((conn) => conn.fromNode?.projectName)
+        .filter((name): name is string => !!name),
+    ),
+  ]
 
   if (uniqueProjectNames.length === 0) {
     throw new Error('No affected projects found - cannot perform LLM analysis')
@@ -146,7 +150,7 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
         failedProjects.push(projectName)
         error(`Failed to fetch project address for ${projectName}: %o`, err)
       }
-    })
+    }),
   )
 
   // Throw if too many projects failed to resolve
@@ -155,10 +159,12 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     if (failureRate > 0.5) {
       throw new Error(
         `Failed to resolve repository addresses for ${failedProjects.length}/${uniqueProjectNames.length} affected projects. ` +
-        `Projects: ${failedProjects.join(', ')}`
+          `Projects: ${failedProjects.join(', ')}`,
       )
     } else {
-      debug(`Warning: ${failedProjects.length} projects failed to resolve: ${failedProjects.join(', ')}`)
+      debug(
+        `Warning: ${failedProjects.length} projects failed to resolve: ${failedProjects.join(', ')}`,
+      )
     }
   }
 
@@ -208,7 +214,8 @@ Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
 
 Affected From Nodes (${affectedFromNodes.length}):
-${affectedFromNodes.map((node) => {
+${affectedFromNodes
+  .map((node) => {
     const parts = [
       `Project: ${node.projectName}`,
       node.projectID ? `ID: ${node.projectID}` : null,
@@ -217,7 +224,8 @@ ${affectedFromNodes.map((node) => {
       node.branch ? `Branch: ${node.branch}` : null,
     ].filter(Boolean)
     return `  - ${parts.join(', ')}`
-  }).join('\n')}
+  })
+  .join('\n')}
 `.trim()
 }
 
