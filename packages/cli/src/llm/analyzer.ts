@@ -92,9 +92,13 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
 }
 
 const getProjectIDFromRepositoryAddr = (addr: string) => {
-  const url = new URL(addr)
+  try {
+    const url = new URL(addr)
 
-  return url.pathname.substring(1, url.pathname.length).replace('.git', '')
+    return url.pathname.substring(1, url.pathname.length).replace('.git', '')
+  } catch (error) {
+    throw new Error(`Failed to extract project ID from repository address: ${addr}`, { cause: error })
+  }
 }
 
 /**
