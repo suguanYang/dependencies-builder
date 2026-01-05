@@ -46,12 +46,12 @@ export function loadLLMConfig(): LLMIntegrationConfig {
       apiKey: apiKey || 'sk-placeholder',
       baseUrl: process.env.OPENAI_BASE_URL || 'http://localhost:11434/v1',
       modelName: process.env.OPENAI_MODEL_NAME || 'gpt-4o',
-      temperature: 0,
+      temperature: 1,
     },
     gitlab: {
       accessToken: gitlabToken,
       apiUrl: process.env.GITLAB_API_URL || 'http://gitlab.seeyon.com',
-      readOnlyMode: process.env.GITLAB_READ_ONLY_MODE === 'true',
+      readOnlyMode: true,
     },
     enabled,
   }
@@ -61,10 +61,19 @@ export function loadLLMConfig(): LLMIntegrationConfig {
  * Validate that required configuration is present
  * @throws Error if required configuration is missing
  */
-export function validateLLMConfig(config: LLMIntegrationConfig): void {
+export function validateLLMConfig(config: LLMIntegrationConfig, porjectAddr: string): void {
   if (!config.enabled) {
     throw new Error(
       'LLM integration is not enabled. Required environment variables: OPENAI_API_KEY, GITLAB_PERSONAL_ACCESS_TOKEN',
+    )
+  }
+
+  const configuredAPI = new URL(config.gitlab.apiUrl)
+  const inputAPI = new URL(porjectAddr)
+
+  if (configuredAPI.hostname != inputAPI.hostname) {
+    throw new Error(
+      `Can not report on repo: ${inputAPI.hostname}, only support ${configuredAPI.hostname}`
     )
   }
 }

@@ -57,7 +57,7 @@ export async function generateReport(): Promise<void> {
     try {
       debug('Starting LLM-based impact analysis...')
       impactAnalysis = await analyzeImpact({
-        projectName: ctx.getProjectName(),
+        projectAddr: ctx.getRepository(),
         sourceBranch: ctx.getBranch(),
         targetBranch,
         affectedToNodes,

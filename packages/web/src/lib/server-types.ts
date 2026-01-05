@@ -117,14 +117,18 @@ export interface Apikey {
  */
 export interface ImpactReport {
   /** Whether the analysis was successful */
-  success: boolean
-  /** Summary of business-level impacts */
+  success: boolean  /** Summary of business-level impacts */
   impaction: string
   /** Severity level of the impact */
   level: 'low' | 'medium' | 'high'
-  /** Suggestions for preventing the impact */
-  suggestion: string
+  /** Overall suggestions for preventing the impact (string or array of strings) */
+  suggestion: string | string[]
+  /** Per-project impact analysis with specific suggestions */
+  affectedProjects?: Array<{
+    projectName: string
+    impact: string
+    suggestions: string[]
+  }>
   /** Additional messages or error details */
   message: string
 }
-

@@ -1,6 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import type { BaseMessage } from '@langchain/core/messages'
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import type { LLMConfig } from './config'
 import { getMCPClient } from './mcp-client'
 import debug from '../utils/debug'
@@ -32,7 +32,7 @@ export async function invokeLLMAgent(
     apiKey: config.apiKey,
     configuration: {
       baseURL: config.baseUrl,
-      logLevel: 'debug',
+      logLevel: 'info',
       logger: {
         debug: debug,
         info: debug,
@@ -67,30 +67,87 @@ export async function invokeLLMAgent(
   // Simple agent loop - call model, execute tools if needed, repeat
   let currentMessages = [...messages]
   let iterationCount = 0
-  const maxIterations = 10
+  const maxIterations = 20
 
   while (iterationCount < maxIterations) {
     iterationCount++
+    debug(`\n${'='.repeat(80)}`)
     debug(`Agent iteration ${iterationCount}/${maxIterations}`)
+    debug(`${'='.repeat(80)}`)
+
+    // Log current conversation state with full content
+    debug('\nCurrent conversation has %d messages:', currentMessages.length)
+    currentMessages.forEach((msg, idx) => {
+      const type = msg._getType()
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : JSON.stringify(msg.content, null, 2)
+
+      debug(`\n[${idx}] ${type.toUpperCase()}:`)
+      debug('─'.repeat(60))
+      // Log full content with indentation for readability
+      content.split('\n').forEach((line: string) => {
+        debug(`  ${line}`)
+      })
+      debug('─'.repeat(60))
+    })
 
     // Call the model
+    debug('\n🤖 Calling LLM...')
     const response = await modelWithTools.invoke(currentMessages)
+
+    // Log the full response
+    debug('\n📥 LLM Response:')
+    debug('─'.repeat(60))
+    debug('Type: %s', response._getType())
+
+    const responseContent = typeof response.content === 'string'
+      ? response.content
+      : JSON.stringify(response.content, null, 2)
+    debug('Content:')
+    responseContent.split('\n').forEach((line: string) => {
+      debug(`  ${line}`)
+    })
+
+    if (response.tool_calls && response.tool_calls.length > 0) {
+      debug('\nTool calls requested: %d', response.tool_calls.length)
+      response.tool_calls.forEach((tc, idx) => {
+        debug(`  [${idx}] ${tc.name} (ID: ${tc.id})`)
+        const argsStr = JSON.stringify(tc.args, null, 2)
+        argsStr.split('\n').forEach((line: string) => {
+          debug(`      ${line}`)
+        })
+      })
+    }
+    debug('─'.repeat(60))
+
     currentMessages.push(response)
 
     // Check if model wants to call tools
     if (!response.tool_calls || response.tool_calls.length === 0) {
       // No tool calls, agent is done
-      debug('Agent finished without tool calls')
+      debug('\n✅ Agent finished - no more tool calls requested')
+      debug('Final response content:')
+      responseContent.split('\n').forEach((line: string) => {
+        debug(`  ${line}`)
+      })
       return typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content)
     }
 
-    debug(`Agent requested ${response.tool_calls.length} tool calls`)
+    debug(`\n🔧 Executing ${response.tool_calls.length} tool call(s)...`)
 
-    // Execute all tool calls
+    // Execute all tool calls and collect results
+    const toolMessages: BaseMessage[] = []
+
     for (const toolCall of response.tool_calls) {
-      debug(`Executing tool: ${toolCall.name}`)
+      debug(`\n  ▶ Tool: ${toolCall.name}`)
+      debug(`    ID: ${toolCall.id}`)
+      debug(`    Args:`)
+      JSON.stringify(toolCall.args, null, 2).split('\n').forEach((line: string) => {
+        debug(`      ${line}`)
+      })
 
       try {
         // Find the tool by name
@@ -102,24 +159,52 @@ export async function invokeLLMAgent(
         // Invoke the tool
         const toolResult = await tool.invoke(toolCall.args || {})
 
-        // Add tool message to conversation
-        // Note: LangChain tools return ToolMessage objects directly
-        currentMessages.push(toolResult)
-        debug(`Tool ${toolCall.name} executed successfully`)
+        // Check if the result is already a ToolMessage
+        if (toolResult && typeof toolResult === 'object' && '_getType' in toolResult) {
+          // It's likely a LangChain message object
+          const resultContent = typeof toolResult.content === 'string'
+            ? toolResult.content
+            : JSON.stringify(toolResult.content, null, 2)
+          debug(`    ✓ Result (ToolMessage):`)
+          resultContent.split('\n').forEach((line: string) => {
+            debug(`      ${line}`)
+          })
+          toolMessages.push(toolResult)
+        } else {
+          // Create a ToolMessage with proper tool_call_id
+          const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult, null, 2)
+          debug(`    ✓ Result (raw):`)
+          resultStr.split('\n').forEach((line: string) => {
+            debug(`      ${line}`)
+          })
+          const toolMessage = new ToolMessage({
+            content: resultStr,
+            tool_call_id: toolCall.id || '',
+          })
+          toolMessages.push(toolMessage)
+        }
+
+        debug(`    ✓ Success`)
       } catch (error) {
-        debug(`Error executing tool ${toolCall.name}: %o`, error)
-        // Add error message so agent can handle it
-        currentMessages.push(
-          new HumanMessage({
-            content: `Error executing tool ${toolCall.name}: ${error instanceof Error ? error.message : String(error)}`,
-          }),
-        )
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        debug(`    ✗ Error: ${errorMsg}`)
+        // Create a ToolMessage for the error with the matching tool_call_id
+        const errorMessage = new ToolMessage({
+          content: `Error: ${errorMsg}`,
+          tool_call_id: toolCall.id || '',
+        })
+        toolMessages.push(errorMessage)
       }
     }
+
+    // Add all tool messages to the conversation
+    debug('\n📤 Adding %d tool result(s) to conversation', toolMessages.length)
+    currentMessages.push(...toolMessages)
   }
 
   // Max iterations reached
-  debug('Max iterations reached, returning last message')
+  debug('\n⚠️  Max iterations (%d) reached', maxIterations)
+  debug('Returning last message in conversation')
   const lastMessage = currentMessages[currentMessages.length - 1]
   return typeof lastMessage.content === 'string'
     ? lastMessage.content

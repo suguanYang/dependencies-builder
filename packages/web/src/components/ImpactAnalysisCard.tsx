@@ -94,12 +94,45 @@ export function ImpactAnalysisCard({ impactAnalysis, className = '' }: ImpactAna
                     </p>
                 </div>
 
+                {/* Per-Project Suggestions */}
+                {impactAnalysis.affectedProjects && impactAnalysis.affectedProjects.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2">Affected Projects & Actions</h4>
+                        <div className="space-y-3">
+                            {impactAnalysis.affectedProjects.map((project, index) => (
+                                <div
+                                    key={index}
+                                    className="bg-amber-50 p-3 rounded-md border border-amber-200"
+                                >
+                                    <h5 className="font-medium text-sm text-amber-900 mb-1">
+                                        {project.projectName}
+                                    </h5>
+                                    <p className="text-xs text-amber-700 mb-2">{project.impact}</p>
+                                    <ul className="list-disc list-inside space-y-1 text-xs text-amber-800">
+                                        {project.suggestions.map((suggestion, sidx) => (
+                                            <li key={sidx}>{suggestion}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Suggestions */}
                 <div>
-                    <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
-                    <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md border border-blue-200">
-                        {impactAnalysis.suggestion}
-                    </p>
+                    <h4 className="font-semibold text-sm mb-2">Overall Recommendations</h4>
+                    <div className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md border border-blue-200">
+                        {Array.isArray(impactAnalysis.suggestion) ? (
+                            <ul className="list-disc list-inside space-y-1">
+                                {impactAnalysis.suggestion.map((item, index) => (
+                                    <li key={index}>{item}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="whitespace-pre-wrap">{impactAnalysis.suggestion}</p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Additional Message */}
