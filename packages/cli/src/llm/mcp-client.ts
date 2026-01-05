@@ -2,42 +2,22 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { GitLabConfig } from './config'
 import debug from '../utils/debug'
 
-/**
- * Disposable wrapper for MCP client that implements Symbol.dispose
- */
-class DisposableMCPClient implements Disposable {
-  constructor(private client: MultiServerMCPClient) { }
-
-  getClient(): MultiServerMCPClient {
-    return this.client
-  }
-
-  async [Symbol.dispose](): Promise<void> {
-    debug('Disposing MCP client...')
-    try {
-      await this.client.close()
-      debug('MCP client disposed successfully')
-    } catch (error) {
-      debug('Error disposing MCP client: %o', error)
-      // Don't rethrow - disposal errors shouldn't break the flow
-    }
-  }
-
-  [Symbol.asyncDispose](): Promise<void> {
-    return this[Symbol.dispose]()
-  }
-}
+let mcpClient: MultiServerMCPClient | null = null
 
 /**
  * Initialize the MCP client for GitLab integration
- * Returns a disposable client that auto-cleans up with 'using' syntax
  * @param config GitLab configuration
- * @returns DisposableMCPClient instance
+ * @returns MultiServerMCPClient instance with loaded tools
  */
-export async function createMCPClient(config: GitLabConfig): Promise<DisposableMCPClient> {
+export async function initMCPClient(config: GitLabConfig) {
+  if (mcpClient) {
+    debug('MCP client already initialized, reusing existing instance')
+    return mcpClient
+  }
+
   debug('Initializing GitLab MCP client...')
 
-  const mcpClient = new MultiServerMCPClient({
+  mcpClient = new MultiServerMCPClient({
     gitlab: {
       transport: 'stdio',
       command: 'node',
@@ -56,28 +36,12 @@ export async function createMCPClient(config: GitLabConfig): Promise<DisposableM
   const tools = await mcpClient.getTools()
   debug(`MCP client initialized with ${tools.length} tools: ${tools.map((t) => t.name).join(', ')}`)
 
-  return new DisposableMCPClient(mcpClient)
-}
-
-// Legacy singleton-style exports for backward compatibility
-let mcpClient: MultiServerMCPClient | null = null
-
-/**
- * @deprecated Use createMCPClient() with 'using' syntax instead
- */
-export async function initMCPClient(config: GitLabConfig) {
-  if (mcpClient) {
-    debug('MCP client already initialized, reusing existing instance')
-    return mcpClient
-  }
-
-  const disposableClient = await createMCPClient(config)
-  mcpClient = disposableClient.getClient()
   return mcpClient
 }
 
 /**
- * @deprecated Use createMCPClient() with 'using' syntax instead
+ * Get the current MCP client instance
+ * @throws Error if client is not initialized
  */
 export function getMCPClient(): MultiServerMCPClient {
   if (!mcpClient) {
@@ -87,7 +51,7 @@ export function getMCPClient(): MultiServerMCPClient {
 }
 
 /**
- * @deprecated Use createMCPClient() with 'using' syntax instead
+ * Close the MCP client and clean up resources
  */
 export async function closeMCPClient(): Promise<void> {
   if (!mcpClient) {
@@ -101,6 +65,7 @@ export async function closeMCPClient(): Promise<void> {
     debug('MCP client closed successfully')
   } catch (error) {
     debug('Error closing MCP client: %o', error)
+    // Still set to null to allow re-initialization
     mcpClient = null
   }
 }

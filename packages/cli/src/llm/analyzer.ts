@@ -1,6 +1,6 @@
 import type { Connection, Node } from '../server-types'
 import { loadLLMConfig, validateLLMConfig } from './config'
-import { createMCPClient } from './mcp-client'
+import { initMCPClient, closeMCPClient } from './mcp-client'
 import { invokeLLMAgent } from './agent'
 import debug, { error } from '../utils/debug'
 
@@ -62,21 +62,20 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
   try {
     debug('Starting LLM-based impact analysis...')
 
-    // Initialize MCP client with automatic cleanup using 'using' syntax
-    using mcpClient = await createMCPClient(config.gitlab)
+    // Initialize MCP client
+    await initMCPClient(config.gitlab)
 
     // Prepare context for the LLM
     const context = await prepareContext(input)
     const instruction = prepareInstruction()
 
-    // Invoke the agent with the MCP client
-    const result = await invokeLLMAgent(context, instruction, config.llm, mcpClient.getClient())
+    // Invoke the agent
+    const result = await invokeLLMAgent(context, instruction, config.llm)
 
     // Parse the result
     const report = parseAgentResult(result)
 
     return report
-    // MCP client will be automatically disposed here
   } catch (error) {
     debug('Impact analysis failed: %o', error)
     return {
@@ -86,6 +85,9 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
       suggestion: 'Manual review recommended',
       message: error instanceof Error ? error.message : String(error),
     }
+  } finally {
+    // Always close the MCP client
+    await closeMCPClient()
   }
 }
 

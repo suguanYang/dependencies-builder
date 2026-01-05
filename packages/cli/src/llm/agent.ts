@@ -2,8 +2,8 @@ import { ChatOpenAI } from '@langchain/openai'
 import type { BaseMessage } from '@langchain/core/messages'
 import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import type { LLMConfig } from './config'
-import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import debug, { error } from '../utils/debug'
+import { getMCPClient } from './mcp-client'
 
 /**
  * State for the agent
@@ -17,14 +17,12 @@ export interface AgentState {
  * @param context The context string containing project info and affected nodes
  * @param instruction The instruction for the agent
  * @param config LLM configuration
- * @param mcpClient MCP client instance with loaded tools
  * @returns The final message from the agent
  */
 export async function invokeLLMAgent(
   context: string,
   instruction: string,
   config: LLMConfig,
-  mcpClient: MultiServerMCPClient,
 ): Promise<string> {
   debug('Initializing LLM agent...')
 
@@ -46,6 +44,7 @@ export async function invokeLLMAgent(
   })
 
   // Get tools from MCP client
+  const mcpClient = getMCPClient()
   const tools = await mcpClient.getTools()
   debug(`Agent using ${tools.length} tools from MCP`)
 
