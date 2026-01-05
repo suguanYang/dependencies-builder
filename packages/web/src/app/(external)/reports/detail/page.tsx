@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Share2Icon, Printer, Sparkles, AlertCircleIcon } from 'lucide-react'
+import { Share2Icon, Sparkles, AlertCircleIcon, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getActionById } from '@/lib/api'
-import type { ImpactReport } from '@/lib/server-types'
+import type { Action, Connection, ImpactReport, Node } from '@/lib/server-types'
 import { ImpactAnalysisCard } from '@/components/ImpactAnalysisCard'
 
 /**
@@ -18,12 +18,22 @@ import { ImpactAnalysisCard } from '@/components/ImpactAnalysisCard'
  */
 import { generatePermanentLink } from '@/lib/links'
 
+type ReportResult = {
+  impactAnalysis: ImpactReport
+  targetVersion: string
+  affectedToNodes: Node[]
+  affecatedConnections: Connection[]
+}
+
 export default function ReportDetailPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const actionId = searchParams.get('id')
 
-  const [report, setReport] = useState<any>(null)
+  const [report, setReport] = useState<{
+    result: ReportResult
+    parameters: Action['parameters']
+    createdAt: string
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [copied, setCopied] = useState(false)
@@ -57,15 +67,14 @@ export default function ReportDetailPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Helper to generate MR Link
-  const getMergeRequestLink = () => {
-    if (!report?.parameters) return null
-    const { projectAddr, branch, targetBranch } = report.parameters
-    if (!projectAddr || !branch || !targetBranch) return null
+  const hasVersionMismatch = (result: ReportResult) => {
+    if (!result?.affectedToNodes || !result.targetVersion) {
+      return false
+    }
 
-    // Clean address
-    const baseUrl = projectAddr.replace(/\.git$/, '').replace(/\/$/, '')
-    return `${baseUrl}/-/merge_requests/new?merge_request[source_branch]=${branch}&merge_request[target_branch]=${targetBranch}`
+    return result.affectedToNodes.some(
+      (node) => node.version && node.version !== result.targetVersion,
+    )
   }
 
   if (loading) {
@@ -85,16 +94,13 @@ export default function ReportDetailPage() {
         <Alert variant="destructive" className="max-w-lg">
           <AlertCircleIcon className="h-4 w-4" />
           <AlertTitle>无法加载报告</AlertTitle>
-          <AlertDescription>
-            {error || '未找到报告'}
-          </AlertDescription>
+          <AlertDescription>{error || '未找到报告'}</AlertDescription>
         </Alert>
       </div>
     )
   }
 
   const hasImpactAnalysis = !!report.result?.impactAnalysis
-  const mrLink = getMergeRequestLink()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,6 +137,17 @@ export default function ReportDetailPage() {
               )}
             </CardTitle>
             <CardDescription>
+              {hasVersionMismatch(report.result) && (
+                <Alert className="mt-4 mb-2 bg-yellow-50 border-yellow-200">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertTitle className="text-yellow-800">版本不匹配警告</AlertTitle>
+                  <AlertDescription className="text-yellow-700">
+                    受影响节点的版本与目标分支版本 ({report.result.targetVersion}) 不匹配。
+                    这表明分析是在旧代码上执行的。报告可能不准确！
+                    您应该在再次运行同一报告之前，对目标分支运行新的静态分析。
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 <div>
                   <div className="text-xs text-gray-500">源分支</div>
@@ -161,7 +178,7 @@ export default function ReportDetailPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {report.result?.affectedToNodes?.length || 0}
               </div>
-              <p className="text-xs text-gray-500 mt-1">个导出点被修改</p>
+              <p className="text-xs text-gray-500 mt-1">个被依赖节点被修改</p>
             </CardContent>
           </Card>
 
@@ -173,7 +190,7 @@ export default function ReportDetailPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {report.result?.affecatedConnections?.length || 0}
               </div>
-              <p className="text-xs text-gray-500 mt-1">个依赖项受到影响</p>
+              <p className="text-xs text-gray-500 mt-1">个项目间依赖项受到影响</p>
             </CardContent>
           </Card>
 
@@ -185,12 +202,13 @@ export default function ReportDetailPage() {
               {hasImpactAnalysis && report.result.impactAnalysis?.level ? (
                 <>
                   <div
-                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${report.result.impactAnalysis.level === 'low'
-                      ? 'bg-green-100 text-green-700'
-                      : report.result.impactAnalysis.level === 'medium'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                      }`}
+                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${
+                      report.result.impactAnalysis.level === 'low'
+                        ? 'bg-green-100 text-green-700'
+                        : report.result.impactAnalysis.level === 'medium'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}
                   >
                     {report.result.impactAnalysis.level.toUpperCase()}
                   </div>
@@ -223,8 +241,16 @@ export default function ReportDetailPage() {
             {report.result?.affecatedConnections?.length > 0 ? (
               <div className="space-y-2">
                 {/* TODO need paginations */}
-                {report.result.affecatedConnections.map((conn: any, index: number) => {
-                  const fromNodePermalink = generatePermanentLink(conn.fromNode, report.parameters.projectAddr)
+                {report.result.affecatedConnections.map((conn, index) => {
+                  const fromNodePermalink = generatePermanentLink(
+                    conn.fromNode,
+                    conn.fromNode?.project?.addr,
+                  )
+
+                  const toNodePermalink = generatePermanentLink(
+                    conn.toNode,
+                    conn.toNode?.project?.addr,
+                  )
 
                   return (
                     <div
@@ -255,7 +281,18 @@ export default function ReportDetailPage() {
                         )}
                         <span className="text-gray-500">({conn.fromNode?.type})</span>
                         <span className="text-gray-400 mx-1">→</span>
-                        <span className="font-mono">{conn.toNode?.name}</span>
+                        {toNodePermalink ? (
+                          <a
+                            href={toNodePermalink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline font-mono"
+                          >
+                            {conn.toNode?.name}
+                          </a>
+                        ) : (
+                          <span className="font-mono">{conn.toNode?.name}</span>
+                        )}
                         <span className="text-gray-500">({conn.toNode?.type})</span>
                       </div>
                     </div>
