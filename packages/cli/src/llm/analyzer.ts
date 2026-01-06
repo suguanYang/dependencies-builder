@@ -1,8 +1,9 @@
-import type { Connection, Node } from '../server-types'
+import type { Connection, LocalNode } from '../server-types'
 import { loadLLMConfig, validateLLMConfig } from './config'
 import { initMCPClient, closeMCPClient } from './mcp-client'
 import { invokeLLMAgent } from './agent'
 import debug, { error } from '../utils/debug'
+import { generateNodeId } from '../utils/node-id'
 
 /**
  * Impact analysis report structure
@@ -33,8 +34,9 @@ export interface ImpactAnalysisInput {
   projectAddr: string
   sourceBranch: string
   targetBranch: string
-  affectedToNodes: Node[]
+  affectedToNodes: LocalNode[]
   affectedConnections: Connection[]
+  changedContext?: Map<string, string[]>
 }
 
 /**
@@ -119,6 +121,24 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     throw new Error('Source and target branches are required for LLM analysis')
   }
 
+  // Validate affected nodes
+  for (const conn of input.affectedConnections) {
+    const fromNode = conn.fromNode
+    const toNode = conn.toNode
+
+    // Validate dependent node data
+    if (!fromNode?.projectName)
+      throw new Error(`Missing project name for dependent node: ${fromNode?.name}`)
+    if (!fromNode?.relativePath)
+      throw new Error(`Missing file path for dependent node: ${fromNode?.name}`)
+    if (!fromNode?.name) throw new Error(`Missing name for dependent node`)
+
+    // Validate dependency node data
+    if (!toNode?.relativePath)
+      throw new Error(`Missing file path for dependency node: ${toNode?.name}`)
+    if (!toNode?.name) throw new Error(`Missing name for dependency node`)
+  }
+
   // Get unique project names and fetch their addresses
   const uniqueProjectNames = [
     ...new Set(
@@ -155,17 +175,9 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
 
   // Throw if too many projects failed to resolve
   if (failedProjects.length > 0) {
-    const failureRate = failedProjects.length / uniqueProjectNames.length
-    if (failureRate > 0.5) {
-      throw new Error(
-        `Failed to resolve repository addresses for ${failedProjects.length}/${uniqueProjectNames.length} affected projects. ` +
-          `Projects: ${failedProjects.join(', ')}`,
-      )
-    } else {
-      debug(
-        `Warning: ${failedProjects.length} projects failed to resolve: ${failedProjects.join(', ')}`,
-      )
-    }
+    throw new Error(
+      `Failed to resolve repository addresses for ` + `Projects: ${failedProjects.join(', ')}`,
+    )
   }
 
   const affectedFromNodes = input.affectedConnections
@@ -213,17 +225,52 @@ Project ID: ${projectID}
 Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
 
-Affected From Nodes (${affectedFromNodes.length}):
-${affectedFromNodes
-  .map((node) => {
+Affected Dependencies (${input.affectedConnections.length}):
+${input.affectedConnections
+  .map((conn) => {
+    const fromNode = conn.fromNode
+    const toNode = conn.toNode
+
+    // Validate dependent node data
+    if (!fromNode?.projectName)
+      throw new Error(`Missing project name for dependent node: ${fromNode?.name}`)
+    if (!fromNode?.relativePath)
+      throw new Error(`Missing file path for dependent node: ${fromNode?.name}`)
+    if (!fromNode?.name) throw new Error(`Missing name for dependent node`)
+
+    // Validate dependency node data
+    if (!toNode?.relativePath)
+      throw new Error(`Missing file path for dependency node: ${toNode?.name}`)
+    if (!toNode?.name) throw new Error(`Missing name for dependency node`)
+
+    // Get project details for the 'fromNode' (dependent project)
+    const dependentProjectAddr = projectAddressMap.get(fromNode.projectName)
+    const dependentProjectID = dependentProjectAddr
+      ? getProjectIDFromRepositoryAddr(dependentProjectAddr)
+      : undefined
+
+    // Get changed context for the 'toNode' (dependency in the current project)
+    // Use generated ID to match the context map key
+    const toNodeId = generateNodeId(toNode)
+    const changedLines = input.changedContext?.get(toNodeId)
+
     const parts = [
-      `Project: ${node.projectName}`,
-      node.projectID ? `ID: ${node.projectID}` : null,
-      `Path: ${node.relativePath}:${node.startLine}`,
-      `Name: ${node.name}`,
-      node.branch ? `Branch: ${node.branch}` : null,
+      `Dependent Project: ${fromNode.projectName}`,
+      dependentProjectID ? `Dependent Project ID: ${dependentProjectID}` : null,
+      `Dependent File: ${fromNode.relativePath}:${fromNode.startLine || ''}`,
+      `Dependent Name: ${fromNode.name}`,
+      fromNode.branch ? `Dependent Branch: ${fromNode.branch}` : null,
+      `Depends On (Current Project): ${toNode.relativePath}:${toNode.startLine || ''}`,
+      `Dependency Name: ${toNode.name}`,
+      toNode.branch ? `Dependency Branch: ${toNode.branch}` : null,
     ].filter(Boolean)
-    return `  - ${parts.join(', ')}`
+
+    let changeContextString = ''
+    if (changedLines && changedLines.length > 0) {
+      changeContextString = `\n    Changed Content in Dependency:\n${changedLines.map((line) => `      ${line}`).join('\n')}`
+    }
+
+    return `  - ${parts.join(', ')}${changeContextString}`
   })
   .join('\n')}
 `.trim()
@@ -249,8 +296,11 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 - This dependency is comes from static analysis, mainly consists of these types: 1. ES6 import/export, 2. global variables, local storage, session storage read/write, 3. events. 4. URL parameters. The changed code may be a part of the call stack of the dependency
 
 **Efficient Analysis Strategy:**
-1. **Use the Project ID from context** (don't call list_projects for the main project)
-2. Get the merge request ID for the given source and target branches by list_merge_requests(project_id: Project ID, source_branch: source_branch, target_branch: target_branch) *Do Not Specify The State of the MR*
+1. **Analyze the "Changed Content in Dependency" first**:
+   - Check if changes are merely formatting, comments, or trivial refactors.
+   - If a change clearly DOES NOT affect logic (e.g. whitespace only), mark impact as "None" or skip it.
+2. **Use the Project ID from context** (don't call list_projects for the main project)
+3. Get the merge request ID for the given source and target branches by list_merge_requests(project_id: Project ID, source_branch: source_branch, target_branch: target_branch) *Do Not Specify The State of the MR*
 3. Get the merge request diffs to see what actually changed by get_merge_request_diffs(project_id: Project ID, merge_request_iid: merge_request_iid, view: "inline")
 4. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
    - Each affected node has an "ID" field (e.g., "group/project")

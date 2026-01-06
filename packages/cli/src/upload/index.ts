@@ -3,6 +3,7 @@ import { batchCreateNodes, commitCreatedNodes, rollbackCreatedNodes, updateActio
 import type { RunCodeQLResult } from '../codeql'
 import { getContext } from '../context'
 import debug, { error as errLog } from '../utils/debug'
+import { generateNodeId } from '../utils/node-id'
 
 export interface UploadResult {
   success: boolean
@@ -27,7 +28,7 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
   // Check for duplicates in the batch
   const uniqueKeys = new Set<string>()
   for (const node of nodesToUpload) {
-    const key = `${node.projectName}:${node.branch}:${node.relativePath}:${node.type}:${node.name}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}:${node.qlsVersion ?? '0.1.0'}`
+    const key = generateNodeId(node)
     if (uniqueKeys.has(key)) {
       throw new Error(`Duplicate node found in batch: ${key}`)
     }

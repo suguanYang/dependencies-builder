@@ -8,11 +8,12 @@ import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
 import { uploadReport } from '../upload'
 import { getConnectionsByToNode } from '../api'
-import { Connection, Node } from '../server-types'
+import { Connection, LocalNode } from '../server-types'
 import { analyzeImpact, type ImpactReport } from '../llm/analyzer'
+import { generateNodeId } from '../utils/node-id'
 
 interface ReportResult {
-  affectedToNodes: Node[]
+  affectedToNodes: LocalNode[]
   version: string
   targetVersion: string
   affecatedConnections: Connection[]
@@ -41,7 +42,7 @@ export async function generateReport(): Promise<void> {
     debug('Changed lines: %d', changedLines.length)
 
     debug('Finding affected "to nodes"')
-    const affectedToNodes = await findAffectedToNodes(
+    const { nodes: affectedToNodes, context: changedContext } = await findAffectedToNodes(
       results.nodes,
       results.callGraph,
       changedLines,
@@ -68,6 +69,7 @@ export async function generateReport(): Promise<void> {
           targetBranch,
           affectedToNodes,
           affectedConnections: affecatedConnections,
+          changedContext,
         })
         if (impactAnalysis) {
           debug('Impact analysis completed: %o', impactAnalysis)
@@ -114,7 +116,7 @@ function getAnalysisResults(targetBranch: string): Results & {
 
 interface ChangedLine {
   file: string
-  lines: number[]
+  changes: { line: number; content: string }[]
 }
 
 async function getDiffChangedLines(
@@ -131,6 +133,7 @@ async function getDiffChangedLines(
 
     const changedLines: ChangedLine[] = []
     let currentFile = ''
+    let currentLineNumber = 0
     const lines = diffOutput.split('\n')
 
     for (const line of lines) {
@@ -159,22 +162,34 @@ async function getDiffChangedLines(
 
       if (line.startsWith('@@')) {
         const match = line.match(/[-+](\d+)(?:,(\d+))?/)
-        if (match && currentFile) {
-          const startLine = parseInt(match[1])
-          const count = match[2] ? parseInt(match[2]) : 1
-
-          const existingEntry = changedLines.find((entry) => entry.file === currentFile)
-          const lineNumbers = Array.from({ length: count }, (_, i) => startLine + i)
-
-          if (existingEntry) {
-            existingEntry.lines.push(...lineNumbers)
-          } else {
-            changedLines.push({
-              file: currentFile,
-              lines: lineNumbers,
-            })
+        if (match) {
+          // The + line number (new file) is the second capture group pair usually, but in simplified git diff it's:
+          // @@ -1,1 +1,1 @@
+          // We want the new line number.
+          // RegExp to match: @@ -old_start,old_count +new_start,new_count @@
+          const rangeMatch = line.match(/@@ \-\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/)
+          if (rangeMatch) {
+            currentLineNumber = parseInt(rangeMatch[1])
           }
         }
+        continue
+      }
+
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        const content = line.substring(1) // remove +
+
+        let existingEntry = changedLines.find((entry) => entry.file === currentFile)
+        if (!existingEntry) {
+          existingEntry = { file: currentFile, changes: [] }
+          changedLines.push(existingEntry)
+        }
+
+        existingEntry.changes.push({
+          line: currentLineNumber,
+          content,
+        })
+
+        currentLineNumber++
       }
     }
 
@@ -189,9 +204,11 @@ async function findAffectedToNodes(
   nodes: Results['nodes'],
   callGraph: [string, string][],
   changedLines: ChangedLine[],
-): Promise<Node[]> {
+): Promise<{ nodes: LocalNode[]; context: Map<string, string[]> }> {
   const seen = new Set()
-  const affectedNodes = new Set<any>()
+  const affectedNodes = new Set<string>() // Use IDs to track uniqueness efficiently if needed, but here we invoke object equality which is tricky if objects are recreated. Let's use the object itself but handle dupes carefully.
+  const affectedNodesList: LocalNode[] = []
+  const nodeContext = new Map<string, Set<string>>() // Node ID -> Set of changed code lines
 
   const toNodes = nodes.filter(
     (node) =>
@@ -213,10 +230,6 @@ async function findAffectedToNodes(
       continue
     }
 
-    if (affectedNodes.has(toNode)) {
-      continue
-    }
-
     let isAffected = false
     for (const location of edge) {
       if (seen.has(location)) {
@@ -225,24 +238,44 @@ async function findAffectedToNodes(
       seen.add(location)
 
       const [relativePath, startLine, _startColumn, endLine, _endColumn] = location.split(':')
-      for (const changedLine of changedLines) {
-        if (changedLine.file === relativePath) {
-          if (
-            changedLine.lines.some(
-              (line) => line >= parseInt(startLine) && line <= parseInt(endLine),
-            )
-          ) {
-            affectedNodes.add(toNode)
-            isAffected = true
-            break
+
+      const fileChanges = changedLines.find((cl) => cl.file === relativePath)
+      if (fileChanges) {
+        const start = parseInt(startLine)
+        const end = parseInt(endLine)
+
+        const affectingChanges = fileChanges.changes.filter((c) => c.line >= start && c.line <= end)
+
+        if (affectingChanges.length > 0) {
+          isAffected = true
+
+          const nodeId = generateNodeId(toNode)
+
+          if (!nodeContext.has(nodeId)) {
+            nodeContext.set(nodeId, new Set())
           }
+          const contextSet = nodeContext.get(nodeId)!
+
+          affectingChanges.forEach((change) => {
+            contextSet.add(`File: ${relativePath}:${change.line} Content: ${change.content}`)
+          })
         }
       }
       if (isAffected) {
-        break
+        const nodeId = generateNodeId(toNode)
+        if (!affectedNodes.has(nodeId)) {
+          affectedNodes.add(nodeId)
+          affectedNodesList.push(toNode)
+        }
       }
     }
   }
 
-  return Array.from(affectedNodes)
+  // Convert Sets to Arrays for final output
+  const contextMap = new Map<string, string[]>()
+  for (const [id, set] of nodeContext) {
+    contextMap.set(id, Array.from(set))
+  }
+
+  return { nodes: affectedNodesList, context: contextMap }
 }

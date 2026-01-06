@@ -56,6 +56,8 @@ export interface Node {
   export_entry?: string | null
 }
 
+export type LocalNode = Omit<Node, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>
+
 export interface Project {
   id: string
   addr: string
