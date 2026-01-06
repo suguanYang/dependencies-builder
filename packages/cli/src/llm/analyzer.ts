@@ -132,11 +132,15 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     if (!fromNode?.relativePath)
       throw new Error(`Missing file path for dependent node: ${fromNode?.name}`)
     if (!fromNode?.name) throw new Error(`Missing name for dependent node`)
+    if (fromNode?.startLine === undefined)
+      throw new Error(`Missing start line for dependent node: ${fromNode?.name}`)
 
     // Validate dependency node data
     if (!toNode?.relativePath)
       throw new Error(`Missing file path for dependency node: ${toNode?.name}`)
     if (!toNode?.name) throw new Error(`Missing name for dependency node`)
+    if (toNode?.startLine === undefined)
+      throw new Error(`Missing start line for dependency node: ${toNode?.name}`)
   }
 
   // Get unique project names and fetch their addresses
@@ -180,36 +184,36 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     )
   }
 
-  const affectedFromNodes = input.affectedConnections
-    .map((conn) => {
-      const projectAddr = conn.fromNode?.projectName
-        ? projectAddressMap.get(conn.fromNode.projectName)
-        : undefined
+  const validImpacts = input.affectedConnections.map((conn) => {
+    const fromNode = conn.fromNode
+    const toNode = conn.toNode
 
-      // Extract project ID from repository address
-      const projectID = projectAddr ? getProjectIDFromRepositoryAddr(projectAddr) : undefined
+    const projectAddr = fromNode?.projectName
+      ? projectAddressMap.get(fromNode.projectName)
+      : undefined
 
-      return {
-        projectName: conn.fromNode?.projectName,
-        projectAddr,
-        projectID,
-        name: conn.fromNode?.name,
-        relativePath: conn.fromNode?.relativePath,
-        startLine: conn.fromNode?.startLine,
-        branch: conn.fromNode?.branch,
-      }
-    })
-    // Filter out nodes with missing critical data
-    .filter((node) => {
-      const isValid = node.projectName && node.projectID && node.relativePath && node.name
-      if (!isValid) {
-        debug(`Filtering out invalid node: ${JSON.stringify(node)}`)
-      }
-      return isValid
-    })
+    // Extract project ID from repository address
+    const projectID = projectAddr ? getProjectIDFromRepositoryAddr(projectAddr) : undefined
+
+    if (!projectID) {
+      throw new Error(`Failed to resolve project ID for dependent project: ${fromNode.projectName}`)
+    }
+
+    // Get changed context for the 'toNode' (dependency in the current project)
+    const toNodeId = generateNodeId(toNode)
+    const changedLines = input.changedContext?.get(toNodeId)
+
+    return {
+      fromNode,
+      toNode,
+      projectID,
+      changedLines,
+      // Helper flags for filtering if needed, though top validation covers most
+    }
+  })
 
   // Validate we still have nodes after filtering
-  if (affectedFromNodes.length === 0) {
+  if (validImpacts.length === 0) {
     throw new Error('No valid affected nodes after filtering - cannot perform LLM analysis')
   }
 
@@ -225,49 +229,23 @@ Project ID: ${projectID}
 Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
 
-Affected Dependencies (${input.affectedConnections.length}):
-${input.affectedConnections
-  .map((conn) => {
-    const fromNode = conn.fromNode
-    const toNode = conn.toNode
-
-    // Validate dependent node data
-    if (!fromNode?.projectName)
-      throw new Error(`Missing project name for dependent node: ${fromNode?.name}`)
-    if (!fromNode?.relativePath)
-      throw new Error(`Missing file path for dependent node: ${fromNode?.name}`)
-    if (!fromNode?.name) throw new Error(`Missing name for dependent node`)
-
-    // Validate dependency node data
-    if (!toNode?.relativePath)
-      throw new Error(`Missing file path for dependency node: ${toNode?.name}`)
-    if (!toNode?.name) throw new Error(`Missing name for dependency node`)
-
-    // Get project details for the 'fromNode' (dependent project)
-    const dependentProjectAddr = projectAddressMap.get(fromNode.projectName)
-    const dependentProjectID = dependentProjectAddr
-      ? getProjectIDFromRepositoryAddr(dependentProjectAddr)
-      : undefined
-
-    // Get changed context for the 'toNode' (dependency in the current project)
-    // Use generated ID to match the context map key
-    const toNodeId = generateNodeId(toNode)
-    const changedLines = input.changedContext?.get(toNodeId)
+Affected Dependencies (${validImpacts.length}):
+${validImpacts
+  .map((item) => {
+    const { fromNode, toNode, projectID, changedLines } = item
 
     const parts = [
       `Dependent Project: ${fromNode.projectName}`,
-      dependentProjectID ? `Dependent Project ID: ${dependentProjectID}` : null,
-      `Dependent File: ${fromNode.relativePath}:${fromNode.startLine || ''}`,
+      `Dependent Project ID: ${projectID}`,
+      `Dependent File: ${fromNode.relativePath}:${fromNode.startLine}`,
       `Dependent Name: ${fromNode.name}`,
-      fromNode.branch ? `Dependent Branch: ${fromNode.branch}` : null,
-      `Depends On (Current Project): ${toNode.relativePath}:${toNode.startLine || ''}`,
+      `Depends On (Current Project): ${toNode.relativePath}:${toNode.startLine}`,
       `Dependency Name: ${toNode.name}`,
-      toNode.branch ? `Dependency Branch: ${toNode.branch}` : null,
-    ].filter(Boolean)
+    ]
 
     let changeContextString = ''
     if (changedLines && changedLines.length > 0) {
-      changeContextString = `\n    Changed Content in Dependency:\n${changedLines.map((line) => `      ${line}`).join('\n')}`
+      changeContextString = `\n  The Changed Content in Dependency (Current Project):\n${changedLines.map((line) => `      ${line}`).join('\n')}`
     }
 
     return `  - ${parts.join(', ')}${changeContextString}`
