@@ -245,7 +245,15 @@ ${validImpacts
 
     let changeContextString = ''
     if (changedLines && changedLines.length > 0) {
-      changeContextString = `\n  The Changed Content in Dependency (Current Project):\n${changedLines.map((line) => `      ${line}`).join('\n')}`
+      const formattedChanges = changedLines
+        .map((block) =>
+          block
+            .split('\n')
+            .map((line) => `      ${line}`)
+            .join('\n'),
+        )
+        .join('\n')
+      changeContextString = `\n  The Changed Content in Dependency (Current Project):\n${formattedChanges}`
     }
 
     return `  - ${parts.join(', ')}${changeContextString}`
@@ -276,23 +284,21 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 **Efficient Analysis Strategy:**
 1. **Analyze the "Changed Content in Dependency" first**:
    - Check if changes are merely formatting, comments, or trivial refactors.
-   - If a change clearly DOES NOT affect logic (e.g. whitespace only), mark impact as "None" or skip it.
+   - If a change clearly DOES NOT affect logic (e.g. whitespace only), skip it.
 2. **Use the Project ID from context** (don't call list_projects for the main project)
-3. Get the merge request ID for the given source and target branches by list_merge_requests(project_id: Project ID, source_branch: source_branch, target_branch: target_branch) *Do Not Specify The State of the MR*
-3. Get the merge request diffs to see what actually changed by get_merge_request_diffs(project_id: Project ID, merge_request_iid: merge_request_iid, view: "inline")
-4. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
+3. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
    - Each affected node has an "ID" field (e.g., "group/project")
    - **Use this ID directly** - no need to parse URLs or search by name
    - Make multiple tool calls in one response when possible
    - Focus on top 5-10 most critical projects if there are many
-5. **BATCH PROCESS**: Get relevant file contents from affected projects in parallel
+4. **BATCH PROCESS**: Get relevant file contents from affected projects in parallel(by tool get_file_contents)
    - **NOTE**: File contents will have line numbers added (e.g., "   1: code here")
    - Use these line numbers to locate the exact code referenced in "Affected From Nodes"
-6. **For EACH affected project**, analyze:
+5. **For EACH affected project**, analyze:
    - What specific functionality in that project is impacted
    - What actions that project needs to take
    - Reference specific line numbers when describing the impact
-7. Generate your impact report with per-project suggestions **IN CHINESE**
+6. Generate your impact report with per-project suggestions **IN CHINESE**
 
 **IMPORTANT Instructions:**
 - The Project ID is already provided in the context - use it directly

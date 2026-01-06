@@ -85,6 +85,16 @@ export async function invokeLLMAgent(
         typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)
 
       debug(`\n[${idx}] ${type.toUpperCase()}:`)
+
+      // Log tool calls for AI messages if present
+      const toolCalls = (msg as any).tool_calls
+      if (type === 'ai' && toolCalls && toolCalls.length > 0) {
+        debug('  Tool Calls:')
+        toolCalls.forEach((tc: any) => {
+          debug(`    - ${tc.name}: ${JSON.stringify(tc.args)}`)
+        })
+      }
+
       if (type !== 'tool') {
         debug('─'.repeat(60))
         // Log content with indentation for readability

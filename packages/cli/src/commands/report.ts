@@ -116,7 +116,7 @@ function getAnalysisResults(targetBranch: string): Results & {
 
 interface ChangedLine {
   file: string
-  changes: { line: number; content: string }[]
+  changes: { line: number; content: string; hunk: string }[]
 }
 
 async function getDiffChangedLines(
@@ -133,11 +133,43 @@ async function getDiffChangedLines(
 
     const changedLines: ChangedLine[] = []
     let currentFile = ''
-    let currentLineNumber = 0
     const lines = diffOutput.split('\n')
+
+    // Intermediate structure to hold hunks before processing
+    let currentHunkLines: string[] = []
+    let currentStartLine = 0
+
+    // Helper to process the completed hunk
+    const processHunk = () => {
+      if (currentHunkLines.length > 0 && currentFile) {
+        let existingEntry = changedLines.find((entry) => entry.file === currentFile)
+        if (!existingEntry) {
+          existingEntry = { file: currentFile, changes: [] }
+          changedLines.push(existingEntry)
+        }
+
+        const hunkString = currentHunkLines.join('\n')
+        let lineOffset = 0
+
+        for (const line of currentHunkLines) {
+          if (line.startsWith('+') && !line.startsWith('+++')) {
+            const content = line.substring(1)
+            existingEntry.changes.push({
+              line: currentStartLine + lineOffset,
+              content,
+              hunk: hunkString,
+            })
+            lineOffset++
+          }
+        }
+      }
+    }
 
     for (const line of lines) {
       if (line.startsWith('+++')) {
+        processHunk() // Finish previous hunk
+        currentHunkLines = []
+
         currentFile = line.substring(6).trim()
         if (currentFile.startsWith('b/')) {
           currentFile = currentFile.substring(2)
@@ -145,55 +177,50 @@ async function getDiffChangedLines(
         continue
       }
 
-      // only check on js/jsx/ts/tsx files
-      if (
-        !currentFile.endsWith('.js') &&
-        !currentFile.endsWith('.jsx') &&
-        !currentFile.endsWith('.ts') &&
-        !currentFile.endsWith('.tsx')
-      ) {
-        continue
-      }
-
-      // ignore non src files
-      if (!currentFile.startsWith('src/')) {
+      // Skip file headers for original file but make sure to finish previous hunk
+      if (line.startsWith('---')) {
+        processHunk()
+        currentHunkLines = []
         continue
       }
 
       if (line.startsWith('@@')) {
-        const match = line.match(/[-+](\d+)(?:,(\d+))?/)
-        if (match) {
-          // The + line number (new file) is the second capture group pair usually, but in simplified git diff it's:
-          // @@ -1,1 +1,1 @@
-          // We want the new line number.
-          // RegExp to match: @@ -old_start,old_count +new_start,new_count @@
-          const rangeMatch = line.match(/@@ \-\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/)
-          if (rangeMatch) {
-            currentLineNumber = parseInt(rangeMatch[1])
-          }
+        processHunk() // Finish previous hunk
+        currentHunkLines = []
+
+        // Parse new start line
+        // @@ -old_start,old_count +new_start,new_count @@
+        const rangeMatch = line.match(/@@ \-\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/)
+        if (rangeMatch) {
+          currentStartLine = parseInt(rangeMatch[1])
         }
+        currentHunkLines.push(line)
         continue
       }
 
-      if (line.startsWith('+') && !line.startsWith('+++')) {
-        const content = line.substring(1) // remove +
-
-        let existingEntry = changedLines.find((entry) => entry.file === currentFile)
-        if (!existingEntry) {
-          existingEntry = { file: currentFile, changes: [] }
-          changedLines.push(existingEntry)
-        }
-
-        existingEntry.changes.push({
-          line: currentLineNumber,
-          content,
-        })
-
-        currentLineNumber++
+      // Accumulate lines for the current hunk
+      if (
+        (line.startsWith('+') && !line.startsWith('+++')) ||
+        (line.startsWith('-') && !line.startsWith('---'))
+      ) {
+        currentHunkLines.push(line)
+      } else if (line.startsWith('\\ No newline')) {
+        // Handle no newline marker if needed, usually just skip or append
+        currentHunkLines.push(line)
       }
     }
 
-    return changedLines
+    // Process last hunk
+    processHunk()
+
+    // Filter relevant files (js/ts/src)
+    return changedLines.filter((cl) => {
+      const ext = path.extname(cl.file)
+      return (
+        (ext === '.js' || ext === '.jsx' || ext === '.ts' || ext === '.tsx') &&
+        cl.file.startsWith('src/')
+      )
+    })
   } catch (error) {
     debug('Failed to get diff: %o', error)
     return []
@@ -257,7 +284,8 @@ async function findAffectedToNodes(
           const contextSet = nodeContext.get(nodeId)!
 
           affectingChanges.forEach((change) => {
-            contextSet.add(`File: ${relativePath}:${change.line} Content: ${change.content}`)
+            // Include hunk for context. Deduplication is handled by Set.
+            contextSet.add(`File: ${relativePath}\n${change.hunk}`)
           })
         }
       }
