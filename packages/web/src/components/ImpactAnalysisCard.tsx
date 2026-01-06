@@ -111,7 +111,7 @@ export function ImpactAnalysisCard({ impactAnalysis, className = '' }: ImpactAna
                         <p className="text-xs font-semibold mb-1">Suggestions:</p>
                         <ul className="list-disc list-inside space-y-1 text-xs">
                           {project.suggestions.map((suggestion, sidx) => (
-                            <li key={sidx}>{suggestion}</li>
+                            <li key={sidx}>{suggestion || '无'}</li>
                           ))}
                         </ul>
                       </div>

@@ -9,6 +9,8 @@ import { generateNodeId } from '../utils/node-id'
  * Impact analysis report structure
  */
 export interface ImpactReport {
+  /** 项目整体影响程度, 取所有受影响项目中最高的影响程度 */
+  level: 'safe' | 'low' | 'medium' | 'high'
   /** Whether the analysis was successful */
   success: boolean
   /** Summary of all code changes made in this branch, one entry per changed file */
@@ -16,7 +18,8 @@ export interface ImpactReport {
   /** Per-project impact analysis with specific suggestions */
   affectedProjects?: Array<{
     projectName: string
-    impact: string
+    impacts: string[]
+    level: 'safe' | 'low' | 'medium' | 'high'
     suggestions: string[]
   }>
   /** Additional messages or error details */
@@ -79,6 +82,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
     debug('Impact analysis failed: %o', error)
     return {
       success: false,
+      level: 'medium',
       summary: ['Failed to analyze impact'],
       message: error instanceof Error ? error.message : String(error),
     }
@@ -477,6 +481,7 @@ The provided context consists of multiple entries. Each entry represents a depen
     "src/infra/runtime.ts: 新增appDynamicImport函数的详细JSDoc文档",
     "src/utils/_import.ts: 重构fetchResource函数，调整错误处理机制"
   ],
+  "level": "safe|low|medium|high", // 项目整体影响程度, 取所有受影响项目中最高的影响程度
   "affectedProjects": [
     {
       "projectName": "project-name-1",
@@ -519,6 +524,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Validate the structure
     if (
       typeof parsed.success !== 'boolean' ||
+      !['safe', 'low', 'medium', 'high'].includes(parsed.level) ||
       !Array.isArray(parsed.summary) ||
       typeof parsed.message !== 'string'
     ) {
@@ -534,6 +540,7 @@ function parseAgentResult(result: string): ImpactReport {
         if (
           typeof project.projectName !== 'string' ||
           !Array.isArray(project.impacts) ||
+          !['safe', 'low', 'medium', 'high'].includes(project.level) ||
           !Array.isArray(project.suggestions)
         ) {
           throw new Error('Invalid affectedProjects structure')
@@ -543,6 +550,7 @@ function parseAgentResult(result: string): ImpactReport {
 
     return {
       success: parsed.success,
+      level: parsed.level,
       summary: parsed.summary,
       affectedProjects: parsed.affectedProjects,
       message: parsed.message,
@@ -552,6 +560,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Return a fallback report
     return {
       success: false,
+      level: 'medium',
       summary: ['Failed to parse analysis result'],
       message: `Parse error: ${err instanceof Error ? err.message : String(err)}. Raw result: ${result.substring(0, 200)}...`,
     }
