@@ -56,8 +56,11 @@ export async function invokeLLMAgent(
   // Create the initial messages
   const messages: BaseMessage[] = [
     new SystemMessage({
-      content:
-        'You are a senior frontend developer with extensive experience in React and Web development. You are reviewing merge requests and analyzing potential impacts on dependent projects.',
+      content: `
+You are a senior frontend developer with extensive experience in React and Web development.
+Your goal is to determine the impaction level of code changes.
+You should give details about how the impaction is determined, give evidences strongly based on the source code
+`,
     }),
     new HumanMessage({
       content: `Context:\n${context}\n\nInstruction:\n${instruction}`,
@@ -69,7 +72,7 @@ export async function invokeLLMAgent(
   // Simple agent loop - call model, execute tools if needed, repeat
   let currentMessages = [...messages]
   let iterationCount = 0
-  const maxIterations = 20
+  const maxIterations = 50
 
   while (iterationCount < maxIterations) {
     iterationCount++

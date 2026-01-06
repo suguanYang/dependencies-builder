@@ -11,12 +11,8 @@ import { generateNodeId } from '../utils/node-id'
 export interface ImpactReport {
   /** Whether the analysis was successful */
   success: boolean
-  /** Summary of business-level impacts */
-  impaction: string
-  /** Severity level of the impact */
-  level: 'low' | 'medium' | 'high'
-  /** Overall suggestions for preventing the impact */
-  suggestion: string | string[]
+  /** Summary of all code changes made in this branch */
+  summary: string
   /** Per-project impact analysis with specific suggestions */
   affectedProjects?: Array<{
     projectName: string
@@ -31,6 +27,7 @@ export interface ImpactReport {
  * Input data for impact analysis
  */
 export interface ImpactAnalysisInput {
+  projectName: string
   projectAddr: string
   sourceBranch: string
   targetBranch: string
@@ -82,9 +79,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
     debug('Impact analysis failed: %o', error)
     return {
       success: false,
-      impaction: 'Failed to analyze impact',
-      level: 'medium',
-      suggestion: 'Manual review recommended',
+      summary: 'Failed to analyze impact',
       message: error instanceof Error ? error.message : String(error),
     }
   } finally {
@@ -184,7 +179,8 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     )
   }
 
-  const validImpacts = input.affectedConnections.map((conn) => {
+  // Prepare impact data with project IDs
+  const impactData = input.affectedConnections.map((conn) => {
     const fromNode = conn.fromNode
     const toNode = conn.toNode
 
@@ -208,8 +204,109 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
       toNode,
       projectID,
       changedLines,
-      // Helper flags for filtering if needed, though top validation covers most
     }
+  })
+
+  // Get current project ID (needed for fetching dependent code files)
+  const currentProjectID = getProjectIDFromRepositoryAddr(input.projectAddr)
+  if (!currentProjectID) {
+    throw new Error(`Failed to extract project ID from repository address: ${input.projectAddr}`)
+  }
+
+  // Fetch both impacted and dependent code file contents using GitLab MCP
+  debug('Fetching %d impacted and dependent code files using GitLab MCP...', impactData.length * 2)
+  const mcpClient = await import('./mcp-client').then((m) => m.getMCPClient())
+  const tools = await mcpClient.getTools()
+  const getFileContentsTool = tools.find((t) => t.name === 'get_file_contents')
+
+  if (!getFileContentsTool) {
+    throw new Error('get_file_contents tool not found in MCP client')
+  }
+
+  const impactsWithContent = await Promise.all(
+    impactData.map(async (item) => {
+      const { fromNode, toNode, projectID, changedLines } = item
+
+      // Fetch both impacted and dependent code files in parallel
+      const [impactedFileContent, dependentFileContent] = await Promise.all([
+        // Fetch impacted code file (from dependent project)
+        getFileContentsTool
+          .invoke({
+            project_id: projectID,
+            file_path: fromNode.relativePath,
+            ref: fromNode.branch,
+          })
+          .catch((err) => {
+            error(
+              'Failed to fetch impacted code for %s in project %s: %o',
+              fromNode.relativePath,
+              fromNode.projectName,
+              err,
+            )
+            return `[Error fetching file: ${err instanceof Error ? err.message : String(err)}]`
+          }),
+        // Fetch dependent code file (from current project)
+        getFileContentsTool
+          .invoke({
+            project_id: currentProjectID,
+            file_path: toNode.relativePath,
+            ref: input.sourceBranch,
+          })
+          .catch((err) => {
+            error(
+              'Failed to fetch dependent code for %s in current project: %o',
+              toNode.relativePath,
+              err,
+            )
+            return `[Error fetching file: ${err instanceof Error ? err.message : String(err)}]`
+          }),
+      ])
+
+      debug(
+        'Fetched files for %s -> %s (%d + %d bytes)',
+        fromNode.projectName,
+        toNode.relativePath,
+        typeof impactedFileContent === 'string' ? impactedFileContent.length : 0,
+        typeof dependentFileContent === 'string' ? dependentFileContent.length : 0,
+      )
+
+      // Extract actual content from GitLab MCP response
+      const extractContent = (fileContent: any): string => {
+        if (typeof fileContent === 'string') {
+          // If already a string, check if it's an error message
+          if (fileContent.startsWith('[Error fetching file:')) {
+            return fileContent
+          }
+          // Try to parse as JSON in case it's stringified
+          try {
+            const parsed = JSON.parse(fileContent)
+            return parsed.content || fileContent
+          } catch {
+            return fileContent
+          }
+        }
+        // If it's an object, extract the content field
+        if (fileContent && typeof fileContent === 'object' && 'content' in fileContent) {
+          return fileContent.content
+        }
+        // Fallback to stringifying
+        return JSON.stringify(fileContent)
+      }
+
+      const impactedContent = extractContent(impactedFileContent)
+      const dependentContent = extractContent(dependentFileContent)
+
+      return {
+        ...item,
+        impactedCodeContent: impactedContent,
+        dependentCodeContent: dependentContent,
+      }
+    }),
+  )
+
+  // Only filter out entries with no changes at all (no fragile whitespace filtering)
+  const validImpacts = impactsWithContent.filter((item) => {
+    return item.changedLines && item.changedLines.length > 0
   })
 
   // Validate we still have nodes after filtering
@@ -217,48 +314,66 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     throw new Error('No valid affected nodes after filtering - cannot perform LLM analysis')
   }
 
-  const projectID = getProjectIDFromRepositoryAddr(input.projectAddr)
-
-  // Validate main project ID
-  if (!projectID) {
-    throw new Error(`Failed to extract project ID from repository address: ${input.projectAddr}`)
-  }
-
   return `
-Project ID: ${projectID}
-Source Branch: ${input.sourceBranch}
-Target Branch: ${input.targetBranch}
+Current Project Id: ${currentProjectID}
+Current Project Name: ${input.projectName}
+Current Project Source Branch: ${input.sourceBranch}
+Current Project Target Branch: ${input.targetBranch}
 
-Affected Dependencies (${validImpacts.length}):
+Potential Impacted Codes(${validImpacts.length}):
 ${validImpacts
-  .map((item) => {
-    const { fromNode, toNode, projectID, changedLines } = item
+  .map((item, index) => {
+    const { fromNode, toNode, projectID, changedLines, impactedCodeContent, dependentCodeContent } =
+      item
 
     const parts = [
-      `Dependent Project: ${fromNode.projectName}`,
-      `Dependent Project ID: ${projectID}`,
-      `Dependent File: ${fromNode.relativePath}:${fromNode.startLine}`,
-      `Dependent Name: ${fromNode.name}`,
-      `Depends On (Current Project): ${toNode.relativePath}:${toNode.startLine}`,
-      `Dependency Name: ${toNode.name}`,
+      `Potential Impacted Code: project_name:${fromNode.projectName}, project_id:${projectID}, branch:${fromNode.branch}, file:${fromNode.relativePath}, line:${fromNode.startLine}`,
+      `Dependent Code: project_id:${currentProjectID}, branch:${input.sourceBranch}, file:${toNode.relativePath}, line:${toNode.startLine}`,
     ]
 
+    // Add changed code context
     let changeContextString = ''
     if (changedLines && changedLines.length > 0) {
       const formattedChanges = changedLines
         .map((block) =>
           block
             .split('\n')
-            .map((line) => `      ${line}`)
+            .map((line) => `        ${line}`)
             .join('\n'),
         )
         .join('\n')
-      changeContextString = `\n  The Changed Content in Dependency (Current Project):\n${formattedChanges}`
+      changeContextString = `\n      Changed Code[${currentProjectID}]:\n${formattedChanges}`
     }
 
-    return `  - ${parts.join(', ')}${changeContextString}`
+    // Add dependent code file content with line numbers
+    let dependentCodeString = ''
+    if (dependentCodeContent) {
+      const lines = dependentCodeContent.split('\n')
+      const numberedLines = lines
+        .map((line, idx) => {
+          const lineNum = (idx + 1).toString().padStart(4, ' ')
+          return `        ${lineNum}: ${line}`
+        })
+        .join('\n')
+      dependentCodeString = `\n      Dependent Code File Content:\n${numberedLines}`
+    }
+
+    // Add impacted code file content with line numbers
+    let impactedCodeString = ''
+    if (impactedCodeContent) {
+      const lines = impactedCodeContent.split('\n')
+      const numberedLines = lines
+        .map((line, idx) => {
+          const lineNum = (idx + 1).toString().padStart(4, ' ')
+          return `        ${lineNum}: ${line}`
+        })
+        .join('\n')
+      impactedCodeString = `\n      Impacted Code File Content:\n${numberedLines}`
+    }
+
+    return `  - ${index + 1}. ${parts.join('\n      ')}${changeContextString}${dependentCodeString}${impactedCodeString}`
   })
-  .join('\n')}
+  .join('\n\n')}
 `.trim()
 }
 
@@ -266,75 +381,113 @@ ${validImpacts
  * Prepare the instruction for the LLM agent
  */
 function prepareInstruction(): string {
-  return `You are reviewing a merge request and analyzing its potential impact on dependent projects.
-
-**IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields (impaction, impact, suggestions, message) should be in Chinese.**
+  return `
+**IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields should be in Chinese.**
 
 **Your Task:**
-Analyze the impact of these code changes on dependent projects and generate a JSON report WITH PER-PROJECT SUGGESTIONS.
+Analyze how the "Changed Code" impact on the "Potential Impacted Code" and generate a JSON report WITH PER-Impacted-Code SUGGESTIONS.
 
-**Context Provided:**
-- Project ID (already extracted from repository URL - use this directly!)
-- Source and target branches
-- List of affected projects that depend on this code
-  - Each project includes: name, **project ID (ID)**, file path, line number, and branch
-  - **Project IDs are already extracted** - use them directly for GitLab API calls
-- This dependency is comes from static analysis, mainly consists of these types: 1. ES6 import/export, 2. global variables, local storage, session storage read/write, 3. events. 4. URL parameters. The changed code may be a part of the call stack of the dependency
+**Input Format Understanding:**
+The provided context consists of multiple entries. Each entry represents a dependency relation:
+1.  **Dependency Link:** What is being used and Who is using the code.("Potential Impacted Code" => "Dependent Code")
+2.  **Changed Content:** What is being changed("Changed Code" affect "Dependent Code"  affect "Potential Impacted Code").
+3.  Each "Potential Impacted Code" entry includes:
+  a. **Potential Impacted Code**: The location in the dependent project that imports/uses the changed code
+  b. **Dependent Code**: The location in the current project that was changed
+  c. **Changed Code**: The actual diff showing what changed
+  d. **Dependent Code File Content**: The COMPLETE file content from the current project (with line numbers)
+  e. **Impacted Code File Content**: The COMPLETE file content from the dependent project (with line numbers)
 
-**Efficient Analysis Strategy:**
-1. **Analyze the "Changed Content in Dependency" first**:
-   - Check if changes are merely formatting, comments, or trivial refactors.
-   - If a change clearly DOES NOT affect logic (e.g. whitespace only), skip it.
-2. **Use the Project ID from context** (don't call list_projects for the main project)
-3. **BATCH PROCESS**: For affected projects, **use their pre-extracted project IDs**
-   - Each affected node has an "ID" field (e.g., "group/project")
-   - **Use this ID directly** - no need to parse URLs or search by name
-   - Make multiple tool calls in one response when possible
-   - Focus on top 5-10 most critical projects if there are many
-4. **BATCH PROCESS**: Get relevant file contents from affected projects in parallel(by tool get_file_contents)
-   - **NOTE**: File contents will have line numbers added (e.g., "   1: code here")
-   - Use these line numbers to locate the exact code referenced in "Affected From Nodes"
-5. **For EACH affected project**, analyze:
-   - What specific functionality in that project is impacted
-   - What actions that project needs to take
-   - Reference specific line numbers when describing the impact
-6. Generate your impact report with per-project suggestions **IN CHINESE**
+**Analysis Guidelines (Chain of Thought):**
+1.  **Step 1: Noise Filtering (CRITICAL - DO THIS FIRST)**
+    *   **BEFORE analyzing anything else**, examine ONLY the "Changed Code" diff for each entry
+    *   **ONLY the following are cosmetic (safe)**:
+        *   **Pure whitespace**: ONLY adding/removing spaces, tabs, or empty lines
+            - Example: () => {} to () => { } is COSMETIC
+            - Example: function(){} to function() {} is COSMETIC  
+        *   **Pure comments/docs**: ONLY adding/removing comments or JSDoc (no code changes)
+        *   **Pure formatting**: ONLY line breaks, indentation changes (no code changes)
+    *   **The following are NOT cosmetic (must analyze)**:
+        *   **Function/variable renames**: fetchJSModule to fetchResource is NOT cosmetic
+        *   **Error handling changes**: Adding try/catch, throw statements, changing error logic is NOT cosmetic
+        *   **Function signature changes**: Adding/removing parameters, changing return type is NOT cosmetic
+        *   **Logic changes**: ANY change to if/else, loops, function calls, operators is NOT cosmetic
+        *   **Import/export changes**: Adding/removing imports, changing what's exported is NOT cosmetic
+        *   **API behavior changes**: Changing side effects, async behavior, error propagation is NOT cosmetic
+    *   **Rule**: If ANY line has code logic changes (not just whitespace/comments), it is NOT cosmetic
+    *   **For PURELY cosmetic entries only, output**:
+        - projectName: project name from the entry
+        - impacts: [Explain why it's safe, e.g., "仅添加注释说明，未修改代码逻辑"]
+        - level: "safe"
+        - suggestions: [null]
+    *   Continue to next entry immediately 
+
+2.  **Step 2: API Contract Analysis**
+    *   Examine "Potential Impacted Code"
+    *   Match the affected "Potential Impacted Code" with the coressponding "Changed Code" exactly
+    *   **CRITICAL: Distinguish import statements from actual usage**:
+        *   Pure ES6 import statements (e.g., import { foo } from 'bar') are NOT impacts by themselves
+        *   Imports are just declarations - they don't execute code (unless the module has side effects)
+        *   **Only flag the actual usage sites** where the imported function/variable is called/used
+        *   Example: If line 2 is [import { appDynamicImport }] and line 18 is [appDynamicImport()], only line 18 is impacted
+    *   Does the changes modify export signatures? (Function arguments, return types, generic types).
+    *   If parameters are added, are they optional? If mandatory, this is a **HIGH** impact breaking change.
+    *   If a function is renamed or removed, this is a **HIGH** impact breaking change.
+    *   Is The API Contract still works for the "Potential Impacted Code"?
+
+3.  **Step 3: Behavioral & Internal Logic Analysis**
+    *   If the API signature is unchanged, look at the internal logic, the "Changed Code" is maybe a function on the callstack.
+    *   Did the error handling change? (e.g., throw  vs return, or changing error codes).
+    *   Did the side effects change? (e.g., writing to window, LocalStorage).
+    *   Did the "Potential Impacted Code" can still work for the "Changed Code"?
+
+4.  **Step 4: Synthesize Report (in Chinese)**
+    *   Group results by "Potential Impacted Code".
+    *   Reference specific line numbers when describing the impact
+    *   Provide actionable suggestions.
+
+**Analysis Strategy:**
+- Use the line number from "Dependent Code" to locate where the change occurred in "Dependent Code File Content"
+- Use the line number from "Potential Impacted Code" to locate the exact usage in "Impacted Code File Content"
+- Analyze how the changes in "Dependent Code File Content" will affect the usage in "Impacted Code File Content"
 
 **IMPORTANT Instructions:**
-- The Project ID is already provided in the context - use it directly
-- Do Not Diff the Changes commit by commit, get the diff at the MR level instead
-- Process multiple projects at once (make several tool calls in one response)
-- **Provide specific suggestions for EACH affected project**
-- **All analysis text must be in CHINESE (中文)**
-- If one project fails, continue with others
-- Be efficient: avoid redundant tool calls
-- Focus on the most impactful changes
+- For each entry, use the line number to find the exact usage in the "Impacted Code File Content"
+- Analyze how the "Changed Code" affects the actual usage shown in the "Impacted Code File Content"
+- **CRITICAL**: Each impact description MUST include a code snippet showing the impacted code:
+  - Extract 3-5 lines of code from "Impacted Code File Content" centered around the line number
+  - Format as: "文件xxx第N行: [code snippet] - 影响描述"
+  - Example: "文件src/app.tsx第116行: [refreshAppInfoCache()] 调用处 - 该函数错误处理逻辑变化可能影响异常捕获"
+- Provide specific line-number references when describing impacts
+- If the given context can not determine the impactation, try to grab more files that related to the code by calling related tools, like get_file_content
+
+**Summary Field Requirements:**
+- The summary field should list ALL code changes made in this branch, one by one
+- Focus on WHAT changed (code modifications), not the impact
+- Format as numbered list: "1. File X: description 2. File Y: description"
+- Example: "本次变更包括:\\n1. src/utils/ajax/index.ts: 重命名fetchJSModule为fetchResource，简化fetch参数\\n2. src/infra/runtime.ts: 新增appDynamicImport函数JSDoc文档说明资源版本管理协议\\n3. src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录APM"
+- Help users quickly understand the changes made in this branch
 
 **Output Format (JSON only, text content in CHINESE):**
 \`\`\`json
 {
   "success": true,
-  "impaction": "整体业务层面的影响总结 (用中文)",
-  "level": "low|medium|high",
-  "suggestion": "整体建议或一般性指导 (用中文)",
+  "summary": "本次变更摘要，列举主要代码变更点：\n1. 文件A：变更描述1\n2. 文件B：变更描述2\n3. 文件C：变更描述3",
   "affectedProjects": [
     {
       "projectName": "project-name-1",
-      "impact": "该项目的具体影响 (用中文)",
+      "impacts": [
+        "path/to/file.ts第123行: [functionCall()] 调用处 - 具体影响描述，说明变更如何影响此处代码",
+        "path/to/file.ts第456行: [anotherCall()] 调用处 - 另一处影响的具体描述"
+      ],
+      "level": "safe|low|medium|high",
       "suggestions": [
-        "该项目的行动项 1 (用中文)",
-        "该项目的行动项 2 (用中文)"
-      ]
-    },
-    {
-      "projectName": "project-name-2",
-      "impact": "该项目的具体影响 (用中文)",
-      "suggestions": [
-        "该项目的行动项 1 (用中文)"
+        "该代码1的建议",
+        "该代码2的建议"
       ]
     }
   ],
-  "message": "附加上下文或错误详情 (用中文)"
+  "message": "附加上下文或错误详情"
 }
 \`\`\`
 
@@ -342,8 +495,8 @@ Analyze the impact of these code changes on dependent projects and generate a JS
 - **high**: Breaking changes, API changes, critical functionality affected
 - **medium**: Non-breaking changes with potential issues, deprecated features
 - **low**: Minor changes, internal refactoring, documentation updates
-
-Start your analysis now. Make tool calls efficiently in batches and provide SPECIFIC suggestions for each affected project **IN CHINESE (中文)**.`
+- **safe**: Cosmetic changes, no impact on functionality
+`
 }
 
 /**
@@ -362,9 +515,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Validate the structure
     if (
       typeof parsed.success !== 'boolean' ||
-      typeof parsed.impaction !== 'string' ||
-      !['low', 'medium', 'high'].includes(parsed.level) ||
-      (typeof parsed.suggestion !== 'string' && !Array.isArray(parsed.suggestion)) ||
+      typeof parsed.summary !== 'string' ||
       typeof parsed.message !== 'string'
     ) {
       throw new Error('Invalid impact report structure')
@@ -378,7 +529,7 @@ function parseAgentResult(result: string): ImpactReport {
       for (const project of parsed.affectedProjects) {
         if (
           typeof project.projectName !== 'string' ||
-          typeof project.impact !== 'string' ||
+          !Array.isArray(project.impacts) ||
           !Array.isArray(project.suggestions)
         ) {
           throw new Error('Invalid affectedProjects structure')
@@ -386,19 +537,9 @@ function parseAgentResult(result: string): ImpactReport {
       }
     }
 
-    // Normalize suggestion to string format (convert array to bullet points)
-    let suggestion: string
-    if (Array.isArray(parsed.suggestion)) {
-      suggestion = parsed.suggestion.map((s: string) => `• ${s}`).join('\n')
-    } else {
-      suggestion = parsed.suggestion
-    }
-
     return {
       success: parsed.success,
-      impaction: parsed.impaction,
-      level: parsed.level,
-      suggestion,
+      summary: parsed.summary,
       affectedProjects: parsed.affectedProjects,
       message: parsed.message,
     } as ImpactReport
@@ -407,9 +548,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Return a fallback report
     return {
       success: false,
-      impaction: 'Failed to parse analysis result',
-      level: 'medium',
-      suggestion: 'Manual review recommended',
+      summary: 'Failed to parse analysis result',
       message: `Parse error: ${err instanceof Error ? err.message : String(err)}. Raw result: ${result.substring(0, 200)}...`,
     }
   }
