@@ -11,8 +11,8 @@ import { generateNodeId } from '../utils/node-id'
 export interface ImpactReport {
   /** Whether the analysis was successful */
   success: boolean
-  /** Summary of all code changes made in this branch */
-  summary: string
+  /** Summary of all code changes made in this branch, one entry per changed file */
+  summary: string[]
   /** Per-project impact analysis with specific suggestions */
   affectedProjects?: Array<{
     projectName: string
@@ -79,7 +79,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
     debug('Impact analysis failed: %o', error)
     return {
       success: false,
-      summary: 'Failed to analyze impact',
+      summary: ['Failed to analyze impact'],
       message: error instanceof Error ? error.message : String(error),
     }
   } finally {
@@ -462,17 +462,21 @@ The provided context consists of multiple entries. Each entry represents a depen
 - If the given context can not determine the impactation, try to grab more files that related to the code by calling related tools, like get_file_content
 
 **Summary Field Requirements:**
-- The summary field should list ALL code changes made in this branch, one by one
-- Focus on WHAT changed (code modifications), not the impact
-- Format as numbered list: "1. File X: description 2. File Y: description"
-- Example: "本次变更包括:\\n1. src/utils/ajax/index.ts: 重命名fetchJSModule为fetchResource，简化fetch参数\\n2. src/infra/runtime.ts: 新增appDynamicImport函数JSDoc文档说明资源版本管理协议\\n3. src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录APM"
-- Help users quickly understand the changes made in this branch
+- The summary field must be an ARRAY of strings, one entry per changed file
+- Each entry should describe the changes in that specific file
+- Format each entry as: "filename: description of changes"
+- Example: ["src/utils/ajax/index.ts: 重命名fetchJSModule为fetchResource，简化fetch参数", "src/infra/runtime.ts: 新增appDynamicImport函数JSDoc文档说明资源版本管理协议", "src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录APM"]
+- Help users quickly understand which files changed and what changed in each file
 
 **Output Format (JSON only, text content in CHINESE):**
 \`\`\`json
 {
   "success": true,
-  "summary": "本次变更摘要，列举主要代码变更点：\n1. 文件A：变更描述1\n2. 文件B：变更描述2\n3. 文件C：变更描述3",
+  "summary": [
+    "src/utils/ajax/index.ts: 仅格式化变更，无逻辑修改",
+    "src/infra/runtime.ts: 新增appDynamicImport函数的详细JSDoc文档",
+    "src/utils/_import.ts: 重构fetchResource函数，调整错误处理机制"
+  ],
   "affectedProjects": [
     {
       "projectName": "project-name-1",
@@ -515,7 +519,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Validate the structure
     if (
       typeof parsed.success !== 'boolean' ||
-      typeof parsed.summary !== 'string' ||
+      !Array.isArray(parsed.summary) ||
       typeof parsed.message !== 'string'
     ) {
       throw new Error('Invalid impact report structure')
@@ -548,7 +552,7 @@ function parseAgentResult(result: string): ImpactReport {
     // Return a fallback report
     return {
       success: false,
-      summary: 'Failed to parse analysis result',
+      summary: ['Failed to parse analysis result'],
       message: `Parse error: ${err instanceof Error ? err.message : String(err)}. Raw result: ${result.substring(0, 200)}...`,
     }
   }

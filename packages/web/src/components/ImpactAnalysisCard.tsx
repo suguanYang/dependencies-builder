@@ -37,46 +37,14 @@ export function ImpactAnalysisCard({ impactAnalysis, className = '' }: ImpactAna
     )
   }
 
-  // Determine severity colors based on level
-  const getSeverityColors = (level: string) => {
-    switch (level) {
-      case 'low':
-        return {
-          badge: 'bg-green-100 text-green-700 border-green-300',
-          border: 'border-green-200',
-        }
-      case 'medium':
-        return {
-          badge: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-          border: 'border-yellow-200',
-        }
-      case 'high':
-        return {
-          badge: 'bg-red-100 text-red-700 border-red-300',
-          border: 'border-red-200',
-        }
-      default:
-        return {
-          badge: 'bg-gray-100 text-gray-700 border-gray-300',
-          border: 'border-gray-200',
-        }
-    }
-  }
-
-  const colors = getSeverityColors(impactAnalysis.level)
   const StatusIcon = impactAnalysis.success ? BadgeCheckIcon : AlertCircleIcon
 
   return (
-    <Card className={`${className} border-2 ${colors.border}`}>
+    <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
-            AI Impact Analysis
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colors.badge}`}>
-            {impactAnalysis.level.toUpperCase()} SEVERITY
-          </span>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-500" />
+          AI Impact Analysis
         </CardTitle>
         <CardDescription className="flex items-center gap-2">
           <StatusIcon className="h-4 w-4" />
@@ -86,49 +54,74 @@ export function ImpactAnalysisCard({ impactAnalysis, className = '' }: ImpactAna
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Impact Summary */}
+        {/* Change Summary */}
         <div>
-          <h4 className="font-semibold text-sm mb-2">Business Impact</h4>
-          <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-            {impactAnalysis.impaction}
-          </p>
+          <h4 className="font-semibold text-sm mb-2">Code Changes Summary</h4>
+          <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
+            <ul className="list-disc list-inside space-y-1">
+              {impactAnalysis.summary.map((change, index) => (
+                <li key={index}>{change}</li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Per-Project Suggestions */}
+        {/* Per-Project Impacts */}
         {impactAnalysis.affectedProjects && impactAnalysis.affectedProjects.length > 0 && (
           <div>
-            <h4 className="font-semibold text-sm mb-2">Affected Projects & Actions</h4>
+            <h4 className="font-semibold text-sm mb-2">Affected Projects</h4>
             <div className="space-y-3">
-              {impactAnalysis.affectedProjects.map((project, index) => (
-                <div key={index} className="bg-amber-50 p-3 rounded-md border border-amber-200">
-                  <h5 className="font-medium text-sm text-amber-900 mb-1">{project.projectName}</h5>
-                  <p className="text-xs text-amber-700 mb-2">{project.impact}</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs text-amber-800">
-                    {project.suggestions.map((suggestion, sidx) => (
-                      <li key={sidx}>{suggestion}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {impactAnalysis.affectedProjects.map((project, index) => {
+                // Determine colors based on project level
+                const getProjectColors = (level: string) => {
+                  switch (level) {
+                    case 'safe':
+                      return 'bg-blue-50 border-blue-200 text-blue-900'
+                    case 'low':
+                      return 'bg-green-50 border-green-200 text-green-900'
+                    case 'medium':
+                      return 'bg-yellow-50 border-yellow-200 text-yellow-900'
+                    case 'high':
+                      return 'bg-red-50 border-red-200 text-red-900'
+                    default:
+                      return 'bg-gray-50 border-gray-200 text-gray-900'
+                  }
+                }
+
+                const projectColors = getProjectColors(project.level)
+
+                return (
+                  <div key={index} className={`p-3 rounded-md border ${projectColors}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-sm">{project.projectName}</h5>
+                      <span className="text-xs font-semibold uppercase">{project.level}</span>
+                    </div>
+                    {project.impacts && project.impacts.length > 0 && (
+                      <div className="mb-2">
+                        <p className="text-xs font-semibold mb-1">Impacts:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          {project.impacts.map((impact, iidx) => (
+                            <li key={iidx}>{impact}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {project.suggestions && project.suggestions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mb-1">Suggestions:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          {project.suggestions.map((suggestion, sidx) => (
+                            <li key={sidx}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
-
-        {/* Suggestions */}
-        <div>
-          <h4 className="font-semibold text-sm mb-2">Overall Recommendations</h4>
-          <div className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md border border-blue-200">
-            {Array.isArray(impactAnalysis.suggestion) ? (
-              <ul className="list-disc list-inside space-y-1">
-                {impactAnalysis.suggestion.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="whitespace-pre-wrap">{impactAnalysis.suggestion}</p>
-            )}
-          </div>
-        </div>
 
         {/* Additional Message */}
         {impactAnalysis.message && (
