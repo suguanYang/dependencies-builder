@@ -12,6 +12,7 @@ The LLM module supports dynamic configuration via environment variables to adapt
 | `LLM_SAFE_BUFFER` | `4000` | Tokens reserved for model output/response |
 | `LLM_SYSTEM_PROMPT_COST` | `2000` | Estimated tokens used by system prompt/instructions |
 | `LLM_WINDOW_SIZE` | `100` | Number of lines to extract on each side of anchor line for smart window |
+| `LLM_REQUESTS_PER_MINUTE` | `60` | Maximum API requests per minute to avoid rate limiting (429 errors) |
 
 ### Model Examples
 

@@ -19,6 +19,7 @@
  * - LLM_SAFE_BUFFER: Tokens reserved for output (default: 4000)
  * - LLM_SYSTEM_PROMPT_COST: Estimated prompt tokens (default: 2000)
  * - LLM_WINDOW_SIZE: Smart window size in lines (default: 100)
+ * - LLM_REQUESTS_PER_MINUTE: Rate limit for API calls (default: 60)
  */
 
 export interface LLMConfig {
