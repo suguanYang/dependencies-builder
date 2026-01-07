@@ -80,7 +80,7 @@ const _spawn = (
   child.stderr?.pipe(stderrStream)
   stderrStream.on('data', (chunk) => {
     errorLog += chunk
-    debug(command, chunk)
+    !silent && debug(command, chunk)
   })
 
   let reject: (err: unknown) => void
