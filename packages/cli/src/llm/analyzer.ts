@@ -318,66 +318,97 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     throw new Error('No valid affected nodes after filtering - cannot perform LLM analysis')
   }
 
-  return `
-Current Project Id: ${currentProjectID}
-Current Project Name: ${input.projectName}
-Current Project Source Branch: ${input.sourceBranch}
-Current Project Target Branch: ${input.targetBranch}
-
-Potential Impacted Codes(${validImpacts.length}):
-${validImpacts
-  .map((item, index) => {
+  // Build XML-structured context for each analysis task
+  const analysisTasks = validImpacts.map((item) => {
     const { fromNode, toNode, projectID, changedLines, impactedCodeContent, dependentCodeContent } =
       item
 
-    const parts = [
-      `Potential Impacted Code: project_name:${fromNode.projectName}, project_id:${projectID}, branch:${fromNode.branch}, file:${fromNode.relativePath}, line:${fromNode.startLine}`,
-      `Dependent Code: project_id:${currentProjectID}, branch:${input.sourceBranch}, file:${toNode.relativePath}, line:${toNode.startLine}`,
-    ]
-
-    // Add changed code context
-    let changeContextString = ''
+    // Format changed code diff
+    let diffContent = ''
     if (changedLines && changedLines.length > 0) {
-      const formattedChanges = changedLines
-        .map((block) =>
-          block
-            .split('\n')
-            .map((line) => `        ${line}`)
-            .join('\n'),
-        )
-        .join('\n')
-      changeContextString = `\n      Changed Code[${currentProjectID}]:\n${formattedChanges}`
+      diffContent = changedLines.join('\n')
     }
 
-    // Add dependent code file content with line numbers
-    let dependentCodeString = ''
+    // Format dependent file content with line numbers
+    let dependentFileContent = ''
     if (dependentCodeContent) {
-      const lines = dependentCodeContent.split('\n')
-      const numberedLines = lines
-        .map((line, idx) => {
-          const lineNum = (idx + 1).toString().padStart(4, ' ')
-          return `        ${lineNum}: ${line}`
-        })
-        .join('\n')
-      dependentCodeString = `\n      Dependent Code File Content:\n${numberedLines}`
+      // Check if it's an error message
+      if (dependentCodeContent.startsWith('[Error fetching file:')) {
+        dependentFileContent = `    <SYSTEM_ERROR>${dependentCodeContent}</SYSTEM_ERROR>`
+      } else {
+        const lines = dependentCodeContent.split('\n')
+        const numberedLines = lines
+          .map((line, idx) => {
+            const lineNum = (idx + 1).toString().padStart(4, ' ')
+            return `    ${lineNum}: ${line}`
+          })
+          .join('\n')
+        dependentFileContent = numberedLines
+      }
     }
 
-    // Add impacted code file content with line numbers
-    let impactedCodeString = ''
+    // Format impacted file content with line numbers
+    let impactedFileContent = ''
     if (impactedCodeContent) {
-      const lines = impactedCodeContent.split('\n')
-      const numberedLines = lines
-        .map((line, idx) => {
-          const lineNum = (idx + 1).toString().padStart(4, ' ')
-          return `        ${lineNum}: ${line}`
-        })
-        .join('\n')
-      impactedCodeString = `\n      Impacted Code File Content:\n${numberedLines}`
+      // Check if it's an error message
+      if (impactedCodeContent.startsWith('[Error fetching file:')) {
+        impactedFileContent = `    <SYSTEM_ERROR>${impactedCodeContent}</SYSTEM_ERROR>`
+      } else {
+        const lines = impactedCodeContent.split('\n')
+        const numberedLines = lines
+          .map((line, idx) => {
+            const lineNum = (idx + 1).toString().padStart(4, ' ')
+            return `    ${lineNum}: ${line}`
+          })
+          .join('\n')
+        impactedFileContent = numberedLines
+      }
     }
 
-    return `  - ${index + 1}. ${parts.join('\n      ')}${changeContextString}${dependentCodeString}${impactedCodeString}`
+    return `<analysis_task>
+  <dependency_metadata>
+    <provider_project_name>${input.projectName}</provider_project_name>
+    <provider_project_id>${currentProjectID}</provider_project_id>
+    <provider_branch>${input.sourceBranch}</provider_branch>
+    <provider_file_path>${toNode.relativePath}</provider_file_path>
+    <provider_line_number>${toNode.startLine}</provider_line_number>
+    
+    <consumer_project_name>${fromNode.projectName}</consumer_project_name>
+    <consumer_project_id>${projectID}</consumer_project_id>
+    <consumer_branch>${fromNode.branch}</consumer_branch>
+    <consumer_file_path>${fromNode.relativePath}</consumer_file_path>
+    <consumer_usage_line_number>${fromNode.startLine}</consumer_usage_line_number>
+    <dependency_type>${toNode.type || 'Unknown'}</dependency_type>
+  </dependency_metadata>
+
+  <source_change_diff>
+    <!-- The code changing in the provider (dependency) -->
+${diffContent
+  .split('\n')
+  .map((line) => `    ${line}`)
+  .join('\n')}
+  </source_change_diff>
+
+  <provider_file_content>
+    <!-- The COMPLETE file content from the provider project (with line numbers) -->
+${dependentFileContent}
+  </provider_file_content>
+
+  <consumer_file_content>
+    <!-- The COMPLETE file content from the consumer project (with line numbers) -->
+${impactedFileContent}
+  </consumer_file_content>
+</analysis_task>`
   })
-  .join('\n\n')}
+
+  return `
+Current Project (Provider): ${input.projectName} (ID: ${currentProjectID})
+Source Branch: ${input.sourceBranch}
+Target Branch: ${input.targetBranch}
+
+Total Analysis Tasks: ${analysisTasks.length}
+
+${analysisTasks.join('\n\n')}
 `.trim()
 }
 
@@ -386,104 +417,91 @@ ${validImpacts
  */
 function prepareInstruction(): string {
   return `
-**IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields should be in Chinese.**
+# Role
+Your only job is to detect if a specific code change breaks a specific dependent file.
+Your main analysis is reasoning about what the **changes impact**, the **relation** between the "Consumer Code" and the "Provider Change". Not just think the code itself.
 
-**Your Task:**
-Analyze how the "Changed Code" impact on the "Potential Impacted Code" and generate a JSON report WITH PER-Impacted-Code SUGGESTIONS.
-Your main Analyze is reasoning about what the **changes impact**, the **relation** between the "Impacted Code" and the "Changed Code", not thinking on the single side!**
+# Analysis Philosophy
+You have been provided with analysis tasks containing: "Provider Change" (Diff) and "Consumer Code" (Full File).
+You must produce a **STABLE** and **FACTUAL** assessment. Do not guess.
 
-**Input Format Understanding:**
-The provided context consists of multiple entries. Each entry represents a dependency relation:
-1.  **Dependency Link:** What is being used and Who is using the code.("Potential Impacted Code" => "Dependent Code")
-2.  **Changed Content:** What is being changed("Changed Code" affect "Dependent Code"  affect "Potential Impacted Code").
-3.  Each "Potential Impacted Code" entry includes:
-  a. **Potential Impacted Code**: The location in the dependent project that imports/uses the changed code
-  b. **Dependent Code**: The location in the current project that was changed
-  c. **Changed Code**: The actual diff showing what changed
-  d. **Dependent Code File Content**: The COMPLETE file content from the current project (with line numbers)
-  e. **Impacted Code File Content**: The COMPLETE file content from the dependent project (with line numbers)
+# Workflow (Execute Strictly)
 
-**Analysis Guidelines (Chain of Thought):**
-1.  **Step 1: Noise Filtering (CRITICAL - DO THIS FIRST)**
-    *   **BEFORE analyzing anything else**, examine ONLY the "Changed Code" diff for each entry
-    *   **the following are cosmetic (safe)**:
-        *   **Pure whitespace**: ONLY adding/removing spaces, tabs, or empty lines
-            - Example: () => {} to () => { } is COSMETIC
-            - Example: function(){} to function() {} is COSMETIC  
-        *   **Pure comments/docs**: ONLY adding/removing comments or JSDoc (no code changes)
-        *   **Pure formatting**: ONLY line breaks, indentation changes (no code changes)
-    *   **For PURELY cosmetic entries only, output**:
-        - projectName: project name from the entry
-        - impacts: [Explain why it's safe, e.g., "仅添加注释说明，未修改代码逻辑"]
-        - level: "safe"
-        - suggestions: [null]
-    *   Continue to next entry immediately 
+1.  **NOISE FILTER (Crucial)**:
+    - Look at the \`<source_change_diff>\`.
+    - Is it **ONLY** whitespace, formatting, comment updates, or variable renaming where the logic remains identical?
+    - **The following are cosmetic (safe)**:
+        - **Pure whitespace**: ONLY adding/removing spaces, tabs, or empty lines
+          - Example: () => {} to () => { } is COSMETIC
+          - Example: function(){} to function() {} is COSMETIC
+        - **Pure comments/docs**: ONLY adding/removing comments or JSDoc (no code changes)
+        - **Pure formatting**: ONLY line breaks, indentation changes (no code changes)
+    - If YES -> Mark as \`level: "safe"\`, with explanation in \`impacts\`, and STOP. Do not analyze the consumer file.
+    - **For PURELY cosmetic entries, output**:
+      - impacts: ["仅格式化变更/注释更新，未修改代码逻辑"]
+      - level: "safe"
+      - suggestions: [null]
 
-2.  **Step 2: API Contract Analysis**
-    *   Examine "Potential Impacted Code"
-    *   Match the affected "Potential Impacted Code" with the coressponding "Changed Code" exactly
-    *   **CRITICAL: Distinguish import statements from actual usage**:
-        *   Pure ES6 import statements (e.g., import { foo } from 'bar') are NOT impacts by themselves
-        *   Imports are just declarations - they don't execute code (unless the module has side effects)
-        *   **Only flag the actual usage sites** where the imported function/variable is called/used
-        *   Example: If line 2 is [import { A }] and line 18 is [A()], only line 18 is impacted
-    *   Does the changes modify export signatures? (Function arguments, return types, generic types).
-    *   If parameters are added, are they optional? If mandatory, this is a **HIGH** impact breaking change.
-    *   If a function is renamed or removed, this is a **HIGH** impact breaking change.
-    *   Will The API Contract still works for the "Potential Impacted Code"?
+2.  **ANCHORING**:
+    - If the change is logical, look at the \`<dependency_metadata>\` to find the \`<consumer_usage_line_number>\`.
+    - Locate that exact line in the \`<consumer_file_content>\`.
+    - Load all code that related to that line into your mental context.
+    - Understand what the consumer code is trying to do at that specific line.
 
-3.  **Step 3: Behavioral & Internal Logic Analysis**
-    *   If the API signature is unchanged, look at the internal logic, the "Changed Code" is maybe a function on the callstack.
-    *   Did the error handling change? (e.g., throw vs return, or changing error codes).
-    *   Did the side effects change? (e.g., writing to window, LocalStorage).
-    *   Will the "Potential Impacted Code" can still work for the "Changed Code"?
-    *   Will the "Potential Impacted Code" will flow to the "Changed Code"?
+3.  **IMPACT SIMULATION**:
+    - **Compilation Check**: Did the function signature (arguments, return type) in the Provider change? Will the Consumer code fail to compile?
+    - **Runtime Check**: Did the behavior change (e.g., throwing error vs returning null, writing to localStorage vs sessionStorage)?
+    - **Logic Check**: Specifically for the provided context, if some code was removed, does the Consumer code really depend on that code?
+    - **CRITICAL: Distinguish import statements from actual usage**:
+      - Pure ES6 import statements (e.g., import { foo } from 'bar') are NOT impacts by themselves
+      - Imports are just declarations - they don't execute code (unless the module has side effects)
+      - **Only flag the actual usage sites** where the imported function/variable is called/used
+      - Example: If line 2 is [import { A }] and line 18 is [A()], only line 18 is impacted
 
-4.  **Step 4: Synthesize Report (in Chinese)**
-    *   Group results by "Potential Impacted Code".
-    *   Reference specific line numbers when describing the impact
-    *   Provide actionable suggestions.
+4.  **MISSING DATA HANDLING**:
+    - If the \`<consumer_file_content>\` or \`<provider_file_content>\` contains a \`<SYSTEM_ERROR>\` tag, you MUST output:
+      - level: "medium"
+      - impacts: ["无法获取文件内容，无法自动评估风险"]
+      - suggestions: ["请人工排查文件: <file_path>"]
 
-**Analysis Strategy:**
-- Use the line number from "Dependent Code" to locate where the change occurred in "Dependent Code File Content"
-- Use the line number from "Potential Impacted Code" to locate the exact usage in "Impacted Code File Content"
-- Analyze how the changes in "Dependent Code File Content" will affect the usage in "Impacted Code File Content"
+5. **COMPLEMENTARY**:
+    - If the given context cannot determine the impact, try to grab more files that related to the code by calling related tools, like \`get_file_contents\`.
 
-**IMPORTANT Instructions:**
-- For each entry, use the line number to find the exact usage in the "Impacted Code File Content"
-- Analyze how the "Changed Code" affects the actual usage shown in the "Impacted Code File Content"
-- **CRITICAL**: Each impact description MUST include a code snippet showing the impacted code:
-  - Format as: "文件xxx第N行: [code snippet] - 影响描述"
-  - Example: "文件src/app.tsx第116行: [methodA(<parameters>)] 调用处 - 该函数错误处理逻辑变化可能影响异常捕获"
-- Provide specific line-number references when describing impacts
-- If the given context can not determine the impactation, try to grab more files that related to the code by calling related tools, like get_file_content
-
-**Summary Field Requirements:**
+# Summary Field Requirements
 - The summary field must be an ARRAY of strings, one entry per changed file
 - Each entry should describe the changes in that specific file
 - Format each entry as: "filename: description of changes"
 - Example: ["src/utils/ajax/index.ts: 重命名methodA为methodAB，简化fetch参数", "src/infra/runtime.ts: 新增methodA函数文档说明资源版本管理协议", "src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录日志"]
 - Help users quickly understand which files changed and what changed in each file
 
-**Output Format (JSON only, text content in CHINESE):**
+# Terminology (Important for Chinese Output)
+- Use concrete, code-focused terminology that developers and QA understand
+
+# Output Format
+**IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields should be in Chinese.**
+
+JSON Only. Language: Simplified Chinese.
+
 \`\`\`json
 {
   "success": true,
   "summary": [
-    "src/utils/ajax/index.ts: 仅格式化变更，无逻辑修改",
-    "src/infra/runtime.ts: 新增A函数的详细文档",
-    "src/utils/_import.ts: 重构A函数，调整错误处理机制"
+    "path/to/file1.ts: 代码变更总结1",
+    "path/to/file2.ts: 代码变更总结2",
+    "path/to/file3.ts: 代码变更总结3"
   ],
   "level": "safe|low|medium|high", // 项目整体影响程度, 取所有受影响项目中最高的影响程度
   "affectedProjects": [
     {
       "projectName": "project-name-1",
       "impacts": [
-        "path/to/file.ts第123行: [if (window.__XXX__) {}] 使用处 - 具体影响描述，说明变更如何影响此处代码",
-        "path/to/file.ts第456行: [methodA(<parameters>)] 调用处 - 另一处影响的具体描述"
+        "path/to/file.ts第1行: [import { ... methodA ... } from 'xxx'] 代码引用，无影响", // if the impact is safe must Explain why it's safe
+        "path/to/file.ts第123行: [if (window.__XXX__) {}] 具体影响描述，说明变更如何影响此处代码",
+        "path/to/file.ts第456行: [methodA(<parameters>)] 另一处影响的具体描述"
       ],
-      "level": "safe|low|medium|high",
+      "level": "safe|low|medium|high", // chose the most severe level from impacts
       "suggestions": [
+        null, // if level is safe, must output suggestions: [null]
         "该代码1的建议",
         "该代码2的建议"
       ]
@@ -493,11 +511,31 @@ The provided context consists of multiple entries. Each entry represents a depen
 }
 \`\`\`
 
-**Impact Level Guidelines:**
+# Important Guidelines
+
+**Analysis Strategy**:
+- Use the \`<consumer_usage_line_number>\` to locate the exact usage in \`<consumer_file_content>\`
+- Use the \`<provider_line_number>\` to understand what changed in \`<provider_file_content>\`
+- Analyze how the \`<source_change_diff>\` affects the actual usage shown in the consumer code
+
+**Impact Descriptions**:
+- **CRITICAL**: Each impact description MUST include a code snippet showing the impacted code
+- Format as: "文件xxx第N行: [code snippet] - 影响描述"
+- Example: "文件src/app.tsx第116行: [methodA(<parameters>)] 该函数错误处理逻辑变化可能影响异常捕获"
+- Provide specific line-number references when describing impacts
+
+**Summary Field Requirements**:
+- The summary field must be an ARRAY of strings, one entry per changed file
+- Each entry should describe the changes in that specific file
+- Format each entry as: "filename: description of changes"
+- Example: ["src/utils/ajax/index.ts: 重命名methodA为methodAB，简化fetch参数"]
+- Help users quickly understand which files changed and what changed in each file
+
+**Impact Level Guidelines**:
 - **high**: Breaking changes, API changes, critical functionality affected
-- **medium**: Non-breaking changes with potential issues, deprecated features
+- **medium**: Non-breaking changes with potential issues, deprecated features, or missing file data
 - **low**: Minor changes, internal refactoring, documentation updates
-- **safe**: Cosmetic changes, no impact on functionality
+- **safe**: Cosmetic changes, no impact on functionality (must explain why it's safe)
 `
 }
 

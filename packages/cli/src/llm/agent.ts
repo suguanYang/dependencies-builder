@@ -58,8 +58,9 @@ export async function invokeLLMAgent(
     new SystemMessage({
       content: `
 You are a senior frontend developer with extensive experience in React and Web development.
-Your goal is to determine the impaction level of code changes.
-You should give details about how the impaction is determined, give evidences strongly based on the source code
+Your goal is to produce STABLE and FACTUAL assessments of code change impacts.
+You should give details about how the impact is determined, providing evidence strongly based on the source code.
+Do not guess - only make claims you can support with specific code references and line numbers.
 `,
     }),
     new HumanMessage({
