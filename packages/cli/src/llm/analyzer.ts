@@ -444,6 +444,7 @@ The provided context consists of multiple entries. Each entry represents a depen
     *   Did the error handling change? (e.g., throw  vs return, or changing error codes).
     *   Did the side effects change? (e.g., writing to window, LocalStorage).
     *   Did the "Potential Impacted Code" can still work for the "Changed Code"?
+    *   Did the call stack will flow to the changed code?(mainly depends on the parameters and the environment of the caller)
 
 4.  **Step 4: Synthesize Report (in Chinese)**
     *   Group results by "Potential Impacted Code".
