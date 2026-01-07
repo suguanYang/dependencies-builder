@@ -4,6 +4,7 @@ import { initMCPClient, closeMCPClient } from './mcp-client'
 import { invokeLLMAgent } from './agent'
 import debug, { error } from '../utils/debug'
 import { generateNodeId } from '../utils/node-id'
+import { calculateBatches, type ContextItem, type ContextBatch } from './token-budget'
 
 /**
  * Impact analysis report structure
@@ -40,6 +41,14 @@ export interface ImpactAnalysisInput {
 }
 
 /**
+ * Context batch with formatted context string
+ */
+interface FormattedContextBatch {
+  context: string
+  items: ContextItem[]
+}
+
+/**
  * Analyze the impact of changes using LLM
  * @param input Analysis input data from report generation
  * @returns Impact report or null if analysis is disabled/failed
@@ -62,22 +71,48 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
   }
 
   try {
-    debug('Starting LLM-based impact analysis...')
+    debug('Starting LLM-based impact analysis with dynamic context building...')
 
     // Initialize MCP client
     await initMCPClient(config.gitlab)
 
-    // Prepare context for the LLM
-    const context = await prepareContext(input)
+    // Prepare context batches (handles token budget automatically)
+    const batches = await prepareContextBatches(input)
     const instruction = prepareInstruction()
 
-    // Invoke the agent
-    const result = await invokeLLMAgent(context, instruction, config.llm)
+    if (batches.length === 0) {
+      throw new Error('No valid context batches to analyze')
+    }
 
-    // Parse the result
-    const report = parseAgentResult(result)
+    debug(`Processing ${batches.length} batch(es) in parallel...`)
 
-    return report
+    // Invoke the agent for each batch in parallel
+    const results = await Promise.all(
+      batches.map(async (batch: FormattedContextBatch, index: number) => {
+        debug(`Starting batch ${index + 1}/${batches.length}...`)
+        try {
+          const result = await invokeLLMAgent(batch.context, instruction, config.llm)
+          const report = parseAgentResult(result)
+          debug(`Batch ${index + 1}/${batches.length} completed successfully`)
+          return report
+        } catch (error) {
+          debug(`Batch ${index + 1}/${batches.length} failed: %o`, error)
+          // Return a partial error report for this batch
+          return {
+            success: false,
+            level: 'medium' as const,
+            summary: [`Batch ${index + 1} failed to analyze`],
+            message: error instanceof Error ? error.message : String(error),
+          }
+        }
+      }),
+    )
+
+    // Merge results from all batches
+    const mergedReport = mergeImpactReports(results)
+
+    debug('All batches completed and merged')
+    return mergedReport
   } catch (error) {
     debug('Impact analysis failed: %o', error)
     return {
@@ -105,9 +140,10 @@ const getProjectIDFromRepositoryAddr = (addr: string) => {
 }
 
 /**
- * Prepare the context string for the LLM
+ * Prepare context batches for the LLM
+ * Implements token budget management with automatic batching
  */
-async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
+async function prepareContextBatches(input: ImpactAnalysisInput): Promise<FormattedContextBatch[]> {
   const { getProjectByName } = await import('../api')
 
   // Validate input project address
@@ -318,54 +354,77 @@ async function prepareContext(input: ImpactAnalysisInput): Promise<string> {
     throw new Error('No valid affected nodes after filtering - cannot perform LLM analysis')
   }
 
-  // Build XML-structured context for each analysis task
-  const analysisTasks = validImpacts.map((item) => {
-    const { fromNode, toNode, projectID, changedLines, impactedCodeContent, dependentCodeContent } =
-      item
+  // Get diff content (concatenate all changed lines for token calculation)
+  const diffContent = validImpacts
+    .map((item) => item.changedLines?.join('\n') || '')
+    .filter((s) => s.length > 0)
+    .join('\n\n')
 
-    // Format changed code diff
-    let diffContent = ''
-    if (changedLines && changedLines.length > 0) {
-      diffContent = changedLines.join('\n')
-    }
+  // Calculate batches using token budget manager
+  const contextBatches = calculateBatches(
+    diffContent,
+    validImpacts,
+    currentProjectID,
+    input.projectName,
+    input.sourceBranch,
+    input.targetBranch,
+  )
 
-    // Format dependent file content with line numbers
-    let dependentFileContent = ''
-    if (dependentCodeContent) {
-      // Check if it's an error message
-      if (dependentCodeContent.startsWith('[Error fetching file:')) {
-        dependentFileContent = `    <SYSTEM_ERROR>${dependentCodeContent}</SYSTEM_ERROR>`
-      } else {
-        const lines = dependentCodeContent.split('\n')
-        const numberedLines = lines
-          .map((line, idx) => {
-            const lineNum = (idx + 1).toString().padStart(4, ' ')
-            return `    ${lineNum}: ${line}`
-          })
-          .join('\n')
-        dependentFileContent = numberedLines
+  // Format each batch into context strings
+  const formattedBatches: FormattedContextBatch[] = contextBatches.map((batch) => {
+    const analysisTasks = batch.items.map((item) => {
+      const {
+        fromNode,
+        toNode,
+        projectID,
+        changedLines,
+        impactedCodeContent,
+        dependentCodeContent,
+      } = item
+
+      // Format changed code diff
+      let diffContent = ''
+      if (changedLines && changedLines.length > 0) {
+        diffContent = changedLines.join('\n')
       }
-    }
 
-    // Format impacted file content with line numbers
-    let impactedFileContent = ''
-    if (impactedCodeContent) {
-      // Check if it's an error message
-      if (impactedCodeContent.startsWith('[Error fetching file:')) {
-        impactedFileContent = `    <SYSTEM_ERROR>${impactedCodeContent}</SYSTEM_ERROR>`
-      } else {
-        const lines = impactedCodeContent.split('\n')
-        const numberedLines = lines
-          .map((line, idx) => {
-            const lineNum = (idx + 1).toString().padStart(4, ' ')
-            return `    ${lineNum}: ${line}`
-          })
-          .join('\n')
-        impactedFileContent = numberedLines
+      // Format dependent file content with line numbers
+      let dependentFileContent = ''
+      if (dependentCodeContent) {
+        // Check if it's an error message
+        if (dependentCodeContent.startsWith('[Error fetching file:')) {
+          dependentFileContent = `    <SYSTEM_ERROR>${dependentCodeContent}</SYSTEM_ERROR>`
+        } else {
+          const lines = dependentCodeContent.split('\n')
+          const numberedLines = lines
+            .map((line, idx) => {
+              const lineNum = (idx + 1).toString().padStart(4, ' ')
+              return `    ${lineNum}: ${line}`
+            })
+            .join('\n')
+          dependentFileContent = numberedLines
+        }
       }
-    }
 
-    return `<analysis_task>
+      // Format impacted file content with line numbers
+      let impactedFileContent = ''
+      if (impactedCodeContent) {
+        // Check if it's an error message
+        if (impactedCodeContent.startsWith('[Error fetching file:')) {
+          impactedFileContent = `    <SYSTEM_ERROR>${impactedCodeContent}</SYSTEM_ERROR>`
+        } else {
+          const lines = impactedCodeContent.split('\n')
+          const numberedLines = lines
+            .map((line, idx) => {
+              const lineNum = (idx + 1).toString().padStart(4, ' ')
+              return `    ${lineNum}: ${line}`
+            })
+            .join('\n')
+          impactedFileContent = numberedLines
+        }
+      }
+
+      return `<analysis_task>
   <dependency_metadata>
     <provider_project_name>${input.projectName}</provider_project_name>
     <provider_project_id>${currentProjectID}</provider_project_id>
@@ -399,9 +458,9 @@ ${dependentFileContent}
 ${impactedFileContent}
   </consumer_file_content>
 </analysis_task>`
-  })
+    })
 
-  return `
+    const contextString = `
 Current Project (Provider): ${input.projectName} (ID: ${currentProjectID})
 Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
@@ -410,6 +469,83 @@ Total Analysis Tasks: ${analysisTasks.length}
 
 ${analysisTasks.join('\n\n')}
 `.trim()
+
+    return {
+      context: contextString,
+      items: batch.items,
+    }
+  })
+
+  return formattedBatches
+}
+
+/**
+ * Merge multiple impact reports into a single report
+ */
+function mergeImpactReports(reports: ImpactReport[]): ImpactReport {
+  if (reports.length === 0) {
+    return {
+      success: false,
+      level: 'medium',
+      summary: ['No reports to merge'],
+      message: 'No analysis results available',
+    }
+  }
+
+  if (reports.length === 1) {
+    return reports[0]
+  }
+
+  // Determine overall success (all must succeed)
+  const success = reports.every((r) => r.success)
+
+  // Take the highest severity level
+  const levelPriority: Record<string, number> = { safe: 0, low: 1, medium: 2, high: 3 }
+  const highestLevel = reports.reduce(
+    (max, r) => {
+      return levelPriority[r.level] > levelPriority[max] ? r.level : max
+    },
+    'safe' as 'safe' | 'low' | 'medium' | 'high',
+  )
+
+  // Merge summaries (deduplicate)
+  const summaries = [...new Set(reports.flatMap((r) => r.summary))]
+
+  // Merge affected projects by project name
+  const projectMap = new Map<string, ImpactReport['affectedProjects'][number]>()
+
+  for (const report of reports) {
+    if (report.affectedProjects) {
+      for (const project of report.affectedProjects) {
+        const existing = projectMap.get(project.projectName)
+        if (existing) {
+          // Merge impacts and suggestions
+          existing.impacts.push(...project.impacts)
+          existing.suggestions.push(...project.suggestions)
+          // Take higher level
+          if (levelPriority[project.level] > levelPriority[existing.level]) {
+            existing.level = project.level
+          }
+        } else {
+          projectMap.set(project.projectName, { ...project })
+        }
+      }
+    }
+  }
+
+  const affectedProjects = Array.from(projectMap.values())
+
+  // Merge messages
+  const messages = reports.map((r) => r.message).filter((m) => m.length > 0)
+  const message = messages.length > 0 ? messages.join('; ') : ''
+
+  return {
+    success,
+    level: highestLevel,
+    summary: summaries,
+    affectedProjects,
+    message,
+  }
 }
 
 /**
