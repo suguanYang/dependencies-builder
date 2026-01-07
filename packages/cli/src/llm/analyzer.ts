@@ -405,20 +405,12 @@ The provided context consists of multiple entries. Each entry represents a depen
 **Analysis Guidelines (Chain of Thought):**
 1.  **Step 1: Noise Filtering (CRITICAL - DO THIS FIRST)**
     *   **BEFORE analyzing anything else**, examine ONLY the "Changed Code" diff for each entry
-    *   **ONLY the following are cosmetic (safe)**:
+    *   **the following are cosmetic (safe)**:
         *   **Pure whitespace**: ONLY adding/removing spaces, tabs, or empty lines
             - Example: () => {} to () => { } is COSMETIC
             - Example: function(){} to function() {} is COSMETIC  
         *   **Pure comments/docs**: ONLY adding/removing comments or JSDoc (no code changes)
         *   **Pure formatting**: ONLY line breaks, indentation changes (no code changes)
-    *   **The following are NOT cosmetic (must analyze)**:
-        *   **Function/variable renames**: fetchJSModule to fetchResource is NOT cosmetic
-        *   **Error handling changes**: Adding try/catch, throw statements, changing error logic is NOT cosmetic
-        *   **Function signature changes**: Adding/removing parameters, changing return type is NOT cosmetic
-        *   **Logic changes**: ANY change to if/else, loops, function calls, operators is NOT cosmetic
-        *   **Import/export changes**: Adding/removing imports, changing what's exported is NOT cosmetic
-        *   **API behavior changes**: Changing side effects, async behavior, error propagation is NOT cosmetic
-    *   **Rule**: If ANY line has code logic changes (not just whitespace/comments), it is NOT cosmetic
     *   **For PURELY cosmetic entries only, output**:
         - projectName: project name from the entry
         - impacts: [Explain why it's safe, e.g., "仅添加注释说明，未修改代码逻辑"]
@@ -431,20 +423,18 @@ The provided context consists of multiple entries. Each entry represents a depen
     *   Match the affected "Potential Impacted Code" with the coressponding "Changed Code" exactly
     *   **CRITICAL: Distinguish import statements from actual usage**:
         *   Pure ES6 import statements (e.g., import { foo } from 'bar') are NOT impacts by themselves
-        *   Imports are just declarations - they don't execute code (unless the module has side effects)
         *   **Only flag the actual usage sites** where the imported function/variable is called/used
-        *   Example: If line 2 is [import { appDynamicImport }] and line 18 is [appDynamicImport()], only line 18 is impacted
+        *   Example: If line 2 is [import { memberA }] and line 18 is [memberA()], only line 18 is need to be analysised
     *   Does the changes modify export signatures? (Function arguments, return types, generic types).
     *   If parameters are added, are they optional? If mandatory, this is a **HIGH** impact breaking change.
     *   If a function is renamed or removed, this is a **HIGH** impact breaking change.
-    *   Is The API Contract still works for the "Potential Impacted Code"?
+    *   Will The API Contract still works for the "Potential Impacted Code"?
 
 3.  **Step 3: Behavioral & Internal Logic Analysis**
     *   If the API signature is unchanged, look at the internal logic, the "Changed Code" is maybe a function on the callstack.
-    *   Did the error handling change? (e.g., throw  vs return, or changing error codes).
+    *   Did the error handling change? (e.g., throw vs return, or changing error codes).
     *   Did the side effects change? (e.g., writing to window, LocalStorage).
-    *   Did the "Potential Impacted Code" can still work for the "Changed Code"?
-    *   Did the call stack will flow to the changed code?(mainly depends on the parameters and the environment of the caller)
+    *   Will the "Potential Impacted Code" will flow to the "Changed Code"?
 
 4.  **Step 4: Synthesize Report (in Chinese)**
     *   Group results by "Potential Impacted Code".
@@ -460,9 +450,8 @@ The provided context consists of multiple entries. Each entry represents a depen
 - For each entry, use the line number to find the exact usage in the "Impacted Code File Content"
 - Analyze how the "Changed Code" affects the actual usage shown in the "Impacted Code File Content"
 - **CRITICAL**: Each impact description MUST include a code snippet showing the impacted code:
-  - Extract 3-5 lines of code from "Impacted Code File Content" centered around the line number
   - Format as: "文件xxx第N行: [code snippet] - 影响描述"
-  - Example: "文件src/app.tsx第116行: [refreshAppInfoCache()] 调用处 - 该函数错误处理逻辑变化可能影响异常捕获"
+  - Example: "文件src/app.tsx第116行: [methodA(<parameters>)] 调用处 - 该函数错误处理逻辑变化可能影响异常捕获"
 - Provide specific line-number references when describing impacts
 - If the given context can not determine the impactation, try to grab more files that related to the code by calling related tools, like get_file_content
 
@@ -470,7 +459,7 @@ The provided context consists of multiple entries. Each entry represents a depen
 - The summary field must be an ARRAY of strings, one entry per changed file
 - Each entry should describe the changes in that specific file
 - Format each entry as: "filename: description of changes"
-- Example: ["src/utils/ajax/index.ts: 重命名fetchJSModule为fetchResource，简化fetch参数", "src/infra/runtime.ts: 新增appDynamicImport函数JSDoc文档说明资源版本管理协议", "src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录APM"]
+- Example: ["src/utils/ajax/index.ts: 重命名methodA为methodAB，简化fetch参数", "src/infra/runtime.ts: 新增methodA函数文档说明资源版本管理协议", "src/utils/_import.ts: 调整错误处理逻辑，改为抛出异常而非记录日志"]
 - Help users quickly understand which files changed and what changed in each file
 
 **Output Format (JSON only, text content in CHINESE):**
@@ -479,16 +468,16 @@ The provided context consists of multiple entries. Each entry represents a depen
   "success": true,
   "summary": [
     "src/utils/ajax/index.ts: 仅格式化变更，无逻辑修改",
-    "src/infra/runtime.ts: 新增appDynamicImport函数的详细JSDoc文档",
-    "src/utils/_import.ts: 重构fetchResource函数，调整错误处理机制"
+    "src/infra/runtime.ts: 新增A函数的详细文档",
+    "src/utils/_import.ts: 重构A函数，调整错误处理机制"
   ],
   "level": "safe|low|medium|high", // 项目整体影响程度, 取所有受影响项目中最高的影响程度
   "affectedProjects": [
     {
       "projectName": "project-name-1",
       "impacts": [
-        "path/to/file.ts第123行: [functionCall()] 调用处 - 具体影响描述，说明变更如何影响此处代码",
-        "path/to/file.ts第456行: [anotherCall()] 调用处 - 另一处影响的具体描述"
+        "path/to/file.ts第123行: [if (window.__XXX__) {}] 使用处 - 具体影响描述，说明变更如何影响此处代码",
+        "path/to/file.ts第456行: [methodA(<parameters>)] 调用处 - 另一处影响的具体描述"
       ],
       "level": "safe|low|medium|high",
       "suggestions": [
