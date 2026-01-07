@@ -44,6 +44,8 @@ describe('LLM Configuration API', () => {
     process.env.OPENAI_BASE_URL = 'https://env-api.com'
     process.env.OPENAI_MODEL_NAME = 'env-gpt-4'
     process.env.OPENAI_TEMPERATURE = '0.5'
+    process.env.LLM_MODEL_MAX_TOKENS = '200000'
+    process.env.LLM_REQUESTS_PER_MINUTE = '120'
 
     const { headers } = await getAuthHeaders(server, 'admin')
 
@@ -61,6 +63,8 @@ describe('LLM Configuration API', () => {
     expect(config.modelName).toBe('env-gpt-4')
     expect(config.temperature).toBe(0.5)
     expect(config.enabled).toBe(true)
+    expect(config.modelMaxTokens).toBe(200000)
+    expect(config.requestsPerMinute).toBe(120)
   })
 
   it('should return DB config when present, ignoring env vars', async () => {
@@ -75,6 +79,11 @@ describe('LLM Configuration API', () => {
         modelName: 'db-gpt-4',
         temperature: 0.8,
         enabled: false,
+        modelMaxTokens: 32000,
+        safeBuffer: 2000,
+        systemPromptCost: 1000,
+        windowSize: 50,
+        requestsPerMinute: 30,
       },
     })
 
@@ -118,6 +127,11 @@ describe('LLM Configuration API', () => {
       modelName: 'gpt-4-turbo',
       temperature: 0.7,
       enabled: true,
+      modelMaxTokens: 128000,
+      safeBuffer: 4000,
+      systemPromptCost: 2000,
+      windowSize: 100,
+      requestsPerMinute: 60,
     }
 
     const response = await server.inject({
@@ -130,11 +144,15 @@ describe('LLM Configuration API', () => {
     expect(response.statusCode).toBe(200)
     const config = response.json()
     expect(config.apiKey).toBe('new-api-key')
+    expect(config.modelMaxTokens).toBe(128000)
+    expect(config.requestsPerMinute).toBe(60)
 
     // Verify persistence
     const savedConfig = await prisma.lLMConfig.findFirst()
     expect(savedConfig).toBeTruthy()
     expect(savedConfig?.apiKey).toBe('new-api-key')
+    expect(savedConfig?.modelMaxTokens).toBe(128000)
+    expect(savedConfig?.requestsPerMinute).toBe(60)
   })
 
   it('should deny access to non-admin users', async () => {

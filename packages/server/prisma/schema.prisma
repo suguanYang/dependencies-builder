@@ -286,6 +286,16 @@ model LLMConfig {
   modelName   String
   temperature Float
   enabled     Boolean  @default(false)
+  
+  // Token Budget Configuration
+  modelMaxTokens     Int @default(128000)
+  safeBuffer         Int @default(4000)
+  systemPromptCost   Int @default(2000)
+  windowSize         Int @default(100)
+  
+  // Rate Limiting Configuration
+  requestsPerMinute  Int @default(60)
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 }

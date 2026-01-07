@@ -53,6 +53,11 @@ describe('CLI Service', () => {
       modelName: 'db-model',
       temperature: 0.9,
       enabled: true,
+      modelMaxTokens: 200000,
+      safeBuffer: 5000,
+      systemPromptCost: 2500,
+      windowSize: 150,
+      requestsPerMinute: 120,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as any)
@@ -75,6 +80,11 @@ describe('CLI Service', () => {
     expect(options.env.OPENAI_BASE_URL).toBe('https://db-url.com')
     expect(options.env.OPENAI_MODEL_NAME).toBe('db-model')
     expect(options.env.OPENAI_TEMPERATURE).toBe('0.9')
+    expect(options.env.LLM_MODEL_MAX_TOKENS).toBe('200000')
+    expect(options.env.LLM_SAFE_BUFFER).toBe('5000')
+    expect(options.env.LLM_SYSTEM_PROMPT_COST).toBe('2500')
+    expect(options.env.LLM_WINDOW_SIZE).toBe('150')
+    expect(options.env.LLM_REQUESTS_PER_MINUTE).toBe('120')
     expect(options.env.DMS_SERVER_CLI_KEY).toBe('test-key')
   })
 

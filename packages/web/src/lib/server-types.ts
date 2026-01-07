@@ -140,4 +140,11 @@ export interface LLMConfig {
   modelName: string
   temperature: number
   enabled: boolean
+  // Token Budget Configuration
+  modelMaxTokens: number
+  safeBuffer: number
+  systemPromptCost: number
+  windowSize: number
+  // Rate Limiting Configuration
+  requestsPerMinute: number
 }

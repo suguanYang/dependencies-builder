@@ -21,6 +21,13 @@ export default async function (fastify: FastifyInstance) {
               modelName: process.env.OPENAI_MODEL_NAME || 'gpt-4o',
               temperature: Number(process.env.OPENAI_TEMPERATURE) || 1,
               enabled: true,
+              // Token Budget Configuration
+              modelMaxTokens: parseInt(process.env.LLM_MODEL_MAX_TOKENS || '128000', 10),
+              safeBuffer: parseInt(process.env.LLM_SAFE_BUFFER || '4000', 10),
+              systemPromptCost: parseInt(process.env.LLM_SYSTEM_PROMPT_COST || '2000', 10),
+              windowSize: parseInt(process.env.LLM_WINDOW_SIZE || '100', 10),
+              // Rate Limiting Configuration
+              requestsPerMinute: parseInt(process.env.LLM_REQUESTS_PER_MINUTE || '60', 10),
               createdAt: new Date(),
               updatedAt: new Date(),
             }
@@ -33,6 +40,11 @@ export default async function (fastify: FastifyInstance) {
             modelName: '',
             temperature: 0,
             enabled: false,
+            modelMaxTokens: 128000,
+            safeBuffer: 4000,
+            systemPromptCost: 2000,
+            windowSize: 100,
+            requestsPerMinute: 60,
           }
         }
         return config

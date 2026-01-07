@@ -132,7 +132,7 @@ present the graph.
 
 
 ### LLM Configuration
-Manage LLM settings for the system.
+Manage LLM settings for the system, including token budget management and rate limiting.
 
 - /GET /llm/config
   - Get the current LLM configuration.
@@ -145,9 +145,44 @@ Manage LLM settings for the system.
       "baseUrl": "https://api.openai.com/v1",
       "modelName": "gpt-4",
       "temperature": 0.7,
-      "enabled": true
+      "enabled": true,
+      
+      // Token Budget Configuration
+      "modelMaxTokens": 128000,      // Max context window (e.g., 128k for GPT-4 Turbo, 200k for Claude)
+      "safeBuffer": 4000,            // Tokens reserved for output
+      "systemPromptCost": 2000,      // Estimated system prompt tokens
+      "windowSize": 100,             // Lines for smart window extraction
+      
+      // Rate Limiting Configuration
+      "requestsPerMinute": 60        // API requests per minute to avoid 429 errors
     }
     ```
+
+#### Configuration Fields
+
+**Basic Settings:**
+- `apiKey`: API key for OpenAI or compatible service (required)
+- `baseUrl`: Base URL for API endpoint
+- `modelName`: Model to use (e.g., "gpt-4", "gpt-4-turbo", "claude-3-opus")
+- `temperature`: Temperature for responses (0-1)
+- `enabled`: Whether LLM integration is enabled
+
+**Token Budget Settings:**
+- `modelMaxTokens`: Maximum context window of your model
+  - GPT-4 Turbo: 128000
+  - GPT-4-32k: 32000
+  - Claude 3 Opus: 200000
+- `safeBuffer`: Tokens reserved for model output/response (default: 4000)
+- `systemPromptCost`: Estimated tokens used by system prompt (default: 2000)
+- `windowSize`: Number of lines to extract on each side of anchor line for smart window (default: 100)
+
+**Rate Limiting Settings:**
+- `requestsPerMinute`: Maximum API requests per minute to avoid 429 errors
+  - OpenAI free tier: 3
+  - OpenAI Tier 1: 500
+  - Claude default: 50
+  - Local models: Set very high (999999)
+
 
 
 ## Main Technical Stack

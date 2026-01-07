@@ -18,6 +18,13 @@ export default function LLMConfigPage() {
     modelName: '',
     temperature: 0.7,
     enabled: false,
+    // Token Budget Configuration
+    modelMaxTokens: 128000,
+    safeBuffer: 4000,
+    systemPromptCost: 2000,
+    windowSize: 100,
+    // Rate Limiting Configuration
+    requestsPerMinute: 60,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -157,6 +164,95 @@ export default function LLMConfigPage() {
                 Sampling temperature (0 to 2). Higher values mean more random outputs.
               </FieldDescription>
             </Field>
+
+            {/* Token Budget Configuration */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-lg font-semibold mb-4">Token Budget Configuration</h3>
+              <div className="space-y-4">
+                <Field>
+                  <FieldLabel>Model Max Tokens</FieldLabel>
+                  <Input
+                    type="number"
+                    step="1000"
+                    min="1000"
+                    value={config.modelMaxTokens}
+                    onChange={(e) =>
+                      setConfig({ ...config, modelMaxTokens: parseInt(e.target.value) || 128000 })
+                    }
+                  />
+                  <FieldDescription>
+                    Maximum context window of your model. GPT-4 Turbo: 128000, GPT-4-32k: 32000,
+                    Claude 3: 200000
+                  </FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel>Safe Buffer</FieldLabel>
+                  <Input
+                    type="number"
+                    step="100"
+                    min="1000"
+                    value={config.safeBuffer}
+                    onChange={(e) =>
+                      setConfig({ ...config, safeBuffer: parseInt(e.target.value) || 4000 })
+                    }
+                  />
+                  <FieldDescription>Tokens reserved for model output/response.</FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel>System Prompt Cost</FieldLabel>
+                  <Input
+                    type="number"
+                    step="100"
+                    min="500"
+                    value={config.systemPromptCost}
+                    onChange={(e) =>
+                      setConfig({ ...config, systemPromptCost: parseInt(e.target.value) || 2000 })
+                    }
+                  />
+                  <FieldDescription>Estimated tokens used by system instructions.</FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel>Window Size</FieldLabel>
+                  <Input
+                    type="number"
+                    step="10"
+                    min="20"
+                    max="500"
+                    value={config.windowSize}
+                    onChange={(e) =>
+                      setConfig({ ...config, windowSize: parseInt(e.target.value) || 100 })
+                    }
+                  />
+                  <FieldDescription>
+                    Number of lines to extract on each side of anchor line when files are too large.
+                  </FieldDescription>
+                </Field>
+              </div>
+            </div>
+
+            {/* Rate Limiting Configuration */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-lg font-semibold mb-4">Rate Limiting</h3>
+              <Field>
+                <FieldLabel>Requests Per Minute</FieldLabel>
+                <Input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={config.requestsPerMinute}
+                  onChange={(e) =>
+                    setConfig({ ...config, requestsPerMinute: parseInt(e.target.value) || 60 })
+                  }
+                />
+                <FieldDescription>
+                  Maximum API requests per minute to avoid 429 errors. OpenAI free tier: 3, Tier 1:
+                  500, Claude: 50, Local models: 999999
+                </FieldDescription>
+              </Field>
+            </div>
 
             {message && (
               <div className="p-3 bg-green-50 text-green-700 rounded-md text-sm">{message}</div>

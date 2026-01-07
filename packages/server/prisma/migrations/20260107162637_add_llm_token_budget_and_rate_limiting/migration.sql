@@ -1,0 +1,8 @@
+-- Add Token Budget Configuration columns
+ALTER TABLE "LLMConfig" ADD COLUMN "modelMaxTokens" INTEGER NOT NULL DEFAULT 128000;
+ALTER TABLE "LLMConfig" ADD COLUMN "safeBuffer" INTEGER NOT NULL DEFAULT 4000;
+ALTER TABLE "LLMConfig" ADD COLUMN "systemPromptCost" INTEGER NOT NULL DEFAULT 2000;
+ALTER TABLE "LLMConfig" ADD COLUMN "windowSize" INTEGER NOT NULL DEFAULT 100;
+
+-- Add Rate Limiting Configuration column
+ALTER TABLE "LLMConfig" ADD COLUMN "requestsPerMinute" INTEGER NOT NULL DEFAULT 60;
