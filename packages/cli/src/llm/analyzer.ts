@@ -390,6 +390,7 @@ function prepareInstruction(): string {
 
 **Your Task:**
 Analyze how the "Changed Code" impact on the "Potential Impacted Code" and generate a JSON report WITH PER-Impacted-Code SUGGESTIONS.
+Your main Analyze is reasoning about what the **changes impact**, the **relation** between the "Impacted Code" and the "Changed Code", not thinking on the single side!**
 
 **Input Format Understanding:**
 The provided context consists of multiple entries. Each entry represents a dependency relation:
@@ -423,8 +424,9 @@ The provided context consists of multiple entries. Each entry represents a depen
     *   Match the affected "Potential Impacted Code" with the coressponding "Changed Code" exactly
     *   **CRITICAL: Distinguish import statements from actual usage**:
         *   Pure ES6 import statements (e.g., import { foo } from 'bar') are NOT impacts by themselves
+        *   Imports are just declarations - they don't execute code (unless the module has side effects)
         *   **Only flag the actual usage sites** where the imported function/variable is called/used
-        *   Example: If line 2 is [import { memberA }] and line 18 is [memberA()], only line 18 is need to be analysised
+        *   Example: If line 2 is [import { A }] and line 18 is [A()], only line 18 is impacted
     *   Does the changes modify export signatures? (Function arguments, return types, generic types).
     *   If parameters are added, are they optional? If mandatory, this is a **HIGH** impact breaking change.
     *   If a function is renamed or removed, this is a **HIGH** impact breaking change.
@@ -434,6 +436,7 @@ The provided context consists of multiple entries. Each entry represents a depen
     *   If the API signature is unchanged, look at the internal logic, the "Changed Code" is maybe a function on the callstack.
     *   Did the error handling change? (e.g., throw vs return, or changing error codes).
     *   Did the side effects change? (e.g., writing to window, LocalStorage).
+    *   Will the "Potential Impacted Code" can still work for the "Changed Code"?
     *   Will the "Potential Impacted Code" will flow to the "Changed Code"?
 
 4.  **Step 4: Synthesize Report (in Chinese)**
