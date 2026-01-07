@@ -54,23 +54,26 @@ const _spawn = (
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
   consumeStdout?: boolean,
-): Promise<MemoryDuplexStream | string> => {
-  const stdoutStream = new MemoryDuplexStream([])
+  silent?: boolean,
+): Promise<MemoryDuplexStream | string | void> => {
+  const stdoutStream = silent ? null : new MemoryDuplexStream([])
   const stderrStream = new MemoryDuplexStream([])
 
   debug('spawn start', command, ...args)
   const child = spawn(command, args, {
     ...opt,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', silent ? 'ignore' : 'pipe', 'pipe'],
   })
   debug('spawn end', command, ...args)
 
-  stdoutStream.setEncoding('utf-8')
-  child.stdout?.pipe(stdoutStream)
-  !consumeStdout &&
-    stdoutStream.on('data', (chunk) => {
-      debug(command, chunk)
-    })
+  if (!silent) {
+    stdoutStream!.setEncoding('utf-8')
+    child.stdout?.pipe(stdoutStream!)
+    !consumeStdout &&
+      stdoutStream!.on('data', (chunk) => {
+        debug(command, chunk)
+      })
+  }
 
   let errorLog: string = ''
   stderrStream.setEncoding('utf-8')
@@ -81,10 +84,10 @@ const _spawn = (
   })
 
   let reject: (err: unknown) => void
-  const promise: Promise<MemoryDuplexStream> = new Promise((res, rej) => {
+  const promise: Promise<MemoryDuplexStream | void> = new Promise((res, rej) => {
     reject = rej
     child.on('exit', async (code) => {
-      if (code === 0) return res(stdoutStream)
+      if (code === 0) return res(silent ? undefined : stdoutStream!)
 
       debug('run end', command, code)
       reject(
@@ -98,8 +101,12 @@ const _spawn = (
   })
 
   return promise.then(async (res) => {
+    if (silent) {
+      return undefined
+    }
+
     if (consumeStdout) {
-      return await streamToString(res)
+      return await streamToString(res!)
     }
 
     return res
@@ -112,20 +119,30 @@ function run(
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
   consumeStdout?: false,
+  silent?: false,
 ): Promise<MemoryDuplexStream>
 function run(
   command: string,
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
   consumeStdout?: true,
+  silent?: false,
 ): Promise<string>
+function run(
+  command: string,
+  args: string[],
+  opt: SpawnOptionsWithoutStdio | undefined,
+  consumeStdout: boolean | undefined,
+  silent: true,
+): Promise<void>
 function run(
   command: string,
   args: string[],
   opt?: SpawnOptionsWithoutStdio,
   consumeStdout?: boolean,
+  silent?: boolean,
 ) {
-  return control(() => _spawn(command, args, opt, consumeStdout))
+  return control(() => _spawn(command, args, opt, consumeStdout, silent))
 }
 
 export default run

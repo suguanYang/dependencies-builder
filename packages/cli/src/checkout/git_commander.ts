@@ -57,7 +57,7 @@ class GitCommander implements IGitCommander {
       gitArgs.push(arg)
     }
 
-    await run('git', gitArgs, { cwd: this.workingDirectory })
+    await run('git', gitArgs, { cwd: this.workingDirectory }, false, true)
   }
 
   getWorkingDirectory(): string {
