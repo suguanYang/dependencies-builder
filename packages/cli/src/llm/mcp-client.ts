@@ -28,12 +28,21 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
   if (configMap.size === 0) {
     throw new Error('At least one GitRepo configuration is required to initialize MCP client')
   }
+  // Get any config for initial setup
+  const firstConfig = configMap.values().next().value
+  if (!firstConfig) {
+    throw new Error('At least one GitRepo configuration is required to initialize MCP client')
+  }
 
   mcpClient = new MultiServerMCPClient({
     mcpServers: {
       gitlab: {
         transport: 'http',
         url: MCP_ENDPOINT,
+        headers: {
+          Authorization: `Bearer ${firstConfig.accessToken}`,
+          'X-GitLab-API-URL': firstConfig.apiUrl,
+        },
       },
     },
 
@@ -56,8 +65,6 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
         error('ERROR: %s', errorMsg)
         throw new Error(errorMsg)
       }
-
-      debug('Using GitRepo config for %s: API URL = %s', projectId, matchingConfig.apiUrl)
 
       // Inject custom headers for this specific call
       return {
