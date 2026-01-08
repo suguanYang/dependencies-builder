@@ -65,7 +65,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
   }
 
   try {
-    validateLLMConfig(config, input.projectAddr)
+    validateLLMConfig(config)
   } catch (error) {
     debug('LLM configuration validation failed: %o', error)
     return null
@@ -74,8 +74,73 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
   try {
     debug('Starting LLM-based impact analysis with dynamic context building...')
 
-    // Initialize MCP client
-    await initMCPClient(config.gitlab)
+    // Fetch GitRepo configurations for all affected projects
+    debug('Fetching GitRepo configurations for affected projects...')
+    const { getGitRepoByHost, parseGitUrl } = await import('../api')
+
+    // Collect project data from current project and all affected projects
+    const projectData: Array<{ projectId: string; host: string }> = []
+
+    // Add main project
+    const mainParsed = parseGitUrl(input.projectAddr)
+    projectData.push({ projectId: mainParsed.projectId, host: mainParsed.host })
+
+    // Add all dependent projects from affectedConnections
+    for (const conn of input.affectedConnections) {
+      const projectAddr = conn.fromNode?.project?.addr
+      if (projectAddr) {
+        try {
+          const parsed = parseGitUrl(projectAddr)
+          projectData.push({ projectId: parsed.projectId, host: parsed.host })
+        } catch (err) {
+          debug('Failed to parse project address %s: %o', projectAddr, err)
+        }
+      }
+    }
+
+    // Build projectId -> GitRepoConfig map with host caching
+    const projectIdToConfigMap = new Map<string, import('../api').GitRepoConfig>()
+    const hostCache = new Map<string, import('../api').GitRepoConfig>()
+    const failedHosts: string[] = []
+
+    for (const { projectId, host } of projectData) {
+      // Check cache first
+      let config = hostCache.get(host)
+
+      if (!config) {
+        // Fetch from server if not cached
+        try {
+          config = await getGitRepoByHost(host)
+          hostCache.set(host, config)
+          debug('Fetched GitRepo config for host %s: API URL = %s', host, config.apiUrl)
+        } catch (err) {
+          if (!failedHosts.includes(host)) {
+            failedHosts.push(host)
+          }
+          debug('Failed to fetch GitRepo config for host %s: %o', host, err)
+          continue
+        }
+      }
+
+      projectIdToConfigMap.set(projectId, config)
+    }
+
+    // Throw error if any GitRepo config is missing (no fallback)
+    if (failedHosts.length > 0) {
+      throw new Error(
+        `GitRepo configuration not found for the following hosts: ${failedHosts.join(', ')}. ` +
+          `Please configure them in the admin panel first.`,
+      )
+    }
+
+    if (projectIdToConfigMap.size === 0) {
+      throw new Error('No GitRepo configurations found for any affected projects')
+    }
+
+    debug('Built projectId -> GitRepoConfig map with %d entries', projectIdToConfigMap.size)
+
+    // Initialize MCP client with projectId -> GitRepoConfig map
+    await initMCPClient(projectIdToConfigMap)
 
     // Prepare context batches (handles token budget automatically)
     const batches = await prepareContextBatches(input)
@@ -517,7 +582,7 @@ function mergeImpactReports(reports: ImpactReport[]): ImpactReport {
   const summaries = [...new Set(reports.flatMap((r) => r.summary))]
 
   // Merge affected projects by project name
-  const projectMap = new Map<string, ImpactReport['affectedProjects'][number]>()
+  const projectMap = new Map<string, NonNullable<ImpactReport['affectedProjects']>[number]>()
 
   for (const report of reports) {
     if (report.affectedProjects) {
@@ -548,7 +613,7 @@ function mergeImpactReports(reports: ImpactReport[]): ImpactReport {
     success,
     level: highestLevel,
     summary: summaries,
-    affectedProjects,
+    affectedProjects: affectedProjects.length > 0 ? affectedProjects : undefined,
     message,
   }
 }

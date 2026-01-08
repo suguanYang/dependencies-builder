@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { ActionType, Prisma, LLMConfig } from '../generated/prisma/client'
+import { ActionType, Prisma, LLMConfig, GitRepo } from '../generated/prisma/client'
 import { randomUUID } from 'node:crypto'
 
 export async function getNodes(query: Prisma.NodeFindManyArgs) {
@@ -541,5 +541,107 @@ export async function updateLLMConfig(data: UpdateLLMConfigData): Promise<LLMCon
     return await prisma.lLMConfig.create({
       data,
     })
+  }
+}
+
+// GitRepo repository functions
+
+/**
+ * Get all GitRepo configurations
+ */
+export async function getGitRepos(query?: Prisma.GitRepoFindManyArgs) {
+  const { where, take, skip } = query || {}
+
+  const [data, total] = await Promise.all([
+    prisma.gitRepo.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take,
+      skip,
+    }),
+    prisma.gitRepo.count({ where }),
+  ])
+
+  return {
+    data,
+    total,
+  }
+}
+
+/**
+ * Get a GitRepo by ID
+ */
+export async function getGitRepoById(id: string): Promise<GitRepo | null> {
+  return await prisma.gitRepo.findUnique({
+    where: { id },
+  })
+}
+
+/**
+ * Get a GitRepo by host
+ */
+export async function getGitRepoByHost(host: string): Promise<GitRepo | null> {
+  return await prisma.gitRepo.findUnique({
+    where: { host },
+  })
+}
+
+/**
+ * Get a GitRepo by name
+ */
+export async function getGitRepoByName(name: string): Promise<GitRepo | null> {
+  return await prisma.gitRepo.findUnique({
+    where: { name },
+  })
+}
+
+export type CreateGitRepoData = Omit<GitRepo, 'id' | 'createdAt' | 'updatedAt'>
+
+/**
+ * Create a new GitRepo configuration
+ */
+export async function createGitRepo(data: CreateGitRepoData): Promise<GitRepo> {
+  // Check if a repo with the same name or host already exists
+  const [existingByName, existingByHost] = await Promise.all([
+    prisma.gitRepo.findUnique({ where: { name: data.name } }),
+    prisma.gitRepo.findUnique({ where: { host: data.host } }),
+  ])
+
+  if (existingByName) {
+    throw new Error(`GitRepo with name '${data.name}' already exists`)
+  }
+
+  if (existingByHost) {
+    throw new Error(`GitRepo with host '${data.host}' already exists`)
+  }
+
+  return await prisma.gitRepo.create({
+    data,
+  })
+}
+
+export type UpdateGitRepoData = Partial<Omit<GitRepo, 'id' | 'createdAt' | 'updatedAt'>>
+
+/**
+ * Update a GitRepo configuration
+ */
+export async function updateGitRepo(id: string, data: UpdateGitRepoData): Promise<GitRepo> {
+  return await prisma.gitRepo.update({
+    where: { id },
+    data,
+  })
+}
+
+/**
+ * Delete a GitRepo configuration
+ */
+export async function deleteGitRepo(id: string): Promise<boolean> {
+  try {
+    await prisma.gitRepo.delete({
+      where: { id },
+    })
+    return true
+  } catch {
+    return false
   }
 }

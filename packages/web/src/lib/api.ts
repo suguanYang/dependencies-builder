@@ -576,3 +576,39 @@ export async function updateLLMConfig(config: Partial<LLMConfig>): Promise<LLMCo
     body: JSON.stringify(config),
   })
 }
+
+// GitRepo Configuration API
+import { GitRepo } from './server-types'
+
+export async function getGitRepos(): Promise<{ data: GitRepo[]; total: number }> {
+  return apiRequest('/git-repos')
+}
+
+export async function getGitRepo(id: string): Promise<GitRepo> {
+  return apiRequest(`/git-repos/${id}`)
+}
+
+export async function createGitRepo(
+  data: Omit<GitRepo, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<GitRepo> {
+  return apiRequest('/git-repos', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateGitRepo(
+  id: string,
+  data: Partial<Omit<GitRepo, 'id' | 'createdAt' | 'updatedAt'>>,
+): Promise<GitRepo> {
+  return apiRequest(`/git-repos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteGitRepo(id: string): Promise<{ success: boolean }> {
+  return apiRequest(`/git-repos/${id}`, {
+    method: 'DELETE',
+  })
+}

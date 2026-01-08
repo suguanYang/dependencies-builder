@@ -7,6 +7,7 @@ import projectsRoutes from './routes/projects'
 import databaseAdminRoutes from './routes/database-admin'
 import authRoutes from './routes/auth'
 import llmRoutes from './routes/llm'
+import gitReposRoutes from './routes/git-repos'
 import { prisma } from '../database/prisma'
 
 export async function setupAPI(fastify: FastifyInstance) {
@@ -19,6 +20,7 @@ export async function setupAPI(fastify: FastifyInstance) {
   fastify.register(projectsRoutes)
   fastify.register(databaseAdminRoutes)
   fastify.register(llmRoutes, { prefix: '/llm' })
+  fastify.register(gitReposRoutes, { prefix: '/git-repos' })
 
   // Health check endpoint
   fastify.get('/health', async () => {

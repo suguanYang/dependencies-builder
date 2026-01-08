@@ -123,3 +123,45 @@ export const getConnectionsByToNode = async (node: {
     },
   ).then((res) => res.data)
 }
+
+/**
+ * Parse git URL to extract host and project ID
+ * @param gitUrl Git repository URL (may contain credentials)
+ * @returns Object with host and projectId
+ * @example
+ * parseGitUrl("https://user:token@code.repo.com/group/project.git")
+ * // Returns: { host: "code.repo.com", projectId: "group/project" }
+ */
+export const parseGitUrl = (gitUrl: string): { host: string; projectId: string } => {
+  try {
+    const url = new URL(gitUrl)
+    const host = url.hostname
+    // Remove leading slash and .git suffix
+    const projectId = url.pathname.substring(1).replace(/\.git$/, '')
+    return { host, projectId }
+  } catch (error) {
+    debug('Failed to parse git URL %s: %o', gitUrl, error)
+    throw new Error(`Invalid git URL: ${gitUrl}`)
+  }
+}
+
+export interface GitRepoConfig {
+  id: string
+  name: string
+  host: string
+  apiUrl: string
+  accessToken: string
+  enabled: boolean
+}
+
+/**
+ * Fetch GitRepo configuration by host
+ * @param host GitLab host (e.g., "code.repo.com")
+ * @returns GitRepo configuration
+ * @throws Error if not found or request fails
+ */
+export const getGitRepoByHost = async (host: string): Promise<GitRepoConfig> => {
+  return apiRequest<GitRepoConfig>(`git-repos/by-host?host=${encodeURIComponent(host)}`, {
+    method: 'GET',
+  })
+}

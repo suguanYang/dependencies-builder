@@ -148,3 +148,15 @@ export interface LLMConfig {
   // Rate Limiting Configuration
   requestsPerMinute: number
 }
+
+// GitRepo Configuration API
+export interface GitRepo {
+  id: string
+  name: string
+  host: string
+  apiUrl: string
+  accessToken: string
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}

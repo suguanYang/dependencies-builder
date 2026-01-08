@@ -53,6 +53,13 @@ function AdminContent() {
       href: '/admin/llm',
       color: 'bg-indigo-50 text-indigo-600',
     },
+    {
+      title: 'GitLab Repositories',
+      description: 'Manage GitLab host configurations for multi-instance support',
+      icon: DatabaseIcon,
+      href: '/admin/git-repos',
+      color: 'bg-teal-50 text-teal-600',
+    },
   ]
 
   return (

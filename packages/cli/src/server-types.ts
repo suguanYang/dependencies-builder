@@ -54,9 +54,10 @@ export interface Node {
   import_name?: string | null
   import_subpkg?: string | null
   export_entry?: string | null
+  project: Project
 }
 
-export type LocalNode = Omit<Node, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>
+export type LocalNode = Omit<Node, 'id' | 'projectId' | 'createdAt' | 'updatedAt' | 'project'>
 
 export interface Project {
   id: string

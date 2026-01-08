@@ -299,3 +299,19 @@ model LLMConfig {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 }
+
+/// GitLab repository configuration per host/domain
+/// One config serves all repositories on the same GitLab host
+model GitRepo {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  host        String   @unique // e.g., "code.repo.com" or "gitlab.com"
+  apiUrl      String   // e.g., "https://code.repo.com/api/v4"
+  accessToken String   // GitLab personal access token
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([host])
+  @@index([enabled])
+}

@@ -41,6 +41,7 @@ export async function invokeLLMAgent(
       },
     },
     temperature: config.temperature,
+    timeout: 600,
   })
 
   // Get tools from MCP client
@@ -85,8 +86,8 @@ Do not guess - only make claims you can support with specific code references an
     debug('\nCurrent conversation has %d messages:', currentMessages.length)
     currentMessages.forEach((msg, idx) => {
       const type = msg.type
-      let content =
-        typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)
+      // let content =
+      //   typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)
 
       debug(`\n[${idx}] ${type.toUpperCase()}:`)
 
@@ -100,12 +101,12 @@ Do not guess - only make claims you can support with specific code references an
       }
 
       if (type !== 'tool') {
-        debug('─'.repeat(60))
-        // Log content with indentation for readability
-        content.split('\n').forEach((line: string) => {
-          debug(`  ${line}`)
-        })
-        debug('─'.repeat(60))
+        // debug('─'.repeat(60))
+        // // Log content with indentation for readability
+        // content.split('\n').forEach((line: string) => {
+        //   debug(`  ${line}`)
+        // })
+        // debug('─'.repeat(60))
       }
     })
 
@@ -122,18 +123,14 @@ Do not guess - only make claims you can support with specific code references an
         ? response.content
         : JSON.stringify(response.content, null, 2)
     debug('Content:')
-    responseContent.split('\n').forEach((line: string) => {
-      debug(`  ${line}`)
-    })
+    debug(`  ${responseContent.substring(0, 100)}...`)
 
     if (response.tool_calls && response.tool_calls.length > 0) {
       debug('\nTool calls requested: %d', response.tool_calls.length)
       response.tool_calls.forEach((tc, idx) => {
         debug(`  [${idx}] ${tc.name} (ID: ${tc.id})`)
         const argsStr = JSON.stringify(tc.args, null, 2)
-        argsStr.split('\n').forEach((line: string) => {
-          debug(`      ${line}`)
-        })
+        debug(`      ${argsStr.substring(0, 100)}...`)
       })
     }
     debug('─'.repeat(60))
@@ -145,9 +142,7 @@ Do not guess - only make claims you can support with specific code references an
       // No tool calls, agent is done
       debug('\n✅ Agent finished - no more tool calls requested')
       debug('Final response content:')
-      responseContent.split('\n').forEach((line: string) => {
-        debug(`  ${line}`)
-      })
+      debug(`  ${responseContent.substring(0, 100)}...`)
       return typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content)
@@ -162,11 +157,7 @@ Do not guess - only make claims you can support with specific code references an
       debug(`\n  ▶ Tool: ${toolCall.name}`)
       debug(`    ID: ${toolCall.id}`)
       debug(`    Args:`)
-      JSON.stringify(toolCall.args, null, 2)
-        .split('\n')
-        .forEach((line: string) => {
-          debug(`      ${line}`)
-        })
+      debug(`      ${JSON.stringify(toolCall.args, null, 2).substring(0, 100)}...`)
 
       try {
         // Find the tool by name
@@ -207,9 +198,9 @@ Do not guess - only make claims you can support with specific code references an
           })
           toolMessages.push(toolMessage)
         }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error)
-        debug(`    ✗ Error: ${errorMsg}`)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        error(`    ✗ Error: ${errorMsg}`)
         // Create a ToolMessage for the error with the matching tool_call_id
         const errorMessage = new ToolMessage({
           content: `Error: ${errorMsg}`,
