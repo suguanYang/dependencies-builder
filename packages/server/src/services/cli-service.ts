@@ -68,6 +68,9 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
         ...process.env,
         DMS_SERVER_URL: process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001',
         DMS_SERVER_CLI_KEY: key,
+        // MCP configuration - server manages MCP lifecycle
+        MCP_SERVER_HOST: process.env.MCP_SERVER_HOST || '127.0.0.1',
+        MCP_SERVER_PORT: process.env.MCP_SERVER_PORT || '3002',
         ...llmEnv,
       },
     })

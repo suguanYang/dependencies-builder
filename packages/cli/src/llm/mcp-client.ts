@@ -1,107 +1,14 @@
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { spawn, ChildProcess } from 'child_process'
 import debug, { error } from '../utils/debug'
 import type { GitRepoConfig } from '../api'
 
 let mcpClient: MultiServerMCPClient | null = null
 let projectIdToConfigMap: Map<string, GitRepoConfig> = new Map()
-let mcpServerProcess: ChildProcess | null = null
-const MCP_SERVER_PORT = 3002
-const MCP_HOST = '127.0.0.1'
-const MCP_SERVER_URL = `http://${MCP_HOST}:${MCP_SERVER_PORT}/mcp`
 
-/**
- * Start the MCP server as a separate HTTP process
- */
-async function startMCPServer(firstConfig: GitRepoConfig): Promise<void> {
-  return new Promise((resolve, reject) => {
-    debug('Starting GitLab MCP server in HTTP mode on port %d', MCP_SERVER_PORT)
-
-    mcpServerProcess = spawn('node', [require.resolve('@zereight/mcp-gitlab/build/index.js')], {
-      env: {
-        ...process.env,
-        PORT: `${MCP_SERVER_PORT}`,
-        HOST: MCP_HOST,
-        ENABLE_DYNAMIC_API_URL: 'true',
-        REMOTE_AUTHORIZATION: 'true',
-        STREAMABLE_HTTP: 'true',
-        GITLAB_READ_ONLY_MODE: 'true',
-        GITLAB_API_URL: firstConfig.apiUrl,
-        GITLAB_PERSONAL_ACCESS_TOKEN: firstConfig.accessToken,
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-
-    let started = false
-
-    mcpServerProcess.stdout?.on('data', (data) => {
-      const output = data.toString()
-      debug('MCP Server: %s', output.trim())
-
-      // Look for the message indicating the server is ready
-      if (output.includes(`Endpoint: http://${MCP_HOST}:${MCP_SERVER_PORT}/mcp`)) {
-        if (!started) {
-          started = true
-          // Give it a moment to fully start
-          setTimeout(() => resolve(), 500)
-        }
-      }
-    })
-
-    mcpServerProcess.stderr?.on('data', (data) => {
-      const output = data.toString()
-      debug('MCP Server Error: %s', output.trim())
-    })
-
-    mcpServerProcess.on('error', (err) => {
-      error('Failed to start MCP server: %o', err)
-      reject(err)
-    })
-
-    mcpServerProcess.on('exit', (code) => {
-      debug('MCP server process exited with code %d', code)
-      mcpServerProcess = null
-    })
-
-    // Timeout if server doesn't start in 10 seconds
-    setTimeout(() => {
-      if (!started) {
-        reject(new Error('MCP server failed to start within 10 seconds'))
-      }
-    }, 10000)
-  })
-}
-
-/**
- * Stop the MCP server process
- */
-async function stopMCPServer(): Promise<void> {
-  if (!mcpServerProcess) {
-    return
-  }
-
-  return new Promise((resolve) => {
-    debug('Stopping MCP server...')
-
-    mcpServerProcess!.on('exit', () => {
-      debug('MCP server stopped')
-      mcpServerProcess = null
-      resolve()
-    })
-
-    mcpServerProcess!.kill('SIGTERM')
-
-    // Force kill after 5 seconds if not stopped
-    setTimeout(() => {
-      if (mcpServerProcess) {
-        debug('Force killing MCP server')
-        mcpServerProcess.kill('SIGKILL')
-        mcpServerProcess = null
-        resolve()
-      }
-    }, 5000)
-  })
-}
+// MCP endpoint - constructed from host and port
+const MCP_SERVER_HOST = process.env.MCP_SERVER_HOST || '127.0.0.1'
+const MCP_SERVER_PORT = process.env.MCP_SERVER_PORT || '3002'
+const MCP_ENDPOINT = `http://${MCP_SERVER_HOST}:${MCP_SERVER_PORT}/mcp`
 
 /**
  * Initialize the MCP client for GitLab integration with dynamic API URL support
@@ -115,23 +22,18 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
     return mcpClient
   }
 
-  debug('Initializing GitLab MCP client with HTTP transport...')
+  debug('Initializing GitLab MCP client with endpoint: %s', MCP_ENDPOINT)
   projectIdToConfigMap = configMap
 
-  // Get any config for initial setup
-  const firstConfig = configMap.values().next().value
-  if (!firstConfig) {
+  if (configMap.size === 0) {
     throw new Error('At least one GitRepo configuration is required to initialize MCP client')
   }
-
-  // Start MCP server first
-  await startMCPServer(firstConfig)
 
   mcpClient = new MultiServerMCPClient({
     mcpServers: {
       gitlab: {
         transport: 'http',
-        url: MCP_SERVER_URL,
+        url: MCP_ENDPOINT,
       },
     },
 
@@ -206,7 +108,4 @@ export async function closeMCPClient(): Promise<void> {
     mcpClient = null
     projectIdToConfigMap.clear()
   }
-
-  // Stop the MCP server process
-  await stopMCPServer()
 }

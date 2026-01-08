@@ -3,6 +3,7 @@ import { fatal, info } from './logging'
 import { prisma } from './database/prisma'
 import server from './server'
 import { FastifyInstance } from 'fastify'
+import { mcpServerService } from './services/mcp-server'
 
 async function startServer() {
   let fastify: FastifyInstance
@@ -14,30 +15,42 @@ async function startServer() {
     const host = process.env.HOST || '0.0.0.0'
 
     await fastify.listen({ port, host })
+
+    // Start MCP server after main server is running
+    try {
+      await mcpServerService.start()
+      info(`MCP server started at ${mcpServerService.getEndpoint()}`)
+    } catch (error) {
+      // Log but don't crash - MCP is optional
+      fatal(error, 'Failed to start MCP server (LLM features will be unavailable)')
+    }
   } catch (error) {
     fatal(error, 'Failed to start server')
     process.exit(1)
   }
 
   // Graceful shutdown
-  // process.on('SIGINT', async () => {
-  //   info('Shutting down gracefully...')
-  //   await fastify.close()
-  //   await prisma.$disconnect()
-  //   process.exit(0)
-  // })
+  process.on('SIGINT', async () => {
+    info('Shutting down gracefully...')
+    await mcpServerService.stop()
+    await fastify.close()
+    await prisma.$disconnect()
+    process.exit(0)
+  })
 
-  // process.on('SIGTERM', async () => {
-  //   info('Shutting down gracefully...')
-  //   await fastify.close()
-  //   await prisma.$disconnect()
-  //   process.exit(0)
-  // })
+  process.on('SIGTERM', async () => {
+    info('Shutting down gracefully...')
+    await mcpServerService.stop()
+    await fastify.close()
+    await prisma.$disconnect()
+    process.exit(0)
+  })
 
   // @ts-ignore
   if (import.meta.hot) {
     // @ts-ignore
     import.meta.hot.on('vite:beforeFullReload', async () => {
+      await mcpServerService.stop()
       await fastify.close()
       await prisma.$disconnect()
     })

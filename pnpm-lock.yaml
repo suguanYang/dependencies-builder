@@ -104,6 +104,9 @@ importers:
       '@prisma/adapter-better-sqlite3':
         specifier: ^7.1.0
         version: 7.1.0
+      '@zereight/mcp-gitlab':
+        specifier: ^2.0.22
+        version: 2.0.22(@cfworker/json-schema@4.1.1)(hono@4.10.6)
       better-auth:
         specifier: ^1.3.29
         version: 1.3.29(next@16.0.7(@babel/core@7.28.4)(@playwright/test@1.55.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
