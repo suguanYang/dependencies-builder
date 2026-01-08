@@ -333,85 +333,104 @@ async function prepareContextBatches(input: ImpactAnalysisInput): Promise<Format
     throw new Error('get_file_contents tool not found in MCP client')
   }
 
-  const impactsWithContent = await Promise.all(
-    impactData.map(async (item) => {
-      const { fromNode, toNode, projectID, changedLines } = item
+  // Cache to avoid duplicate file fetches - Key: `${project_id}:${file_path}:${ref}`
+  const fileContentCache = new Map<string, any>()
 
-      // Fetch both impacted and dependent code files in parallel
-      const [impactedFileContent, dependentFileContent] = await Promise.all([
-        // Fetch impacted code file (from dependent project)
-        getFileContentsTool
-          .invoke({
-            project_id: projectID,
-            file_path: fromNode.relativePath,
-            ref: fromNode.branch,
-          })
-          .catch((err) => {
-            error(
-              'Failed to fetch impacted code for %s in project %s: %o',
-              fromNode.relativePath,
-              fromNode.projectName,
-              err,
-            )
-            return `[Error fetching file: ${err instanceof Error ? err.message : String(err)}]`
-          }),
-        // Fetch dependent code file (from current project)
-        getFileContentsTool
-          .invoke({
-            project_id: currentProjectID,
-            file_path: toNode.relativePath,
-            ref: input.sourceBranch,
-          })
-          .catch((err) => {
-            error(
-              'Failed to fetch dependent code for %s in current project: %o',
-              toNode.relativePath,
-              err,
-            )
-            return `[Error fetching file: ${err instanceof Error ? err.message : String(err)}]`
-          }),
-      ])
+  /**
+   * Fetch file content with caching
+   */
+  const fetchFileContent = async (projectId: string, filePath: string, ref: string) => {
+    const cacheKey = `${projectId}:${filePath}:${ref}`
 
-      debug(
-        'Fetched files for %s -> %s (%d + %d bytes)',
-        fromNode.projectName,
-        toNode.relativePath,
-        typeof impactedFileContent === 'string' ? impactedFileContent.length : 0,
-        typeof dependentFileContent === 'string' ? dependentFileContent.length : 0,
-      )
+    if (fileContentCache.has(cacheKey)) {
+      debug('Cache hit for %s', cacheKey)
+      return fileContentCache.get(cacheKey)
+    }
 
-      // Extract actual content from GitLab MCP response
-      const extractContent = (fileContent: any): string => {
-        if (typeof fileContent === 'string') {
-          // If already a string, check if it's an error message
-          if (fileContent.startsWith('[Error fetching file:')) {
-            return fileContent
-          }
-          // Try to parse as JSON in case it's stringified
-          try {
-            const parsed = JSON.parse(fileContent)
-            return parsed.content || fileContent
-          } catch {
-            return fileContent
-          }
+    debug('Fetching file content: %s', cacheKey)
+    const content = await getFileContentsTool
+      .invoke({
+        project_id: projectId,
+        file_path: filePath,
+        ref,
+      })
+      .catch((err) => {
+        error('Failed to fetch %s: %o', cacheKey, err)
+        return `[Error fetching file: ${err instanceof Error ? err.message : String(err)}]`
+      })
+
+    fileContentCache.set(cacheKey, content)
+    return content
+  }
+
+  // Serialize requests to avoid MCP session concurrency issues
+  const impactsWithContent: ContextItem[] = []
+
+  for (const item of impactData) {
+    const { fromNode, toNode, projectID, changedLines } = item
+
+    // Fetch both files serially (avoiding concurrent requests on same session)
+    const impactedFileContent = await fetchFileContent(
+      projectID,
+      fromNode.relativePath,
+      fromNode.branch,
+    )
+
+    const dependentFileContent = await fetchFileContent(
+      currentProjectID,
+      toNode.relativePath,
+      input.sourceBranch,
+    )
+
+    debug(
+      'Fetched files for %s -> %s (%d + %d bytes)',
+      fromNode.projectName,
+      toNode.relativePath,
+      typeof impactedFileContent === 'string' ? impactedFileContent.length : 0,
+      typeof dependentFileContent === 'string' ? dependentFileContent.length : 0,
+    )
+
+    // Extract actual content from GitLab MCP response
+    const extractContent = (fileContent: any): string => {
+      if (typeof fileContent === 'string') {
+        // If already a string, check if it's an error message
+        if (fileContent.startsWith('[Error fetching file:')) {
+          return fileContent
         }
-        // If it's an object, extract the content field
-        if (fileContent && typeof fileContent === 'object' && 'content' in fileContent) {
-          return fileContent.content
+        // Try to parse as JSON in case it's stringified
+        try {
+          const parsed = JSON.parse(fileContent)
+          return parsed.content || fileContent
+        } catch {
+          return fileContent
         }
-        // Fallback to stringifying
-        return JSON.stringify(fileContent)
       }
-
-      const impactedContent = extractContent(impactedFileContent)
-      const dependentContent = extractContent(dependentFileContent)
-
-      return {
-        ...item,
-        impactedCodeContent: impactedContent,
-        dependentCodeContent: dependentContent,
+      // If it's an object, extract the content field
+      if (fileContent && typeof fileContent === 'object' && 'content' in fileContent) {
+        return fileContent.content
       }
-    }),
+      // Fallback to stringifying
+      return JSON.stringify(fileContent)
+    }
+
+    const impactedContent = extractContent(impactedFileContent)
+    const dependentContent = extractContent(dependentFileContent)
+
+    impactsWithContent.push({
+      ...item,
+      impactedCodeContent: impactedContent,
+      dependentCodeContent: dependentContent,
+    })
+  }
+
+  debug(
+    'Completed fetching - Total: %d files, Unique: %d, Cache hits: %d (%.0f%% reduction)',
+    impactData.length * 2,
+    fileContentCache.size,
+    impactData.length * 2 - fileContentCache.size,
+    fileContentCache.size > 0
+      ? ((impactData.length * 2 - fileContentCache.size) / (impactData.length * 2)) * 100
+      : 0,
   )
 
   // Only filter out entries with no changes at all (no fragile whitespace filtering)
