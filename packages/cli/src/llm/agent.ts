@@ -41,7 +41,7 @@ export async function invokeLLMAgent(
       },
     },
     temperature: config.temperature,
-    timeout: 600,
+    timeout: 600 * 1000,
   })
 
   // Get tools from MCP client
