@@ -626,7 +626,7 @@ function mergeImpactReports(reports: ImpactReport[]): ImpactReport {
 
   // Merge messages
   const messages = reports.map((r) => r.message).filter((m) => m.length > 0)
-  const message = messages.length > 0 ? messages.join('; ') : ''
+  const message = messages.length > 0 ? messages.join(';\n ') : ''
 
   return {
     success,
@@ -701,6 +701,7 @@ You must produce a **STABLE** and **FACTUAL** assessment. Do not guess.
 
 # Terminology (Important for Chinese Output)
 - Use concrete, code-focused terminology that developers and QA understand
+- Translate 'provider' to '提供方', 'consumer' to '调用方'
 
 # Output Format
 **IMPORTANT: Please provide your analysis in CHINESE (中文). All text fields should be in Chinese.**
