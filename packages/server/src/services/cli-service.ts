@@ -97,7 +97,7 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       await revokeAdminKey(keyId)
       activeExecutions.delete(actionId)
 
-      if (code === 0) {
+      if (code === 0 || code === null) {
         info(`action:${actionId} CLI closed with code: ` + code)
         repository.updateAction(actionId, {
           status: 'completed',
