@@ -11,29 +11,35 @@ const REQUESTS_PER_MINUTE = parseInt(process.env.LLM_REQUESTS_PER_MINUTE || '60'
 // Convert to milliseconds between requests
 const MIN_INTERVAL_MS = (60 * 1000) / REQUESTS_PER_MINUTE
 
-// Track last request time
-let lastRequestTime = 0
+// Track next available request time (reserved slot)
+let nextAvailableTime = 0
 
 /**
  * Wait if necessary to respect rate limit
  * Call this before making each LLM API request
+ *
+ * This function is safe to call concurrently - it atomically reserves
+ * time slots to ensure requests are properly spaced according to rate limits.
  */
 export async function waitForRateLimit(): Promise<void> {
   const now = Date.now()
-  const timeSinceLastRequest = now - lastRequestTime
 
-  if (timeSinceLastRequest < MIN_INTERVAL_MS) {
-    const waitTime = MIN_INTERVAL_MS - timeSinceLastRequest
+  // Atomically reserve the next available time slot
+  // This prevents race conditions when called concurrently
+  const reservedTime = Math.max(nextAvailableTime, now)
+  nextAvailableTime = reservedTime + MIN_INTERVAL_MS
+
+  // Wait until our reserved time slot
+  const waitTime = reservedTime - now
+  if (waitTime > 0) {
     debug(`⏱️  Rate limit: waiting ${Math.round(waitTime)}ms before next request`)
     await new Promise((resolve) => setTimeout(resolve, waitTime))
   }
-
-  lastRequestTime = Date.now()
 }
 
 /**
  * Reset rate limiter (useful for testing)
  */
 export function resetRateLimiter(): void {
-  lastRequestTime = 0
+  nextAvailableTime = 0
 }

@@ -150,33 +150,33 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
       throw new Error('No valid context batches to analyze')
     }
 
-    debug(`Processing ${batches.length} batch(es) sequentially with rate limiting...`)
+    debug(`Processing ${batches.length} batch(es) with rate limiting...`)
 
-    // Process batches sequentially with rate limiting to avoid 429 errors
-    const results: ImpactReport[] = []
-    for (let index = 0; index < batches.length; index++) {
-      const batch = batches[index]
+    // Fire all batch requests respecting rate limits
+    // Each batch waits for its rate limit window, then fires without blocking others
+    const results: ImpactReport[] = await Promise.all(
+      batches.map(async (batch, index) => {
+        // Wait for rate limit before making request
+        await waitForRateLimit()
 
-      // Wait for rate limit before making request
-      await waitForRateLimit()
-
-      debug(`Starting batch ${index + 1}/${batches.length}...`)
-      try {
-        const result = await invokeLLMAgent(batch.context, instruction, config.llm)
-        const report = parseAgentResult(result)
-        debug(`Batch ${index + 1}/${batches.length} completed successfully`)
-        results.push(report)
-      } catch (error) {
-        debug(`Batch ${index + 1}/${batches.length} failed: %o`, error)
-        // Add a partial error report for this batch
-        results.push({
-          success: false,
-          level: 'medium' as const,
-          summary: [`Batch ${index + 1} failed to analyze`],
-          message: error instanceof Error ? error.message : String(error),
-        })
-      }
-    }
+        debug(`Starting batch ${index + 1}/${batches.length}...`)
+        try {
+          const result = await invokeLLMAgent(batch.context, instruction, config.llm)
+          const report = parseAgentResult(result)
+          debug(`Batch ${index + 1}/${batches.length} completed successfully`)
+          return report
+        } catch (error) {
+          debug(`Batch ${index + 1}/${batches.length} failed: %o`, error)
+          // Return a partial error report for this batch
+          return {
+            success: false,
+            level: 'medium' as const,
+            summary: [`Batch ${index + 1} failed to analyze`],
+            message: error instanceof Error ? error.message : String(error),
+          }
+        }
+      }),
+    )
 
     // Merge results from all batches
     const mergedReport = mergeImpactReports(results)
