@@ -93,19 +93,19 @@ export async function executeCLI(actionId: string, actionData: ActionData): Prom
       errorMessage += trimmedOutput
     })
 
-    childProcess.on('close', async (code) => {
+    childProcess.on('close', async (code, signal) => {
       await revokeAdminKey(keyId)
       activeExecutions.delete(actionId)
 
       if (code === 0 || code === null) {
-        info(`action:${actionId} CLI closed with code: ` + code)
+        info(`action:${actionId} CLI closed with code: ` + code + ' signal: ' + signal)
         repository.updateAction(actionId, {
           status: 'completed',
         })
 
         info(`action:${actionId} action is completed`)
       } else {
-        error(`action:${actionId} CLI closed with code: ` + code)
+        error(`action:${actionId} CLI closed with code: ` + code + ' signal: ' + signal)
         repository.updateAction(actionId, {
           status: 'failed',
         })
