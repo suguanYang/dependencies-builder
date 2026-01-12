@@ -349,6 +349,19 @@ export async function getActions(query: Prisma.ActionFindManyArgs) {
       orderBy: { updatedAt: 'desc' },
       take,
       skip,
+      select: {
+        id: true,
+        status: true,
+        type: true,
+        parameters: true,
+        error: true,
+        logs: true,
+        createdAt: true,
+        updatedAt: true,
+        scheduledFor: true,
+        // Explicitly exclude result field for performance
+        // result: false,
+      },
     }),
     prisma.action.count({
       where,

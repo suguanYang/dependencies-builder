@@ -217,12 +217,15 @@ function getCLICommand(actionId: string, actionData: ActionData): string[] {
         actionData.branch,
         '--target-branch',
         actionData.targetBranch!,
-        '--name',
-        actionData.projectName,
         '--action-id',
         actionId,
         '--verbose',
       ]
+
+      // projectName is optional - only add if provided
+      if (actionData.projectName) {
+        reportArgs.push('--name', actionData.projectName)
+      }
 
       // Add ignore-call-graph flag if specified
       if (actionData.ignoreCallGraph) {

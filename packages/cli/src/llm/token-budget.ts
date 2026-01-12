@@ -1,6 +1,7 @@
 import debug, { error } from '../utils/debug'
 import { Tiktoken } from 'js-tiktoken/lite'
 import cl100k_base from 'js-tiktoken/ranks/cl100k_base'
+import { LocalNode } from '../server-types'
 
 /**
  * Token budget management for LLM context
@@ -79,17 +80,8 @@ export function getSmartWindow(
  * Context item for batching
  */
 export interface ContextItem {
-  fromNode: {
-    projectName: string
-    relativePath: string
-    startLine: number
-    branch: string
-  }
-  toNode: {
-    relativePath: string
-    startLine: number
-    type?: string
-  }
+  fromNode: LocalNode
+  toNode: LocalNode
   projectID: string
   changedLines?: string[]
   impactedCodeContent: string
@@ -108,14 +100,7 @@ export interface ContextBatch {
  * Calculate batches based on token budget
  * Implements Priority A (full content), B (batching), and C (smart window)
  */
-export function calculateBatches(
-  diffContent: string,
-  items: ContextItem[],
-  currentProjectID: string,
-  currentProjectName: string,
-  sourceBranch: string,
-  targetBranch: string,
-): ContextBatch[] {
+export function calculateBatches(diffContent: string, items: ContextItem[]): ContextBatch[] {
   const diffTokens = countTokens(diffContent)
   const batches: ContextBatch[] = []
   let currentBatch: ContextItem[] = []

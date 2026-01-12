@@ -64,6 +64,36 @@ function actionsRoutes(fastify: FastifyInstance) {
       try {
         const actionData = request.body as ActionData
 
+        // Validation based on action type
+        if (actionData.type === 'static_analysis') {
+          if (!actionData.projectAddr || !actionData.projectName || !actionData.branch) {
+            reply.code(400).send({
+              error: 'Validation failed',
+              details: 'projectAddr, projectName, and branch are required for static_analysis',
+            })
+            return
+          }
+
+          // Validate project exists in database
+          const project = await repository.getProjectByName(actionData.projectName)
+          if (!project) {
+            reply.code(404).send({
+              error: 'Project not found',
+              details: `Project '${actionData.projectName}' must be registered before analysis`,
+            })
+            return
+          }
+        } else if (actionData.type === 'report') {
+          if (!actionData.projectAddr || !actionData.branch || !actionData.targetBranch) {
+            reply.code(400).send({
+              error: 'Validation failed',
+              details: 'projectAddr, branch, and targetBranch are required for report',
+            })
+            return
+          }
+          // projectName is optional for report - CLI will auto-detect from changed files
+        }
+
         // Check if there are too many running actions (limit: 10)
         const runningActionsCount = await repository.countRunningActions()
         if (runningActionsCount >= 10) {

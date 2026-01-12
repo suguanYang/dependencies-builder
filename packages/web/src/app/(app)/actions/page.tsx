@@ -37,14 +37,31 @@ import useDebounce from '@/hooks/use-debounce-value'
 import { Action, Project } from '@/lib/server-types'
 
 // Zod schema for Action validation
-const actionSchema = z.object({
-  projectName: z.string().min(1, 'Project is required'),
-  projectAddr: z.string().min(1, 'Project address is required'),
-  branch: z.string().min(1, 'Branch is required'),
-  type: z.enum(['static_analysis', 'report']),
-  targetBranch: z.string().optional(),
-  ignoreCallGraph: z.boolean().optional(),
-})
+const actionSchema = z
+  .object({
+    projectName: z.string().optional(),
+    projectAddr: z.string().min(1, 'Project address is required'),
+    branch: z.string().min(1, 'Branch is required'),
+    type: z.enum(['static_analysis', 'report']),
+    targetBranch: z.string().optional(),
+    ignoreCallGraph: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === 'static_analysis' && !data.projectName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Project name is required for static analysis',
+        path: ['projectName'],
+      })
+    }
+    if (data.type === 'report' && !data.targetBranch) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Target branch is required for report',
+        path: ['targetBranch'],
+      })
+    }
+  })
 
 type ActionFormData = z.infer<typeof actionSchema>
 

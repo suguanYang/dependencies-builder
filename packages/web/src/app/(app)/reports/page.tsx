@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSWR, { SWRConfig, mutate } from 'swr'
 import { EyeIcon, AlertCircleIcon, AlertTriangleIcon, Sparkles, Share2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,10 @@ function ReportsContent() {
   // State for error handling
   const [error, setError] = useState<string>('')
 
+  // State for lazy-loaded action results
+  const [actionResults, setActionResults] = useState<Record<string, Action>>({})
+  const [loadingResults, setLoadingResults] = useState<Record<string, boolean>>({})
+
   const { data: actionsResponse, isLoading } = useSWR('reports-actions', () =>
     getActions({
       type: 'report' as any,
@@ -27,6 +31,27 @@ function ReportsContent() {
     (action) => action.type === 'report' && action.status === 'completed',
   )
 
+  // Lazy load action results for each report
+  useEffect(() => {
+    if (reportActions.length === 0) return
+
+    // Fetch results for actions that haven't been loaded yet
+    reportActions.forEach(async (action) => {
+      if (!actionResults[action.id] && !loadingResults[action.id]) {
+        setLoadingResults((prev) => ({ ...prev, [action.id]: true }))
+
+        try {
+          const fullAction = await getActionById(action.id)
+          setActionResults((prev) => ({ ...prev, [action.id]: fullAction }))
+        } catch (err) {
+          console.error(`Failed to load result for action ${action.id}:`, err)
+        } finally {
+          setLoadingResults((prev) => ({ ...prev, [action.id]: false }))
+        }
+      }
+    })
+  }, [reportActions, actionResults, loadingResults])
+
   // Helper functions
   const getAffectedNodesCount = (result: any) => {
     return result?.affectedToNodes?.length || 0
@@ -34,16 +59,6 @@ function ReportsContent() {
 
   const getImpactedConnectionsCount = (connections: any[]) => {
     return connections.length
-  }
-
-  const hasVersionMismatch = (result: any) => {
-    if (!result?.affectedToNodes || !result.targetVersion) {
-      return false
-    }
-
-    return result.affectedToNodes.some(
-      (node: any) => node.version && node.version !== result.targetVersion,
-    )
   }
 
   return (
@@ -79,12 +94,16 @@ function ReportsContent() {
       {!isLoading && reportActions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reportActions.map((action: Action) => {
+            // Get the lazy-loaded result for this action
+            const fullAction = actionResults[action.id]
+            const isLoadingResult = loadingResults[action.id]
+
             // Check if this report has affected nodes or connections
-            const hasNodes = action.result?.affectedToNodes?.length > 0
-            const hasConnections = action.result?.connections?.length > 0
+            const hasNodes = fullAction?.result?.affectedToNodes?.length > 0
+            const hasConnections = fullAction?.result?.connections?.length > 0
             const hasWarnings = hasNodes || hasConnections
-            const hasImpactAnalysis = !!action.result?.impactAnalysis
-            const impactLevel = action.result?.impactAnalysis?.level
+            const hasImpactAnalysis = !!fullAction?.result?.impactAnalysis
+            const impactLevel = fullAction?.result?.impactAnalysis?.level
 
             return (
               <Card key={action.id} className="hover:shadow-lg transition-shadow relative">
@@ -103,7 +122,9 @@ function ReportsContent() {
                 )}
 
                 <CardHeader>
-                  <CardTitle className="text-sm">{action.parameters.projectName}</CardTitle>
+                  <CardTitle className="text-sm">
+                    {action.parameters.projectName || action.parameters.projectAddr}
+                  </CardTitle>
                   <CardDescription>
                     Branch: {action.parameters.branch}
                     <br />
@@ -119,8 +140,15 @@ function ReportsContent() {
                       </span>
                     </div>
 
-                    {/* Impact Level Badge */}
-                    {hasImpactAnalysis && impactLevel && (
+                    {/* Show loading state while fetching result */}
+                    {isLoadingResult && (
+                      <div className="flex justify-center items-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      </div>
+                    )}
+
+                    {/* Impact Level Badge - only show when result is loaded */}
+                    {!isLoadingResult && hasImpactAnalysis && impactLevel && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Impact:</span>
                         <span

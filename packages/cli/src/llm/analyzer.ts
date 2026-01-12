@@ -32,7 +32,6 @@ export interface ImpactReport {
  * Input data for impact analysis
  */
 export interface ImpactAnalysisInput {
-  projectName: string
   projectAddr: string
   sourceBranch: string
   targetBranch: string
@@ -450,14 +449,7 @@ async function prepareContextBatches(input: ImpactAnalysisInput): Promise<Format
     .join('\n\n')
 
   // Calculate batches using token budget manager
-  const contextBatches = calculateBatches(
-    diffContent,
-    validImpacts,
-    currentProjectID,
-    input.projectName,
-    input.sourceBranch,
-    input.targetBranch,
-  )
+  const contextBatches = calculateBatches(diffContent, validImpacts)
 
   // Format each batch into context strings
   const formattedBatches: FormattedContextBatch[] = contextBatches.map((batch) => {
@@ -515,7 +507,7 @@ async function prepareContextBatches(input: ImpactAnalysisInput): Promise<Format
 
       return `<analysis_task>
   <dependency_metadata>
-    <provider_project_name>${input.projectName}</provider_project_name>
+    <provider_project_name>${toNode.projectName}</provider_project_name>
     <provider_project_id>${currentProjectID}</provider_project_id>
     <provider_branch>${input.sourceBranch}</provider_branch>
     <provider_file_path>${toNode.relativePath}</provider_file_path>
@@ -550,7 +542,6 @@ ${impactedFileContent}
     })
 
     const contextString = `
-Current Project (Provider): ${input.projectName} (ID: ${currentProjectID})
 Source Branch: ${input.sourceBranch}
 Target Branch: ${input.targetBranch}
 

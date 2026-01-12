@@ -11,88 +11,177 @@ import { getConnectionsByToNode } from '../api'
 import { Connection, LocalNode } from '../server-types'
 import { analyzeImpact, type ImpactReport } from '../llm/analyzer'
 import { generateNodeId } from '../utils/node-id'
+import { homedir } from 'node:os'
+
+const path2name = (path: string) => {
+  return path.replaceAll('/', '_')
+}
 
 interface ReportResult {
   affectedToNodes: LocalNode[]
   version: string
-  targetVersion: string
   affecatedConnections: Connection[]
   impactAnalysis?: ImpactReport | null
 }
 
+interface ChangedLine {
+  file: string
+  changes: { line: number; content: string; hunk: string }[]
+}
+
+interface AffectedProject {
+  name: string
+  directory: string
+}
+
+function findAffectedProjects(repoDir: string, changedLines: ChangedLine[]): AffectedProject[] {
+  const affectedProjects = new Map<string, string>()
+
+  for (const change of changedLines) {
+    let dir = path.dirname(path.join(repoDir, change.file))
+
+    while (dir.startsWith(repoDir) && dir !== repoDir) {
+      const pkgPath = path.join(dir, 'package.json')
+      if (existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+          if (pkg.name && !affectedProjects.has(pkg.name)) {
+            affectedProjects.set(pkg.name, dir)
+          }
+        } catch {
+          /* skip invalid package.json */
+        }
+        break
+      }
+      dir = path.dirname(dir)
+    }
+  }
+
+  return Array.from(affectedProjects, ([name, directory]) => ({ name, directory }))
+}
+
+function getAnalysisResults(
+  targetBranch: string,
+  projectName: string,
+): Results & {
+  callGraph: [string, string][]
+  version: string
+} {
+  const ctx = getContext()
+  const resFile = path.join(
+    ctx.getLocalDirectory(targetBranch, projectName),
+    'analysis-results.json',
+  )
+  if (!existsSync(resFile)) {
+    throw new Error(`Analysis results ${resFile} file not found`)
+  }
+  return JSON.parse(readFileSync(resFile, 'utf-8'))
+}
+
 export async function generateReport(): Promise<void> {
-  debug('Starting report generation')
+  debug('Starting multi-project report generation')
 
   const ctx = getContext()
   const targetBranch = ctx.getTargetBranch()!
+  const repoDir = ctx.getRepositoryDir()
 
   try {
     await checkoutRepository()
     debug('Repository checked out')
 
-    ctx.findPackageDirectory()
-
     const workingDir = ctx.getWorkingDirectory()
-
-    const results = getAnalysisResults(targetBranch)
-    debug('Nodes: %d', results.nodes.length)
 
     debug('Getting diff with target branch: %s', targetBranch)
     const changedLines = await getDiffChangedLines(workingDir, targetBranch)
-    debug('Changed lines: %d', changedLines.length)
+    debug('Changed lines across repo: %d files', changedLines.length)
 
-    debug('Finding affected "to nodes"')
-    const { nodes: affectedToNodes, context: changedContext } = await findAffectedToNodes(
-      results.nodes,
-      results.callGraph,
-      changedLines,
-    )
-    debug('Affected to nodes: %d', affectedToNodes.length)
+    const affectedProjects = findAffectedProjects(repoDir, changedLines)
+    debug('Affected projects: %s', affectedProjects.map((p) => p.name).join(', '))
+
+    if (affectedProjects.length === 0) {
+      debug('No affected projects found in changed files')
+      await uploadReport({
+        affectedToNodes: [],
+        version: '',
+        affecatedConnections: [],
+      })
+      return
+    }
+
+    const allAffectedToNodes: LocalNode[] = []
+    const allChangedContext = new Map<string, string[]>()
+    let latestVersion = ''
+
+    for (const project of affectedProjects) {
+      debug('Processing project: %s', project.name)
+
+      try {
+        const results = getAnalysisResults(targetBranch, project.name)
+        debug('Project %s: %d nodes', project.name, results.nodes.length)
+
+        const projectRelativePath = path.relative(repoDir, project.directory)
+        const projectChanges = changedLines.filter(
+          (cl) =>
+            cl.file.startsWith(projectRelativePath + '/') ||
+            cl.file.startsWith(projectRelativePath),
+        )
+
+        const { nodes: affectedToNodes, context: changedContext } = await findAffectedToNodes(
+          results.nodes,
+          results.callGraph,
+          projectChanges,
+        )
+
+        debug('Project %s: %d affected nodes', project.name, affectedToNodes.length)
+
+        allAffectedToNodes.push(...affectedToNodes)
+
+        for (const [nodeId, contexts] of changedContext) {
+          if (allChangedContext.has(nodeId)) {
+            allChangedContext.get(nodeId)!.push(...contexts)
+          } else {
+            allChangedContext.set(nodeId, [...contexts])
+          }
+        }
+
+        latestVersion = results.version || latestVersion
+      } catch (error) {
+        debug('Failed to process project %s: %o', project.name, error)
+      }
+    }
+
+    debug('Total affected nodes across all projects: %d', allAffectedToNodes.length)
 
     const affecatedConnections = (
-      await Promise.all(affectedToNodes.map((node) => getConnectionsByToNode(node)))
+      await Promise.all(allAffectedToNodes.map((node) => getConnectionsByToNode(node)))
     ).flat()
 
-    // Perform LLM-based impact analysis if configured
     let impactAnalysis: ImpactReport | null = null
-    // Assuming llmEnabled is determined by the analyzeImpact function itself returning null or throwing,
-    // or by a separate configuration check. For now, we'll assume analyzeImpact handles the "enabled" state.
     try {
-      // Pre-check: skip LLM analysis if there are no affected nodes
-      if (!affectedToNodes || affectedToNodes.length === 0) {
-        debug('Skipping LLM analysis - no affected nodes found')
-      } else {
-        debug('Starting LLM-based impact analysis...')
+      if (affecatedConnections.length > 0) {
+        debug('Starting LLM-based impact analysis on combined results...')
         impactAnalysis = await analyzeImpact({
-          projectName: ctx.getProjectName(),
           projectAddr: ctx.getRepository(),
           sourceBranch: ctx.getBranch(),
           targetBranch,
-          affectedToNodes,
+          affectedToNodes: allAffectedToNodes,
           affectedConnections: affecatedConnections,
-          changedContext,
+          changedContext: allChangedContext,
         })
-        if (impactAnalysis) {
-          debug('Impact analysis completed: %o', impactAnalysis)
-        } else {
-          debug('Impact analysis skipped (LLM integration not enabled)')
-        }
       }
     } catch (error) {
       debug('LLM analysis failed: %o', error)
-      // Continue with report generation even if LLM analysis fails
     }
 
     const reportResult: ReportResult = {
-      affectedToNodes,
-      version: ctx.getVersion()!,
-      targetVersion: results.version,
+      affectedToNodes: allAffectedToNodes,
+      version: latestVersion,
       affecatedConnections,
       impactAnalysis,
     }
 
     await uploadReport(reportResult)
-    debug('Report generation completed successfully!')
+    debug('Multi-project report generation completed successfully!')
   } catch (error) {
     debug('Report generation failed: %o', error)
     throw error
@@ -101,23 +190,6 @@ export async function generateReport(): Promise<void> {
       rmSync(path.join(ctx.getRepositoryDir()), { recursive: true })
     }
   }
-}
-
-function getAnalysisResults(targetBranch: string): Results & {
-  callGraph: [string, string][]
-  version: string
-} {
-  const ctx = getContext()
-  const resFile = path.join(ctx.getLocalDirectory(targetBranch), 'analysis-results.json')
-  if (!existsSync(resFile)) {
-    throw new Error(`Analysis results ${resFile} file not found`)
-  }
-  return JSON.parse(readFileSync(resFile, 'utf-8'))
-}
-
-interface ChangedLine {
-  file: string
-  changes: { line: number; content: string; hunk: string }[]
 }
 
 async function getDiffChangedLines(

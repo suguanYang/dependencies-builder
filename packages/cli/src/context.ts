@@ -34,7 +34,7 @@ export interface AnalyzeOptions {
    * The repository to analyze, it can be a local directory or a remote git repository
    */
   repository: string
-  name: string
+  name?: string
 }
 
 class Context {
@@ -44,7 +44,16 @@ class Context {
   private remote: boolean = false
   private tmpDir: string
   private options: AnalyzeOptions
+  // the directory for store/retrieve the analysis results
+  // when the action is analyze, this directory must be composited by repository, branch and name
+  // since we need to store the analysis results
+  // for report, this directory is not needed, since the report do not need to generate the analysis results
+  // and there also no name provided, but the program will still call getLocalDirectory method to retrive
+  // analysis result for the given name and branch
   private localDirectory?: string
+  // the directory of the package to analyze
+  // its an empty string at the beginning, after the repository is cloned, the program
+  // will invoke findPackageDirectory to find the directory of the package to analyze
   private workDirectory?: string
   private version?: string
   private qlsVersion?: string
@@ -112,14 +121,14 @@ class Context {
     return this.entries || []
   }
 
-  getLocalDirectory(branch?: string): string {
-    if (branch) {
+  getLocalDirectory(branch?: string, projectName?: string): string {
+    if (branch && projectName) {
       return path.join(
         process.env.DMS_LOCAL_DIR ? process.env.DMS_LOCAL_DIR : homedir(),
         '.dms',
         path2name(this.getRepository()),
         path2name(branch),
-        path2name(this.options.name),
+        path2name(projectName),
       )
     }
 
@@ -152,6 +161,7 @@ class Context {
   }
 
   getProjectName() {
+    if (!this.options.name) throw new Error('Project name is required')
     return this.options.name
   }
 
@@ -160,6 +170,8 @@ class Context {
   }
 
   findPackageDirectory() {
+    if (!this.options.name) return
+
     const packageName = this.options.name
     const baseDir = this.remote ? this.tmpDir : this.options.repository
 
@@ -238,14 +250,16 @@ class Context {
       throw new Error('Repository must be a existing local directory')
     }
 
-    this.localDirectory = path.join(
-      process.env.DMS_LOCAL_DIR ? process.env.DMS_LOCAL_DIR : homedir(),
-      '.dms',
-      path2name(this.getRepository()),
-      path2name(this.getBranch()),
-      path2name(this.options.name),
-    )
-    ensureDirectoryExistsSync(this.localDirectory)
+    if (this.options.name) {
+      this.localDirectory = path.join(
+        process.env.DMS_LOCAL_DIR ? process.env.DMS_LOCAL_DIR : homedir(),
+        '.dms',
+        path2name(this.getRepository()),
+        path2name(this.getBranch()),
+        path2name(this.options.name),
+      )
+      ensureDirectoryExistsSync(this.localDirectory)
+    }
 
     const qlsDir = path.join(PACKAGE_ROOT, 'qls')
     const qlsYmlFile = readFileSync(path.join(qlsDir, './qlpack.yml'), 'utf8')
@@ -258,10 +272,12 @@ class Context {
       return
     }
 
-    const project = await getProjectByName(this.options.name)
+    if (this.options.name) {
+      const project = await getProjectByName(this.options.name)
 
-    this.type = project.type
-    this.entries = project.entries
+      this.type = project.type
+      this.entries = project.entries
+    }
   }
 }
 
