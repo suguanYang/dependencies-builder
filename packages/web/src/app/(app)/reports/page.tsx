@@ -122,11 +122,11 @@ function ReportsContent() {
                 )}
 
                 <CardHeader>
-                  <CardTitle className="text-sm">
-                    {action.parameters.projectName || action.parameters.projectAddr}
+                  <CardTitle className="text-sm truncate">
+                    {action.parameters.projectAddr}
                   </CardTitle>
                   <CardDescription>
-                    Branch: {action.parameters.branch}
+                    Branch: {action.parameters.branch} -&gt; {action.parameters.targetBranch}
                     <br />
                     Created: {new Date(action.createdAt).toLocaleDateString()}
                   </CardDescription>
