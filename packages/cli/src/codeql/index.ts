@@ -36,11 +36,21 @@ export const runCodeQL = async () => {
 
   return {
     ...results,
-    callGraph: callGraphResults,
+    callGraph: withFullPathCallGraph(callGraphResults),
     version: ctx.getVersion(),
   }
 }
 export type RunCodeQLResult = Awaited<ReturnType<typeof runCodeQL>>
+
+const STANDALONE_APPS = [
+  'main',
+  'main-mobile',
+  'login',
+  'login-mobile',
+  'm5-desktop',
+  'oauth',
+  'm5-login',
+]
 
 const postRun = async () => {
   const ctx = getContext()
@@ -50,11 +60,34 @@ const postRun = async () => {
     rmSync(path.join(ctx.getWorkingDirectory(), 'dist'), { recursive: true })
   }
 
+  const appName = ctx.getProjectName()
+
   debug('Copying src/**/*.{ts,tsx} to dist/')
   cpSync(
     path.join(ctx.getWorkingDirectory(), 'src'),
     path.join(ctx.getWorkingDirectory(), 'dist'),
-    { recursive: true },
+    {
+      recursive: true,
+      filter(source) {
+        if (!STANDALONE_APPS.includes(appName)) {
+          if (source.endsWith('.html')) {
+            return false
+          }
+        }
+
+        // 这个文件会造成很多全局变量读写噪音
+        if (source.endsWith('iconfont.js')) {
+          return false
+        }
+
+        // 遗留代码, 忽略
+        if (source.includes('/legacy-udc/')) {
+          return false
+        }
+
+        return true
+      },
+    },
   )
 
   // ignore extends in tsconfig.json
@@ -91,5 +124,18 @@ const postRun = async () => {
     },
     declarationDir: 0 as any,
     replacers: [path.join(PACKAGE_ROOT, 'replacer.js')],
+  })
+}
+
+const withFullPathCallGraph = (callGraphResults: [string, string][]) => {
+  const ctx = getContext()
+
+  // Calculate the relative path from repository root to working directory
+  const repoDir = ctx.getRepositoryDir()
+  const workDir = ctx.getWorkingDirectory()
+  const packageRelativePath = repoDir === workDir ? '' : path.relative(repoDir, workDir)
+
+  return callGraphResults.map(([from, to]) => {
+    return [path.join(packageRelativePath, from), path.join(packageRelativePath, to)]
   })
 }

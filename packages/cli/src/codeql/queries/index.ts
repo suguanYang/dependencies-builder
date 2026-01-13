@@ -73,7 +73,7 @@ export function buildCallGraphQuery(nodes: Results['nodes']) {
     toNodes
       .map(
         (node) =>
-          `getLocation(parent) = "${node.relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}"`,
+          `getLocation(parent) = "${node._relativePath}:${node.startLine}:${node.startColumn}:${node.endLine}:${node.endColumn}"`,
       )
       .join(' or \n'),
   )
@@ -128,13 +128,13 @@ const parseExportQuery = (queryResultDir: string) => {
       const entryName = entries.find((entry) => entry.path === tuple[0])?.name
       let projectName = ctx.getMetadata().name
       let name = tuple[1] + (entryName === 'index' ? '' : '.' + entryName)
-      if (entryName === 'company_ui_index') {
+      if (entryName === 'seeyon_ui_index') {
         name = tuple[1]
-        projectName = '@company/ui'
+        projectName = '@seeyon/ui'
       }
-      if (entryName === 'company_mui_index') {
+      if (entryName === 'seeyon_mui_index') {
         name = tuple[1]
-        projectName = '@company/mui'
+        projectName = '@seeyon/mui'
       }
       return {
         name,
@@ -441,6 +441,7 @@ const parseLoc = (loc: string) => {
     : relativePath
 
   return {
+    _relativePath: relativePath,
     relativePath: fullRelativePath,
     startLine: parseInt(startLine),
     startColumn: parseInt(startColumn),

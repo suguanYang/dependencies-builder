@@ -7,15 +7,10 @@ import run from '../utils/run'
 import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
 import { uploadReport } from '../upload'
-import { getConnectionsByToNode } from '../api'
+import { getConnectionsByToNode, getProjectByName } from '../api'
 import { Connection, LocalNode } from '../server-types'
 import { analyzeImpact, type ImpactReport } from '../llm/analyzer'
 import { generateNodeId } from '../utils/node-id'
-import { homedir } from 'node:os'
-
-const path2name = (path: string) => {
-  return path.replaceAll('/', '_')
-}
 
 interface ReportResult {
   affectedToNodes: LocalNode[]
@@ -34,25 +29,43 @@ interface AffectedProject {
   directory: string
 }
 
-function findAffectedProjects(repoDir: string, changedLines: ChangedLine[]): AffectedProject[] {
+async function findAffectedProjects(
+  repoDir: string,
+  changedLines: ChangedLine[],
+): Promise<AffectedProject[]> {
   const affectedProjects = new Map<string, string>()
 
   for (const change of changedLines) {
     let dir = path.dirname(path.join(repoDir, change.file))
 
-    while (dir.startsWith(repoDir) && dir !== repoDir) {
+    while (dir.startsWith(repoDir)) {
       const pkgPath = path.join(dir, 'package.json')
       if (existsSync(pkgPath)) {
         try {
           const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
           if (pkg.name && !affectedProjects.has(pkg.name)) {
-            affectedProjects.set(pkg.name, dir)
+            // Validate project exists in server
+            try {
+              await getProjectByName(pkg.name)
+              affectedProjects.set(pkg.name, dir)
+            } catch (error) {
+              debug(
+                'Skipping project %s: not found in server or validation failed (%s)',
+                pkg.name,
+                error,
+              )
+            }
           }
         } catch {
           /* skip invalid package.json */
         }
         break
       }
+
+      if (dir === repoDir) {
+        break
+      }
+
       dir = path.dirname(dir)
     }
   }
@@ -95,7 +108,7 @@ export async function generateReport(): Promise<void> {
     const changedLines = await getDiffChangedLines(workingDir, targetBranch)
     debug('Changed lines across repo: %d files', changedLines.length)
 
-    const affectedProjects = findAffectedProjects(repoDir, changedLines)
+    const affectedProjects = await findAffectedProjects(repoDir, changedLines)
     debug('Affected projects: %s', affectedProjects.map((p) => p.name).join(', '))
 
     if (affectedProjects.length === 0) {
@@ -110,7 +123,6 @@ export async function generateReport(): Promise<void> {
 
     const allAffectedToNodes: LocalNode[] = []
     const allChangedContext = new Map<string, string[]>()
-    let latestVersion = ''
 
     for (const project of affectedProjects) {
       debug('Processing project: %s', project.name)
@@ -119,17 +131,10 @@ export async function generateReport(): Promise<void> {
         const results = getAnalysisResults(targetBranch, project.name)
         debug('Project %s: %d nodes', project.name, results.nodes.length)
 
-        const projectRelativePath = path.relative(repoDir, project.directory)
-        const projectChanges = changedLines.filter(
-          (cl) =>
-            cl.file.startsWith(projectRelativePath + '/') ||
-            cl.file.startsWith(projectRelativePath),
-        )
-
         const { nodes: affectedToNodes, context: changedContext } = await findAffectedToNodes(
           results.nodes,
           results.callGraph,
-          projectChanges,
+          changedLines,
         )
 
         debug('Project %s: %d affected nodes', project.name, affectedToNodes.length)
@@ -143,8 +148,6 @@ export async function generateReport(): Promise<void> {
             allChangedContext.set(nodeId, [...contexts])
           }
         }
-
-        latestVersion = results.version || latestVersion
       } catch (error) {
         debug('Failed to process project %s: %o', project.name, error)
       }
@@ -175,7 +178,7 @@ export async function generateReport(): Promise<void> {
 
     const reportResult: ReportResult = {
       affectedToNodes: allAffectedToNodes,
-      version: latestVersion,
+      version: ctx.getVersion(),
       affecatedConnections,
       impactAnalysis,
     }
@@ -287,13 +290,7 @@ async function getDiffChangedLines(
     processHunk()
 
     // Filter relevant files (js/ts/src)
-    return changedLines.filter((cl) => {
-      const ext = path.extname(cl.file)
-      return (
-        (ext === '.js' || ext === '.jsx' || ext === '.ts' || ext === '.tsx') &&
-        cl.file.startsWith('src/')
-      )
-    })
+    return changedLines
   } catch (error) {
     debug('Failed to get diff: %o', error)
     return []
