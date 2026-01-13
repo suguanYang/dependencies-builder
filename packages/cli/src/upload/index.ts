@@ -21,7 +21,7 @@ export async function uploadResults(results: RunCodeQLResult): Promise<UploadRes
   // Prepare nodes for upload with projectId and projectName
   const nodesToUpload = results.nodes.map((node) => {
     projectNames.add(node.projectName)
-
+    Reflect.deleteProperty(node, '_relativePath')
     return node
   })
 

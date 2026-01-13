@@ -437,7 +437,7 @@ const parseLoc = (loc: string) => {
 
   // Combine package path with the file path from CodeQL
   const fullRelativePath = packageRelativePath
-    ? path.join(packageRelativePath, relativePath)
+    ? path.join(packageRelativePath, 'src', relativePath)
     : relativePath
 
   return {

@@ -36,11 +36,11 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   return response.json() as any
 }
 
-const projectCache = new Map<string, Project>()
+const projectCache = new Map<string, Project | null>()
 
 export const getProjectByName = async (name: string) => {
   if (projectCache.has(name)) {
-    return projectCache.get(name)!
+    return projectCache.get(name)
   }
 
   try {
@@ -51,6 +51,7 @@ export const getProjectByName = async (name: string) => {
     projectCache.set(name, project)
     return project
   } catch (error) {
+    projectCache.set(name, null)
     throw error
   }
 }

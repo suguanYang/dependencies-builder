@@ -46,8 +46,9 @@ async function findAffectedProjects(
           if (pkg.name && !affectedProjects.has(pkg.name)) {
             // Validate project exists in server
             try {
-              await getProjectByName(pkg.name)
-              affectedProjects.set(pkg.name, dir)
+              if (await getProjectByName(pkg.name)) {
+                affectedProjects.set(pkg.name, dir)
+              }
             } catch (error) {
               debug(
                 'Skipping project %s: not found in server or validation failed (%s)',
@@ -171,6 +172,8 @@ export async function generateReport(): Promise<void> {
           affectedConnections: affecatedConnections,
           changedContext: allChangedContext,
         })
+      } else {
+        debug('skip LLM analysis due to no affecatedConnections found')
       }
     } catch (error) {
       debug('LLM analysis failed: %o', error)

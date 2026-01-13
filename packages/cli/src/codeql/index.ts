@@ -136,6 +136,6 @@ const withFullPathCallGraph = (callGraphResults: [string, string][]) => {
   const packageRelativePath = repoDir === workDir ? '' : path.relative(repoDir, workDir)
 
   return callGraphResults.map(([from, to]) => {
-    return [path.join(packageRelativePath, from), path.join(packageRelativePath, to)]
+    return [path.join(packageRelativePath, 'src', from), path.join(packageRelativePath, 'src', to)]
   })
 }
