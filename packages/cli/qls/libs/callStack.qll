@@ -1,3 +1,4 @@
+
 import javascript
 import semmle.javascript.frameworks.React
 import semmle.javascript.dataflow.DataFlow
@@ -98,11 +99,43 @@ private class FunctionNode extends Function {
   }
 }
 
+class TopLevelCall extends CallExpr {
+  TopLevelCall() { this.getContainer() instanceof TopLevel }
+
+  private cached DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
+    t.start() and result = DataFlow::valueNode(this)
+    or
+    exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t))
+  }
+
+  cached DataFlow::SourceNode getACreatorReference() {
+    result = this.getACreatorReference(DataFlow::TypeTracker::end())
+  }
+}
+
+private class ObjectExpressionNode extends ObjectExpr {
+  ObjectExpressionNode() { this.getContainer() instanceof TopLevel }
+
+  private cached DataFlow::SourceNode getACreatorReference(DataFlow::TypeTracker t) {
+    t.start() and result = DataFlow::valueNode(this)
+    or
+    exists(DataFlow::TypeTracker t2 | result = this.getACreatorReference(t2).track(t2, t))
+  }
+
+  cached DataFlow::SourceNode getACreatorReference() {
+    result = this.getACreatorReference(DataFlow::TypeTracker::end())
+  }
+}
+
 class CallAbleNode extends AstNode {
   CallAbleNode() {
     this instanceof FunctionNode
     or
     this instanceof ReactComponent
+    or
+    this instanceof ObjectExpressionNode
+    or
+    this instanceof TopLevelCall
   }
 
   cached string getNameByVarDecl() {
@@ -122,6 +155,8 @@ class CallAbleNode extends AstNode {
   cached DataFlow::SourceNode getACreatorReference() {
     result = this.(ReactComponent).getAComponentCreatorReference()
     or result = this.(FunctionNode).getACreatorReference()
+    or result = this.(ObjectExpressionNode).getACreatorReference()
+    or result = this.(TopLevelCall).getACreatorReference()
   }
 }
 
@@ -146,19 +181,52 @@ private cached Function getFunction(CallAbleNode c) {
   c instanceof ReactComponent and result = c.(ReactComponent).getInstanceMethod("render")
   or
   c instanceof Function and result = c
+  or
+  c instanceof TopLevelCall and result = c.(TopLevelCall).getContainer()
+}
+
+
+
+/**
+ * Checks if a call is invoking a parameter of the enclosing function.
+ * Used to prevent HOF utility functions (like cache(loader)) from statically linking
+ * to all possible arguments passed to them.
+ */
+predicate isParameterCall(CallNode call, Function scope) {
+  exists(Parameter p |
+    p = scope.getAParameter() and
+    DataFlow::parameterNode(p).flowsTo(DataFlow::valueNode(call.getCallee()))
+  )
+}
+
+/**
+ * Checks if an argument of a call flows from a parameter of the enclosing function.
+ * Used to prevent HOF utility functions from linking to their parameters when passing them
+ * to other functions (e.g. cache(loader) -> adapter(loader)).
+ */
+predicate isParameterArgument(CallNode call, int i, Function scope) {
+  exists(Parameter p |
+    p = scope.getAParameter() and
+    DataFlow::parameterNode(p).flowsTo(DataFlow::valueNode(call.getArgument(i)))
+  )
 }
 
 cached predicate calls(CallAbleNode parent, CallAbleNode child) {
   // direct function-like call
   exists(CallNode call |
     call.getEnclosingFunction*() = getFunction(parent) and
-    call.getCalleeNode() = child
+    call.getCalleeNode() = child and
+    // FIXHOC: Exclude calls to parameters (e.g. cache(loader) -> loader())
+    not isParameterCall(call, getFunction(parent))
   )
   or
   // higher-order function
-  exists(CallNode call |
+  exists(CallNode call, int i |
     call.getEnclosingFunction*() = getFunction(parent) and
-    child = call.getArgumentFunctionNode(_)
+    child = call.getArgumentFunctionNode(i) and
+    // FIXHOC: Exclude arguments that are parameters (e.g. cache(loader) -> adapter(loader))
+    // We don't want cache -> loader_implementation just because it passes loader to adapter.
+    not isParameterArgument(call, i, getFunction(parent))
   )
   or
   // direct JSX element rendering
@@ -171,6 +239,20 @@ cached predicate calls(CallAbleNode parent, CallAbleNode child) {
   exists(JsxLazyElement jx |
     jx.getEnclosingFunction*() = getFunction(parent) and
     jx.getUnderlying() = child
+  )
+  or
+  // Object properties
+  exists(Property prop |
+    parent = prop.getObjectExpr() and
+    child.getACreatorReference().flowsToExpr(prop.getInit())
+  )
+  or
+  // Top-Level Call Dependencies (HOC wrapper chains)
+  // Outer(Inner) -> Outer wraps Inner
+  exists(TopLevelCall parentCall, int i |
+    parent = parentCall and
+    // child is an argument to the parent call
+    child.getACreatorReference().flowsToExpr(parentCall.getArgument(i))
   )
 }
 
