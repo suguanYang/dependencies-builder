@@ -7,7 +7,7 @@ import zlib from 'node:zlib'
 
 export default async () => {
   const fastify = Fastify({
-    loggerInstance: logger as FastifyBaseLogger,
+    loggerInstance: logger.child({}, { level: 'error' }) as FastifyBaseLogger,
   })
 
   // Add custom parser for gzip support

@@ -599,8 +599,32 @@ function mergeImpactReports(reports: ImpactReport[]): ImpactReport {
     'safe' as 'safe' | 'low' | 'medium' | 'high',
   )
 
-  // Merge summaries (deduplicate)
-  const summaries = [...new Set(reports.flatMap((r) => r.summary))]
+  // Merge summaries by file path, keeping the longest description for each file
+  const summaryMap = new Map<string, string>()
+  for (const report of reports) {
+    for (const entry of report.summary) {
+      // Parse "filepath: description" format
+      const colonIndex = entry.indexOf(':')
+      if (colonIndex > 0) {
+        const filePath = entry.substring(0, colonIndex).trim()
+        const description = entry.substring(colonIndex + 1).trim()
+        const existing = summaryMap.get(filePath)
+        // Keep the longest description for each file
+        if (!existing || description.length > existing.length) {
+          summaryMap.set(filePath, description)
+        }
+      } else {
+        // No colon found, use entire entry as key (fallback)
+        if (!summaryMap.has(entry)) {
+          summaryMap.set(entry, '')
+        }
+      }
+    }
+  }
+  // Reconstruct summaries from map
+  const summaries = Array.from(summaryMap.entries()).map(([filePath, description]) =>
+    description ? `${filePath}: ${description}` : filePath,
+  )
 
   // Merge affected projects by project name
   const projectMap = new Map<string, NonNullable<ImpactReport['affectedProjects']>[number]>()

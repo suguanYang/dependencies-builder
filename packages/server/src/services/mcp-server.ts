@@ -56,6 +56,7 @@ export class MCPServerService {
       this.process = spawn('node', [require.resolve('@zereight/mcp-gitlab/build/index.js')], {
         env: {
           ...process.env,
+          LOG_LEVEL: 'error',
           PORT: `${this.port}`,
           HOST: this.host,
           ENABLE_DYNAMIC_API_URL: 'true',
@@ -78,17 +79,38 @@ export class MCPServerService {
       this.process.stderr?.on('data', (data) => {
         const output = data.toString()
         info(`MCP Server (stderr): ${output.trim()}`)
-
-        // Look for the message indicating the server is ready
-        // Pino logs to stderr (destination: 2)
-        if (output.includes(`Endpoint: http://${this.host}:${this.port}/mcp`)) {
-          if (!started) {
-            started = true
-            info(`MCP server ready at http://${this.host}:${this.port}/mcp`)
-            setTimeout(() => resolve(), 500)
-          }
-        }
       })
+
+      // Poll for server readiness
+      const checkHealth = async () => {
+        const healthUrl = `http://${this.host}:${this.port}/health`
+        const startTime = Date.now()
+
+        while (Date.now() - startTime < 15000) {
+          try {
+            const response = await fetch(healthUrl)
+            if (response.status === 200) {
+              if (!started) {
+                started = true
+                info(`MCP server ready at http://${this.host}:${this.port}/mcp`)
+                resolve()
+              }
+              return
+            }
+          } catch (e) {
+            // Ignore connection refused errors while starting
+          }
+          await new Promise((r) => setTimeout(r, 500))
+        }
+
+        if (!started) {
+          logError('MCP server failed to start within 15 seconds')
+          this.stop()
+          reject(new Error('MCP server startup timeout'))
+        }
+      }
+
+      checkHealth()
 
       this.process.on('error', (err) => {
         logError('MCP server process error:' + JSON.stringify(err))
@@ -97,7 +119,7 @@ export class MCPServerService {
       })
 
       this.process.on('exit', (code, signal) => {
-        info(`MCP server process exited with code ${code} and signal ${signal}`)
+        info(`MCP server process exited with code ${code} and signal ${signal} `)
         this.process = null
 
         // Auto-restart on unexpected exit (not during shutdown)
@@ -108,15 +130,6 @@ export class MCPServerService {
           }, 5000)
         }
       })
-
-      // Timeout if server doesn't start in 15 seconds
-      setTimeout(() => {
-        if (!started) {
-          logError('MCP server failed to start within 15 seconds')
-          this.stop()
-          reject(new Error('MCP server startup timeout'))
-        }
-      }, 15000)
     })
   }
 
