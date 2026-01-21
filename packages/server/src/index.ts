@@ -19,7 +19,6 @@ async function startServer() {
     // Start MCP server after main server is running
     try {
       await mcpServerService.start()
-      info(`MCP server started at ${mcpServerService.getEndpoint()}`)
     } catch (error) {
       // Log but don't crash - MCP is optional
       fatal(error, 'Failed to start MCP server (LLM features will be unavailable)')
@@ -32,17 +31,17 @@ async function startServer() {
   // Graceful shutdown
   process.on('SIGINT', async () => {
     info('Shutting down gracefully...')
-    await mcpServerService.stop()
     await fastify.close()
     await prisma.$disconnect()
+    await mcpServerService.stop()
     process.exit(0)
   })
 
   process.on('SIGTERM', async () => {
     info('Shutting down gracefully...')
-    await mcpServerService.stop()
     await fastify.close()
     await prisma.$disconnect()
+    await mcpServerService.stop()
     process.exit(0)
   })
 

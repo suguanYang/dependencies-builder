@@ -47,7 +47,6 @@ export async function invokeLLMAgent(
   // Get tools from MCP client
   const mcpClient = getMCPClient()
   const tools = await mcpClient.getTools()
-  debug(`Agent using ${tools.length} tools from MCP`)
 
   // Bind tools to the model with retry logic
   const modelWithTools = llm.bindTools(tools).withRetry({
@@ -82,8 +81,6 @@ Do not guess - only make claims you can support with specific code references an
     debug(`Agent iteration ${iterationCount}/${maxIterations}`)
     debug(`${'='.repeat(80)}`)
 
-    // Log current conversation state with full content
-    debug('\nCurrent conversation has %d messages:', currentMessages.length)
     currentMessages.forEach((msg, idx) => {
       const type = msg.type
       // let content =
@@ -92,63 +89,53 @@ Do not guess - only make claims you can support with specific code references an
       debug(`\n[${idx}] ${type.toUpperCase()}:`)
 
       // Log tool calls for AI messages if present
-      const toolCalls = (msg as any).tool_calls
-      if (type === 'ai' && toolCalls && toolCalls.length > 0) {
-        debug('  Tool Calls:')
-        toolCalls.forEach((tc: any) => {
-          debug(`    - ${tc.name}: ${JSON.stringify(tc.args)}`)
-        })
-      }
+      // const toolCalls = (msg as any).tool_calls
+      // if (type === 'ai' && toolCalls && toolCalls.length > 0) {
+      // debug('  Tool Calls:')
+      // toolCalls.forEach((tc: any) => {
+      //   debug(`    - ${tc.name}: ${JSON.stringify(tc.args)}`)
+      // })
+      // }
 
-      if (type !== 'tool') {
-        // debug('─'.repeat(60))
-        // // Log content with indentation for readability
-        // content.split('\n').forEach((line: string) => {
-        //   debug(`  ${line}`)
-        // })
-        // debug('─'.repeat(60))
-      }
+      // if (type !== 'tool') {
+      // debug('─'.repeat(60))
+      // // Log content with indentation for readability
+      // content.split('\n').forEach((line: string) => {
+      //   debug(`  ${line}`)
+      // })
+      // debug('─'.repeat(60))
+      // }
     })
 
     // Call the model
     const response = await modelWithTools.invoke(currentMessages)
 
     // Log the full response
-    debug('\n📥 LLM Response:')
-    debug('─'.repeat(60))
-    debug('Type: %s', response.type)
+    // debug('\n📥 LLM Response:')
+    // debug('─'.repeat(60))
+    // debug('Type: %s', response.type)
 
     const responseContent =
       typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content, null, 2)
-    debug('Content:')
-    debug(`  ${responseContent.substring(0, 100)}...`)
-
-    if (response.tool_calls && response.tool_calls.length > 0) {
-      debug('\nTool calls requested: %d', response.tool_calls.length)
-      response.tool_calls.forEach((tc, idx) => {
-        debug(`  [${idx}] ${tc.name} (ID: ${tc.id})`)
-        const argsStr = JSON.stringify(tc.args, null, 2)
-        debug(`      ${argsStr.substring(0, 100)}...`)
-      })
-    }
-    debug('─'.repeat(60))
+    // debug('Content:')
+    // debug(`  ${responseContent.substring(0, 100)}...`)
 
     currentMessages.push(response)
 
     // Check if model wants to call tools
     if (!response.tool_calls || response.tool_calls.length === 0) {
       // No tool calls, agent is done
-      debug('\n✅ Agent finished - no more tool calls requested')
-      debug('Final response content:')
-      debug(`  ${responseContent.substring(0, 100)}...`)
+      // debug('\n✅ Agent finished - no more tool calls requested')
+      // debug('Final response content:')
+      // debug(`  ${responseContent.substring(0, 100)}...`)
       return typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content)
     }
 
-    debug(`\n🔧 Executing ${response.tool_calls.length} tool call(s)...`)
+    // debug(`\n🔧 Executing ${response.tool_calls.length} tool call(s)...`)
 
     // Execute all tool calls and collect results
     const toolMessages: BaseMessage[] = []
@@ -211,7 +198,6 @@ Do not guess - only make claims you can support with specific code references an
     }
 
     // Add all tool messages to the conversation
-    debug('\n📤 Adding %d tool result(s) to conversation', toolMessages.length)
     currentMessages.push(...toolMessages)
   }
 

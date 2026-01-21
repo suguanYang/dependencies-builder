@@ -65,16 +65,12 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
 
   try {
     validateLLMConfig(config)
-  } catch (error) {
-    debug('LLM configuration validation failed: %o', error)
+  } catch (err) {
+    error('LLM configuration validation failed: %o', err)
     return null
   }
 
   try {
-    debug('Starting LLM-based impact analysis with dynamic context building...')
-
-    // Fetch GitRepo configurations for all affected projects
-    debug('Fetching GitRepo configurations for affected projects...')
     const { getGitRepoByHost, parseGitUrl } = await import('../api')
 
     // Collect project data from current project and all affected projects
@@ -92,7 +88,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
           const parsed = parseGitUrl(projectAddr)
           projectData.push({ projectId: parsed.projectId, host: parsed.host })
         } catch (err) {
-          debug('Failed to parse project address %s: %o', projectAddr, err)
+          error('Failed to parse project address %s: %o', projectAddr, err)
         }
       }
     }
@@ -116,7 +112,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
           if (!failedHosts.includes(host)) {
             failedHosts.push(host)
           }
-          debug('Failed to fetch GitRepo config for host %s: %o', host, err)
+          error('Failed to fetch GitRepo config for host %s: %o', host, err)
           continue
         }
       }
@@ -166,14 +162,14 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
           const report = parseAgentResult(result)
           debug(`Batch ${index + 1}/${batches.length} completed successfully`)
           return report
-        } catch (error) {
-          debug(`Batch ${index + 1}/${batches.length} failed: %o`, error)
+        } catch (err) {
+          error(`Batch ${index + 1}/${batches.length} failed: %o`, err)
           // Return a partial error report for this batch
           return {
             success: false,
             level: 'medium' as const,
             summary: [`Batch ${index + 1} failed to analyze`],
-            message: error instanceof Error ? error.message : String(error),
+            message: err instanceof Error ? err.message : String(err),
           }
         } finally {
           // Always release the lease if we acquired one
@@ -181,7 +177,7 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
             try {
               await releaseLease()
             } catch (releaseError) {
-              debug(`Failed to release rate limit lease for batch ${index + 1}: %o`, releaseError)
+              error(`Failed to release rate limit lease for batch ${index + 1}: %o`, releaseError)
             }
           }
         }
@@ -193,13 +189,13 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
 
     debug('All batches completed and merged')
     return mergedReport
-  } catch (error) {
-    debug('Impact analysis failed: %o', error)
+  } catch (err) {
+    error('Impact analysis failed: %o', err)
     return {
       success: false,
       level: 'medium',
       summary: ['Failed to analyze impact'],
-      message: error instanceof Error ? error.message : String(error),
+      message: err instanceof Error ? err.message : String(err),
     }
   } finally {
     // Always close the MCP client
@@ -353,11 +349,9 @@ async function prepareContextBatches(input: ImpactAnalysisInput): Promise<Format
     const cacheKey = `${projectId}:${filePath}:${ref}`
 
     if (fileContentCache.has(cacheKey)) {
-      debug('Cache hit for %s', cacheKey)
       return fileContentCache.get(cacheKey)
     }
 
-    debug('Fetching file content: %s', cacheKey)
     const content = await getFileContentsTool
       .invoke({
         project_id: projectId,
@@ -390,14 +384,6 @@ async function prepareContextBatches(input: ImpactAnalysisInput): Promise<Format
       currentProjectID,
       toNode.relativePath,
       input.sourceBranch,
-    )
-
-    debug(
-      'Fetched files for %s -> %s (%d + %d bytes)',
-      fromNode.projectName,
-      toNode.relativePath,
-      typeof impactedFileContent === 'string' ? impactedFileContent.length : 0,
-      typeof dependentFileContent === 'string' ? dependentFileContent.length : 0,
     )
 
     // Extract actual content from GitLab MCP response
