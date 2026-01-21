@@ -11,30 +11,26 @@ export default async () => {
   })
 
   // Add custom parser for gzip support
-  fastify.addContentTypeParser(
-    'application/json',
-    { parseAs: 'buffer' },
-    (req, body, done) => {
-      if (req.headers['content-encoding'] === 'gzip') {
-        zlib.gunzip(body, (err, decoded) => {
-          if (err) return done(err)
-          try {
-            const json = JSON.parse(decoded.toString())
-            done(null, json)
-          } catch (e) {
-            done(e as Error)
-          }
-        })
-      } else {
+  fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    if (req.headers['content-encoding'] === 'gzip') {
+      zlib.gunzip(body, (err, decoded) => {
+        if (err) return done(err)
         try {
-          const json = JSON.parse(body.toString())
+          const json = JSON.parse(decoded.toString())
           done(null, json)
         } catch (e) {
           done(e as Error)
         }
+      })
+    } else {
+      try {
+        const json = JSON.parse(body.toString())
+        done(null, json)
+      } catch (e) {
+        done(e as Error)
       }
-    },
-  )
+    }
+  })
 
   // Setup CORS
   await fastify.register(cors, {

@@ -28,16 +28,25 @@ describe('Actions API', () => {
     await prisma.action.deleteMany()
     await prisma.session.deleteMany()
     await prisma.user.deleteMany()
+    await prisma.project.deleteMany()
   })
 
   afterEach(async () => {
     await prisma.action.deleteMany()
     await prisma.session.deleteMany()
     await prisma.user.deleteMany()
+    await prisma.project.deleteMany()
   })
 
   it('should create an action', async () => {
     const { headers } = await getAuthHeaders(server)
+    await prisma.project.create({
+      data: {
+        name: 'test',
+        addr: 'test',
+        type: 'Lib',
+      },
+    })
 
     const response = await server.inject({
       method: 'POST',
@@ -45,6 +54,9 @@ describe('Actions API', () => {
       headers,
       payload: {
         type: 'static_analysis',
+        projectAddr: 'test',
+        projectName: 'test',
+        branch: 'test',
         parameters: {
           projectId: 'test-project',
         },
@@ -219,12 +231,23 @@ describe('Actions API', () => {
       }),
     })
 
+    await prisma.project.create({
+      data: {
+        name: 'test',
+        addr: 'test',
+        type: 'Lib',
+      },
+    })
+
     const response = await server.inject({
       method: 'POST',
       url: '/actions',
       headers,
       payload: {
         type: 'static_analysis',
+        projectAddr: 'test',
+        projectName: 'test',
+        branch: 'test',
         parameters: { projectId: 'test' },
       },
     })

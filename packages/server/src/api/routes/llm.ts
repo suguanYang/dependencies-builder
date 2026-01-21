@@ -1,6 +1,15 @@
 import { FastifyInstance } from 'fastify'
 import * as repository from '../../database/repository'
 import { authenticate, requireAdmin } from '../../auth/middleware'
+import { concurrentLimiter } from '../../llm/concurrent-limiter'
+
+interface RateLimitAcquireBody {
+  clientId?: string
+}
+
+interface RateLimitReleaseBody {
+  leaseId: string
+}
 
 export default async function (fastify: FastifyInstance) {
   fastify.get(
@@ -67,6 +76,89 @@ export default async function (fastify: FastifyInstance) {
       } catch (error) {
         request.log.error(error)
         reply.code(500).send({ error: 'Failed to update LLM config' })
+      }
+    },
+  )
+
+  fastify.post(
+    '/rate-limit/acquire',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        // Get LLM config to determine configKey and limit
+        const config = await repository.getLLMConfig()
+        let configKey = 'env'
+        let limit = parseInt(process.env.LLM_REQUESTS_PER_MINUTE || '60', 10)
+        if (config) {
+          configKey = config.id
+          limit = config.requestsPerMinute
+        }
+        const clientId = (request.body as RateLimitAcquireBody)?.clientId
+
+        request.log.info('Concurrent rate limit acquisition attempt', {
+          configKey,
+          limit,
+          clientId: clientId || 'anonymous',
+        } as any)
+
+        // Try to acquire a lease
+        const lease = concurrentLimiter.acquire(configKey, clientId, limit)
+
+        if (lease) {
+          request.log.debug('Concurrent rate limit lease granted', {
+            configKey,
+            clientId: clientId || 'anonymous',
+            leaseId: lease.id,
+            activeCount: concurrentLimiter.getActiveCount(configKey),
+          } as any)
+          return { allowed: true, leaseId: lease.id }
+        } else {
+          // No available slots - client should retry after a short delay
+          const waitTimeMs = 10000 // 10 second retry delay
+          request.log.debug('Concurrent rate limit denied - no available slots', {
+            configKey,
+            clientId: clientId || 'anonymous',
+            waitTimeMs,
+            activeCount: concurrentLimiter.getActiveCount(configKey),
+          } as any)
+          return { allowed: false, waitTimeMs }
+        }
+      } catch (error) {
+        request.log.error('Concurrent rate limit acquisition failed', error as any)
+        reply.code(500).send({ error: 'Failed to acquire concurrent rate limit lease' })
+      }
+    },
+  )
+
+  fastify.put(
+    '/rate-limit/release',
+    {
+      preHandler: [authenticate],
+    },
+    async (request, reply) => {
+      try {
+        const { leaseId } = request.body as RateLimitReleaseBody
+        if (!leaseId) {
+          reply.code(400).send({ error: 'leaseId is required' })
+          return
+        }
+
+        const released = concurrentLimiter.release(leaseId)
+        if (released) {
+          request.log.debug('Concurrent rate limit lease released', { leaseId } as any)
+          return { released: true }
+        } else {
+          request.log.debug('Concurrent rate limit lease not found or already released', {
+            leaseId,
+          } as any)
+          // Still return success - idempotent operation
+          return { released: false, message: 'Lease not found or already released' }
+        }
+      } catch (error) {
+        request.log.error('Concurrent rate limit release failed', error as any)
+        reply.code(500).send({ error: 'Failed to release concurrent rate limit lease' })
       }
     },
   )

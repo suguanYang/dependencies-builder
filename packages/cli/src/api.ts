@@ -1,5 +1,5 @@
-import { Connection, Project } from './server-types'
 import { gzipSync } from 'node:zlib'
+import { Connection, Project } from './server-types'
 import debug from './utils/debug'
 
 const API_BASE = process.env.DMS_SERVER_URL || 'http://127.0.0.1:3001'
@@ -29,8 +29,8 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     const errorData: any = await response.json().catch(() => ({}))
     throw new Error(
       errorData.error ||
-      errorData.message ||
-      `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}` + (errorData.details || ''),
     )
   }
 
@@ -180,3 +180,5 @@ export const getGitRepoByHost = async (host: string): Promise<GitRepoConfig> => 
     method: 'GET',
   })
 }
+
+export { apiRequest }

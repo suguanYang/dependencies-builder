@@ -3,6 +3,7 @@ import buildServer from '../../server'
 import { prisma } from '../../database/prisma'
 import { FastifyInstance } from 'fastify'
 import { getAuthHeaders } from '../../../test/auth-helper'
+import { concurrentLimiter } from '../../llm/concurrent-limiter'
 
 describe('LLM Configuration API', () => {
   let server: FastifyInstance
@@ -18,6 +19,7 @@ describe('LLM Configuration API', () => {
 
   beforeEach(async () => {
     await prisma.lLMConfig.deleteMany()
+    await prisma.lock.deleteMany()
     await prisma.session.deleteMany()
     await prisma.user.deleteMany()
     // Reset env vars before each test
@@ -25,10 +27,14 @@ describe('LLM Configuration API', () => {
     delete process.env.OPENAI_BASE_URL
     delete process.env.OPENAI_MODEL_NAME
     delete process.env.OPENAI_TEMPERATURE
+    delete process.env.LLM_REQUESTS_PER_MINUTE
+    // Reset concurrent limiter state
+    concurrentLimiter.reset()
   })
 
   afterEach(async () => {
     await prisma.lLMConfig.deleteMany()
+    await prisma.lock.deleteMany()
     await prisma.session.deleteMany()
     await prisma.user.deleteMany()
     // Clean up env vars
@@ -36,6 +42,9 @@ describe('LLM Configuration API', () => {
     delete process.env.OPENAI_BASE_URL
     delete process.env.OPENAI_MODEL_NAME
     delete process.env.OPENAI_TEMPERATURE
+    delete process.env.LLM_REQUESTS_PER_MINUTE
+    // Reset concurrent limiter state
+    concurrentLimiter.reset()
   })
 
   it('should return env var config when DB is empty', async () => {
@@ -165,5 +174,223 @@ describe('LLM Configuration API', () => {
     })
 
     expect(response.statusCode).toBe(403)
+  })
+
+  describe('Rate Limit Acquisition', () => {
+    it('should acquire rate limit lease when under limit', async () => {
+      const { headers } = await getAuthHeaders(server, 'admin')
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'test-client' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(true)
+      expect(result.leaseId).toBeDefined()
+      expect(typeof result.leaseId).toBe('string')
+    })
+
+    it('should deny rate limit lease when at limit', async () => {
+      const { headers } = await getAuthHeaders(server, 'admin')
+      // Default limit is 60 (env config)
+      // Acquire 60 leases by calling the endpoint 60 times
+      const leaseIds: string[] = []
+      for (let i = 0; i < 60; i++) {
+        const response = await server.inject({
+          method: 'POST',
+          url: '/llm/rate-limit/acquire',
+          headers,
+          payload: { clientId: `client-${i}` },
+        })
+        expect(response.statusCode).toBe(200)
+        const result = response.json()
+        expect(result.allowed).toBe(true)
+        leaseIds.push(result.leaseId)
+      }
+
+      // 61st request should be denied
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'new-client' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(false)
+      expect(result.waitTimeMs).toBeGreaterThan(0)
+      expect(result.waitTimeMs).toBe(10000) // Should be 1 second as defined in server
+
+      // Clean up: release all leases
+      for (const leaseId of leaseIds) {
+        await server.inject({
+          method: 'PUT',
+          url: '/llm/rate-limit/release',
+          headers,
+          payload: { leaseId },
+        })
+      }
+    })
+
+    it('should use DB config when present', async () => {
+      const { headers } = await getAuthHeaders(server, 'admin')
+
+      // Create DB config with lower limit
+      await prisma.lLMConfig.create({
+        data: {
+          apiKey: 'db-api-key',
+          baseUrl: 'https://db-api.com',
+          modelName: 'db-model',
+          temperature: 0.5,
+          enabled: true,
+          modelMaxTokens: 128000,
+          safeBuffer: 4000,
+          systemPromptCost: 2000,
+          windowSize: 100,
+          requestsPerMinute: 3, // Lower limit for easier testing
+        },
+      })
+
+      // Acquire 3 leases (limit)
+      const leaseIds: string[] = []
+      for (let i = 0; i < 3; i++) {
+        const response = await server.inject({
+          method: 'POST',
+          url: '/llm/rate-limit/acquire',
+          headers,
+          payload: { clientId: `client-${i}` },
+        })
+        expect(response.statusCode).toBe(200)
+        const result = response.json()
+        expect(result.allowed).toBe(true)
+        leaseIds.push(result.leaseId)
+      }
+
+      // 4th request should be denied
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'new-client' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(false)
+
+      // Clean up
+      for (const leaseId of leaseIds) {
+        await server.inject({
+          method: 'PUT',
+          url: '/llm/rate-limit/release',
+          headers,
+          payload: { leaseId },
+        })
+      }
+    })
+
+    it('should use env var config when no DB config', async () => {
+      const { headers } = await getAuthHeaders(server, 'admin')
+      process.env.LLM_REQUESTS_PER_MINUTE = '2'
+      process.env.OPENAI_API_KEY = 'env-key'
+
+      // Acquire 2 leases (env limit)
+      const leaseIds: string[] = []
+      for (let i = 0; i < 2; i++) {
+        const response = await server.inject({
+          method: 'POST',
+          url: '/llm/rate-limit/acquire',
+          headers,
+          payload: { clientId: `client-${i}` },
+        })
+        expect(response.statusCode).toBe(200)
+        const result = response.json()
+        expect(result.allowed).toBe(true)
+        leaseIds.push(result.leaseId)
+      }
+
+      // 3rd request should be denied
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'new-client' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(false)
+
+      // Clean up
+      for (const leaseId of leaseIds) {
+        await server.inject({
+          method: 'PUT',
+          url: '/llm/rate-limit/release',
+          headers,
+          payload: { leaseId },
+        })
+      }
+    })
+
+    it('should return consistent wait time when denied', async () => {
+      const { headers } = await getAuthHeaders(server, 'admin')
+      process.env.LLM_REQUESTS_PER_MINUTE = '1'
+      process.env.OPENAI_API_KEY = 'env-key'
+
+      // Acquire single lease (limit 1)
+      const acquireResponse = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'client-1' },
+      })
+      expect(acquireResponse.statusCode).toBe(200)
+      const acquireResult = acquireResponse.json()
+      expect(acquireResult.allowed).toBe(true)
+      const leaseId = acquireResult.leaseId
+
+      // Second request should be denied with wait time
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'client-2' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(false)
+      expect(result.waitTimeMs).toBe(10000) // 1 second as defined in server
+
+      // Clean up
+      await server.inject({
+        method: 'PUT',
+        url: '/llm/rate-limit/release',
+        headers,
+        payload: { leaseId },
+      })
+    })
+
+    it('should allow authenticated non-admin users', async () => {
+      // Rate limit endpoint should be accessible to any authenticated user
+      const { headers } = await getAuthHeaders(server, 'user')
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/llm/rate-limit/acquire',
+        headers,
+        payload: { clientId: 'test-client' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const result = response.json()
+      expect(result.allowed).toBe(true)
+      expect(result.leaseId).toBeDefined()
+    })
   })
 })

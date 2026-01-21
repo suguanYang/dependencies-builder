@@ -5,7 +5,7 @@ import { invokeLLMAgent } from './agent'
 import debug, { error } from '../utils/debug'
 import { generateNodeId } from '../utils/node-id'
 import { calculateBatches, type ContextItem, type ContextBatch } from './token-budget'
-import { waitForRateLimit } from './rate-limiter'
+import { acquireRateLimit } from './rate-limiter'
 
 /**
  * Impact analysis report structure
@@ -151,15 +151,17 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
 
     debug(`Processing ${batches.length} batch(es) with rate limiting...`)
 
-    // Fire all batch requests respecting rate limits
-    // Each batch waits for its rate limit window, then fires without blocking others
+    // Fire all batch requests respecting concurrent rate limits
+    // Each batch acquires a lease before making request, releases when done
     const results: ImpactReport[] = await Promise.all(
       batches.map(async (batch, index) => {
-        // Wait for rate limit before making request
-        await waitForRateLimit()
+        let releaseLease: (() => Promise<void>) | null = null
 
-        debug(`Starting batch ${index + 1}/${batches.length}...`)
         try {
+          // Acquire a rate limit lease before making request
+          releaseLease = await acquireRateLimit()
+          debug(`Starting batch ${index + 1}/${batches.length}...`)
+
           const result = await invokeLLMAgent(batch.context, instruction, config.llm)
           const report = parseAgentResult(result)
           debug(`Batch ${index + 1}/${batches.length} completed successfully`)
@@ -172,6 +174,15 @@ export async function analyzeImpact(input: ImpactAnalysisInput): Promise<ImpactR
             level: 'medium' as const,
             summary: [`Batch ${index + 1} failed to analyze`],
             message: error instanceof Error ? error.message : String(error),
+          }
+        } finally {
+          // Always release the lease if we acquired one
+          if (releaseLease) {
+            try {
+              await releaseLease()
+            } catch (releaseError) {
+              debug(`Failed to release rate limit lease for batch ${index + 1}: %o`, releaseError)
+            }
           }
         }
       }),

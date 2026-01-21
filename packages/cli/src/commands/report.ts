@@ -179,13 +179,12 @@ export async function generateReport(): Promise<void> {
       debug('LLM analysis failed: %o', error)
     }
 
-    let reportResult: ReportResult = {
+    const reportResult: ReportResult = {
       affectedToNodes: allAffectedToNodes,
       version: ctx.getVersion(),
       affecatedConnections,
       impactAnalysis,
     }
-
     const optimizedReport = optimizeReport(reportResult)
 
     await uploadReport(optimizedReport)
@@ -307,7 +306,6 @@ async function findAffectedToNodes(
   callGraph: [string, string][],
   changedLines: ChangedLine[],
 ): Promise<{ nodes: LocalNode[]; context: Map<string, string[]> }> {
-  const seen = new Set()
   const affectedNodes = new Set<string>() // Use IDs to track uniqueness efficiently if needed, but here we invoke object equality which is tricky if objects are recreated. Let's use the object itself but handle dupes carefully.
   const affectedNodesList: LocalNode[] = []
   const nodeContext = new Map<string, Set<string>>() // Node ID -> Set of changed code lines
@@ -333,12 +331,8 @@ async function findAffectedToNodes(
     }
 
     let isAffected = false
-    for (const location of edge) {
-      if (seen.has(location)) {
-        continue
-      }
-      seen.add(location)
 
+    for (const location of edge) {
       const [relativePath, startLine, _startColumn, endLine, _endColumn] = location.split(':')
 
       const fileChanges = changedLines.find((cl) => cl.file === relativePath)
@@ -405,12 +399,11 @@ function toMinimalNode(node: LocalNode | Node): MinimalNode {
     startLine: node.startLine,
     project: (node as any).project
       ? {
-        addr: (node as any).project.addr,
-      }
+          addr: (node as any).project.addr,
+        }
       : undefined,
   }
 }
-
 function optimizeReport(report: ReportResult): any {
   // Map affectedToNodes to MinimalNode
   const minimalNodes = report.affectedToNodes.map(toMinimalNode)

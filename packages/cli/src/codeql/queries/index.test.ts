@@ -18,6 +18,7 @@ vi.mock('../../context', () => ({
 
 vi.mock('../../utils/fs-helper', () => ({
   ensureDirectoryExistsSync: vi.fn(),
+  fileExistsSync: vi.fn().mockReturnValue(true),
 }))
 
 vi.mock('../../utils/constant', () => ({
