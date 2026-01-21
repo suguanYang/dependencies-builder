@@ -275,6 +275,10 @@ class Context {
     if (this.options.name) {
       const project = await getProjectByName(this.options.name)
 
+      if (!project) {
+        throw new Error(`Project ${this.options.name} not found`)
+      }
+
       this.type = project.type
       this.entries = project.entries
     }

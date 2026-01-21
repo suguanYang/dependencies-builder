@@ -8,7 +8,7 @@ import { Results } from '../codeql/queries'
 import { directoryExistsSync } from '../utils/fs-helper'
 import { uploadReport } from '../upload'
 import { getConnectionsByToNode, getProjectByName } from '../api'
-import { Connection, LocalNode } from '../server-types'
+import { Connection, LocalNode, Node } from '../server-types'
 import { analyzeImpact, type ImpactReport } from '../llm/analyzer'
 import { generateNodeId } from '../utils/node-id'
 
@@ -179,14 +179,16 @@ export async function generateReport(): Promise<void> {
       debug('LLM analysis failed: %o', error)
     }
 
-    const reportResult: ReportResult = {
+    let reportResult: ReportResult = {
       affectedToNodes: allAffectedToNodes,
       version: ctx.getVersion(),
       affecatedConnections,
       impactAnalysis,
     }
 
-    await uploadReport(reportResult)
+    const optimizedReport = optimizeReport(reportResult)
+
+    await uploadReport(optimizedReport)
     debug('Multi-project report generation completed successfully!')
   } catch (error) {
     debug('Report generation failed: %o', error)
@@ -379,4 +381,53 @@ async function findAffectedToNodes(
   }
 
   return { nodes: affectedNodesList, context: contextMap }
+}
+
+interface MinimalNode {
+  name: string
+  projectName: string
+  type: string
+  version: string
+  relativePath: string
+  startLine: number
+  project?: {
+    addr: string
+  }
+}
+
+function toMinimalNode(node: LocalNode | Node): MinimalNode {
+  return {
+    name: node.name,
+    projectName: node.projectName,
+    type: node.type,
+    version: node.version,
+    relativePath: node.relativePath,
+    startLine: node.startLine,
+    project: (node as any).project
+      ? {
+        addr: (node as any).project.addr,
+      }
+      : undefined,
+  }
+}
+
+function optimizeReport(report: ReportResult): any {
+  // Map affectedToNodes to MinimalNode
+  const minimalNodes = report.affectedToNodes.map(toMinimalNode)
+
+  // Map affectedConnections to use MinimalNode
+  const minimalConnections = report.affecatedConnections.map((conn) => ({
+    ...conn,
+    fromNode: toMinimalNode(conn.fromNode),
+    toNode: toMinimalNode(conn.toNode),
+    // Remove raw nodes if they exist as separate fields (Connection type has fromNode/toNode)
+    // We strictly return a new object structure that matches what the server/UI expects
+    // but with trimmed node objects.
+  }))
+
+  return {
+    ...report,
+    affectedToNodes: minimalNodes,
+    affecatedConnections: minimalConnections,
+  }
 }

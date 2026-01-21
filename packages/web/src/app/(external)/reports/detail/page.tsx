@@ -202,13 +202,12 @@ function ReportDetailPage() {
               {hasImpactAnalysis && report.result.impactAnalysis?.level ? (
                 <>
                   <div
-                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${
-                      report.result.impactAnalysis.level === 'low'
-                        ? 'bg-green-100 text-green-700'
-                        : report.result.impactAnalysis.level === 'medium'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                    }`}
+                    className={`inline-block text-lg font-bold px-3 py-1 rounded-full ${report.result.impactAnalysis.level === 'low'
+                      ? 'bg-green-100 text-green-700'
+                      : report.result.impactAnalysis.level === 'medium'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}
                   >
                     {report.result.impactAnalysis.level.toUpperCase()}
                   </div>
