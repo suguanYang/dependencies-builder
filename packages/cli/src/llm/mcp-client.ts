@@ -1,9 +1,12 @@
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import { randomUUID } from 'crypto'
 import debug, { error } from '../utils/debug'
 import type { GitRepoConfig } from '../api'
 
 let mcpClient: MultiServerMCPClient | null = null
 let projectIdToConfigMap: Map<string, GitRepoConfig> = new Map()
+// Store session ID to reuse across requests and for cleanup
+let sessionId: string | null = null
 
 // MCP endpoint - constructed from host and port
 const MCP_SERVER_HOST = process.env.MCP_SERVER_HOST || '127.0.0.1'
@@ -25,6 +28,10 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
   debug('Initializing GitLab MCP client with endpoint: %s', MCP_ENDPOINT)
   projectIdToConfigMap = configMap
 
+  // Generate a persistent session ID for this client instance
+  sessionId = randomUUID()
+  debug('Generated MCP session ID: %s', sessionId)
+
   if (configMap.size === 0) {
     throw new Error('At least one GitRepo configuration is required to initialize MCP client')
   }
@@ -42,6 +49,7 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
         headers: {
           Authorization: `Bearer ${firstConfig.accessToken}`,
           'X-GitLab-API-URL': firstConfig.apiUrl,
+          'mcp-session-id': sessionId, // Inject session ID to reuse session
         },
       },
     },
@@ -72,6 +80,7 @@ export async function initMCPClient(configMap: Map<string, GitRepoConfig>) {
         headers: {
           Authorization: `Bearer ${matchingConfig.accessToken}`,
           'X-GitLab-API-URL': matchingConfig.apiUrl,
+          'mcp-session-id': sessionId!, // Ensure session ID is preserved in tool calls
         },
       }
     },
@@ -106,13 +115,33 @@ export async function closeMCPClient(): Promise<void> {
   debug('Closing MCP client...')
   try {
     await mcpClient.close()
+
+    // Explicitly close the session on the server
+    if (sessionId) {
+      try {
+        debug('Explicitly closing session %s on server...', sessionId)
+        await fetch(MCP_ENDPOINT, {
+          method: 'DELETE',
+          headers: {
+            'mcp-session-id': sessionId
+          }
+        })
+        debug('Session closed successfully on server')
+      } catch (err) {
+        // Log but don't fail if cleanup fails (server might be down already)
+        debug('Warning: Failed to close remote session: %o', err)
+      }
+    }
+
     mcpClient = null
+    sessionId = null
     projectIdToConfigMap.clear()
     debug('MCP client closed successfully')
   } catch (error) {
     debug('Error closing MCP client: %o', error)
     // Still set to null to allow re-initialization
     mcpClient = null
+    sessionId = null
     projectIdToConfigMap.clear()
   }
 }
