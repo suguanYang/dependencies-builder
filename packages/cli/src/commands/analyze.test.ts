@@ -144,18 +144,9 @@ describe('analyzeProject command', () => {
 
       vi.mocked(getAnyNodeByProjectBranchVersion).mockResolvedValue(existingNode as any)
 
-      // Mock process.exit to throw an error to stop execution
-      const mockExit = vi.spyOn(process, 'exit').mockImplementation((code) => {
-        throw new Error(`Process exited with code ${code}`)
-      })
+      await expect(analyzeProject()).resolves.toBeUndefined()
 
-      // Expect the function to throw due to process.exit
-      await expect(analyzeProject()).rejects.toThrow('Process exited with code 0')
-
-      expect(mockExit).toHaveBeenCalledWith(0)
       expect(runCodeQL).not.toHaveBeenCalled()
-
-      mockExit.mockRestore()
     })
   })
 
@@ -241,6 +232,18 @@ describe('analyzeProject command', () => {
 
       await expect(analyzeProject()).rejects.toThrow()
 
+      expect(rmSync).toHaveBeenCalledWith('/tmp/test/repo', { recursive: true })
+    })
+
+    it('should cleanup for remote repos when analysis is skipped due to existing node', async () => {
+      mockContext.isRemote = () => true
+      const { directoryExistsSync } = await import('../utils/fs-helper')
+      vi.mocked(directoryExistsSync).mockReturnValue(true)
+      vi.mocked(getAnyNodeByProjectBranchVersion).mockResolvedValue({ qlsVersion: 'v1.0.0' } as any)
+
+      await expect(analyzeProject()).resolves.toBeUndefined()
+
+      expect(runCodeQL).not.toHaveBeenCalled()
       expect(rmSync).toHaveBeenCalledWith('/tmp/test/repo', { recursive: true })
     })
   })

@@ -26,7 +26,7 @@ export async function analyzeProject(): Promise<void> {
 
     if (node && node?.qlsVersion === ctx.getQlsVersion()) {
       debug(`already existing nodes for version: ${ctx.getVersion()}, qls: ${ctx.getQlsVersion()}`)
-      process.exit(0)
+      return
     }
 
     // Handle monorepo package name search
