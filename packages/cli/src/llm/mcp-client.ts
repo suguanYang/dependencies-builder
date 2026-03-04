@@ -144,7 +144,12 @@ export async function closeMCPClient(): Promise<void> {
         ?.transport
 
       if (transport?.terminateSession) {
-        await transport.terminateSession()
+        await Promise.race([
+          transport.terminateSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('MCP terminateSession timeout after 3000ms')), 3000),
+          ),
+        ])
         debug('MCP server session terminated explicitly via DELETE /mcp')
       } else {
         debug('MCP transport does not support terminateSession(), skipping explicit server session close')
