@@ -136,6 +136,24 @@ export async function closeMCPClient(): Promise<void> {
 
   debug('Closing MCP client...')
   try {
+    // Explicitly terminate the server-side MCP session before closing local client resources.
+    // The SDK's StreamableHTTPClientTransport supports DELETE /mcp via terminateSession().
+    try {
+      const gitlabClient = await mcpClient.getClient('gitlab')
+      const transport = (gitlabClient as { transport?: { terminateSession?: () => Promise<void> } })
+        ?.transport
+
+      if (transport?.terminateSession) {
+        await transport.terminateSession()
+        debug('MCP server session terminated explicitly via DELETE /mcp')
+      } else {
+        debug('MCP transport does not support terminateSession(), skipping explicit server session close')
+      }
+    } catch (terminateError) {
+      // Best effort only. Continue with normal close path.
+      debug('Failed to terminate MCP server session explicitly: %o', terminateError)
+    }
+
     await mcpClient.close()
 
     mcpClient = null
